@@ -6,7 +6,7 @@
 
 body {
     background-color: var(--bg);
-    font-family: 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -16,72 +16,80 @@ body {
 
 .container {
     background: white;
-    width: 90%;
-    max-width: 500px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    border: 1px solid #ddd;
+    width: 95%;
+    max-width: 450px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    overflow: hidden;
+}
+
+.image-container {
+    width: 100%;
+    aspect-ratio: 0 / 0; /* Esto hace que la imagen sea siempre cuadrada */
+    background-color: #333; /* Fondo oscuro por si la imagen falla */
 }
 
 .image-container img {
     width: 100%;
-    height: 250px;
+    height: 100%;
     object-fit: cover;
     display: block;
+    transition: opacity 0.3s ease-in-out;
+    justify-self: anchor-center;
 }
 
 .controls-container {
-    padding: 25px;
+    padding: 5px;
 }
 
 h1 {
     text-align: center;
     color: var(--dark);
-    font-size: 1.5rem;
-    margin-bottom: 20px;
+    font-size: 1.4rem;
+    margin: 0 0 20px 0;
 }
 
-.input-group {
-    margin-bottom: 20px;
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 0.9rem;
 }
 
 select {
     width: 100%;
-    padding: 12px;
-    border: 2px solid #eee;
-    font-size: 1rem;
-    outline: none;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-bottom: 20px;
 }
 
 .radio-group {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
 }
-
-.hidden { display: none; }
 
 .radio-option {
-    background: #f9f9f9;
-    padding: 10px;
-    border: 1px solid #ddd;
+    background: #f8f9fa;
+    padding: 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 0.9rem;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    font-size: 0.85rem;
 }
 
-.radio-option:hover { background: #f0f0f0; }
+.radio-option:hover { background: #e9ecef; }
+
+.player-container { width: 100%; }
 
 /* Reproductor 100% y Cuadrado */
-.player-container {
-    width: 100%;
-}
-
 .player-square {
     width: 100%;
-    height: 55px;
-    border-radius: 0 !important;
-    background: #000;
+    height: 50px;
+    border-radius: 0;
+    background: #f1f3f4;
 }

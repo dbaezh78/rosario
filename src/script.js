@@ -1,68 +1,108 @@
-// Base de datos de rutas de audio
-const audioPaths = {
+// Base de datos de rutas. 
+// Para el tiempo (s), usa la fórmula: (minutos * 60) + segundos
+const audioData = {
     es: {
-        joyful:		"src/mp3/es/Gozosos.mp3",
-        sorrowful:	"src/mp3/es/Dolorosos.mp3",
-        luminous:	"src/mp3/es/Luminosos.mp3",
-        glorious:	"src/mp3/es/Gloriosos.mp3",
-        img: "https://images.unsplash.com/photo-1544427928-c49cdfebf194" // Imagen para español
-    },
-    en: {
-        joyful:		"src/mp3/en/Gozosos.mp3",
-        sorrowful:	"src/mp3/en/Dolorosos.mp3",
-        luminous:	"src/mp3/en/Luminosos.mp3",
-        glorious:	"src/mp3/en/Gloriosos.mp3",
-        img: "https://images.unsplash.com/photo-1601614919934-58580269389f" // Imagen para inglés
-    },
-    it: {
-        joyful:		"src/mp3/it/Gozosos.mp3",
-        sorrowful:	"src/mp3/it/Dolorosos.mp3",
-        luminous:	"src/mp3/it/Luminosos.mp3",
-        glorious:	"src/mp3/it/Gloriosos.mp3",
-        img: "https://images.unsplash.com/photo-1548625361-195fe576566a" // Imagen para italiano
-    },
-    la: {
-        joyful:		"src/mp3/la/Gozosos.mp3",
-        sorrowful:	"src/mp3/la/Dolorosos.mp3",
-        luminous:	"src/mp3/la/Luminosos.mp3",
-        glorious:	"src/mp3/la/Gloriosos.mp3",
-        img: "https://images.unsplash.com/photo-1594911776735-269368940711" // Imagen para Latín
+        Gozosos: {
+            src: "src/mp3/es/Gozosos.mp3",
+            timeline: [
+                { s: 0, img: "src/img/gososos/gozosos.png" },          // 0:00
+                { s: 82, img: "src/img/gososos/gozosos_1.png" },       // 1:22 -> (1*60)+22 = 80
+                { s: 393, img: "src/img/gososos/gozosos_2.png" },      // 6:33 -> (6*60)+33 = 393
+                { s: 700, img: "src/img/gososos/gozosos_3.png" },      // 11:40 -> (11*60)+40 = 700
+                { s: 1005, img: "src/img/gososos/gozosos_4.png" },     // 16:45 -> (16*60)+45 = 1005
+                { s: 1307, img: "src/img/gososos/gozosos_5.png" },     // 21:47 -> (21*60)+47 = 1307
+                { s: 1622, img: "src/img/letanias.png" },      // 27:02 -> (27*60)+2 = 1622
+            ]
+        },
+        Dolorosos: {
+            src: "src/mp3/es/Dolorosos.mp3",
+            timeline: [
+                { s: 0, img: "src/img/dolorosos/dolorosos.png" },          // 0:00
+                { s: 82, img: "src/img/dolorosos/dolorosos_1.png" },       // 1:22 -> (1*60)+22 = 80
+                { s: 393, img: "src/img/dolorosos/dolorosos_2.png" },      // 6:33 -> (6*60)+33 = 393
+                { s: 700, img: "src/img/dolorosos/dolorosos_3.png" },      // 11:40 -> (11*60)+40 = 700
+                { s: 1005, img: "src/img/dolorosos/dolorosos_4.png" },     // 16:45 -> (16*60)+45 = 1005
+                { s: 1307, img: "src/img/dolorosos/dolorosos_5.png" },     // 21:47 -> (21*60)+47 = 1307
+                { s: 1622, img: "src/img/letanias.png" },      // 27:02 -> (27*60)+2 = 1622
+            ]
+        },
+        Luminosos: {
+            src: "ev/otros/Rosario/Español/Misterios Luminosos.mp3",
+            timeline: [
+                { s: 0, img: "src/img/es/luminosos.png" },
+                { s: 120, img: "src/img/es/luminosos_1.png" }
+            ]
+        },
+        Gloriosos: {
+            src: "ev/otros/Rosario/Español/Mistérios Gloriosos.mp3",
+            timeline: [
+                { s: 0, img: "src/img/es/gloriosos.png" },
+                { s: 120, img: "src/img/es/gloriosos_1.png" }
+            ]
+        }
     }
-    // Puedes agregar pt, ar, he de la misma forma
+    // Para agregar English o Latin, copia la estructura de arriba cambiando 'es' por 'en' o 'la'
 };
 
 const langSelect = document.getElementById('language-select');
-const mysteriesContainer = document.getElementById('mysteries-container');
 const audioPlayer = document.getElementById('audio-player');
 const mainImg = document.getElementById('main-image');
 const radioButtons = document.querySelectorAll('input[name="mystery"]');
 
-// Cambiar al seleccionar idioma
-langSelect.addEventListener('change', () => {
-    const lang = langSelect.value;
-    if (lang && audioPaths[lang]) {
-        mysteriesContainer.classList.remove('hidden');
-        mainImg.src = audioPaths[lang].img;
-        resetRadios();
-    } else {
-        mysteriesContainer.classList.add('hidden');
+let currentMysteryData = null;
+
+// Sincronización de Imagen con el Audio
+audioPlayer.addEventListener('timeupdate', () => {
+    if (!currentMysteryData) return;
+
+    const currentTime = audioPlayer.currentTime;
+    const timeline = currentMysteryData.timeline;
+
+    // Buscamos cuál es la última imagen que debe mostrarse según el tiempo actual
+    let activeStep = timeline[0];
+    for (let i = 0; i < timeline.length; i++) {
+        if (currentTime >= timeline[i].s) {
+            activeStep = timeline[i];
+        } else {
+            break; 
+        }
+    }
+
+    // Solo actualizamos el SRC si es diferente para evitar parpadeos
+    // Comparamos el final de la ruta para evitar errores con http://localhost...
+    const currentImgName = mainImg.getAttribute('src');
+    if (currentImgName !== activeStep.img) {
+        mainImg.src = activeStep.img;
     }
 });
 
-// Cambiar audio al seleccionar misterio
+// Selección de Misterio
 radioButtons.forEach(radio => {
     radio.addEventListener('change', () => {
         const lang = langSelect.value;
         const mystery = radio.value;
         
-        if (lang && audioPaths[lang][mystery]) {
-            audioPlayer.src = audioPaths[lang][mystery];
+        if (audioData[lang] && audioData[lang][mystery]) {
+            currentMysteryData = audioData[lang][mystery];
+            audioPlayer.src = currentMysteryData.src;
+            mainImg.src = currentMysteryData.timeline[0].img;
             audioPlayer.play();
+        } else {
+            alert("Audio no encontrado para este idioma/misterio");
         }
     });
 });
 
-function resetRadios() {
+// Al cambiar idioma, reseteamos todo
+langSelect.addEventListener('change', () => {
     radioButtons.forEach(r => r.checked = false);
+    audioPlayer.pause();
     audioPlayer.src = "";
-}
+    mainImg.src = "src/img/inicio.png";
+    currentMysteryData = null;
+});
+
+// Al cargar por primera vez (Español por defecto)
+window.onload = () => {
+    mainImg.src = "src/img/inicio.png";
+};
