@@ -1,0 +1,87 @@
+:root {
+    --gold: #b8860b;
+    --dark: #1a1a1a;
+    --bg: #f4f4f4;
+}
+
+body {
+    background-color: var(--bg);
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+}
+
+.container {
+    background: white;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    border: 1px solid #ddd;
+}
+
+.image-container img {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    display: block;
+}
+
+.controls-container {
+    padding: 25px;
+}
+
+h1 {
+    text-align: center;
+    color: var(--dark);
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #eee;
+    font-size: 1rem;
+    outline: none;
+}
+
+.radio-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 25px;
+}
+
+.hidden { display: none; }
+
+.radio-option {
+    background: #f9f9f9;
+    padding: 10px;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.radio-option:hover { background: #f0f0f0; }
+
+/* Reproductor 100% y Cuadrado */
+.player-container {
+    width: 100%;
+}
+
+.player-square {
+    width: 100%;
+    height: 55px;
+    border-radius: 0 !important;
+    background: #000;
+}
