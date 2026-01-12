@@ -27,17 +27,27 @@ const audioData = {
             ]
         },
         Luminosos: {
-            src: "ev/otros/Rosario/Español/Misterios Luminosos.mp3",
+            src: "src/mp3/es/Luminosos.mp3",
             timeline: [
-                { s: 0, img: "src/img/es/luminosos.png" },
-                { s: 120, img: "src/img/es/luminosos_1.png" }
+                { s: 0, img: "src/img/luminosos/luminosos.png" },          // 0:00
+                { s: 82, img: "src/img/luminosos/luminosos_1.png" },       // 1:22 -> (1*60)+22 = 80
+                { s: 393, img: "src/img/luminosos/luminosos_2.png" },      // 6:33 -> (6*60)+33 = 393
+                { s: 700, img: "src/img/luminosos/luminosos_3.png" },      // 11:40 -> (11*60)+40 = 700
+                { s: 1005, img: "src/img/luminosos/luminosos_4.png" },     // 16:45 -> (16*60)+45 = 1005
+                { s: 1307, img: "src/img/luminosos/luminosos_5.png" },     // 21:47 -> (21*60)+47 = 1307
+                { s: 1622, img: "src/img/letanias.png" },      // 27:02 -> (27*60)+2 = 1622
             ]
         },
         Gloriosos: {
-            src: "ev/otros/Rosario/Español/Mistérios Gloriosos.mp3",
+            src: "src/mp3/es/Gloriosos.mp3",
             timeline: [
-                { s: 0, img: "src/img/es/gloriosos.png" },
-                { s: 120, img: "src/img/es/gloriosos_1.png" }
+                { s: 0, img: "src/img/gloriosos/gloriosos.png" },          // 0:00
+                { s: 82, img: "src/img/gloriosos/gloriosos_1.png" },       // 1:22 -> (1*60)+22 = 80
+                { s: 393, img: "src/img/gloriosos/gloriosos_2.png" },      // 6:33 -> (6*60)+33 = 393
+                { s: 700, img: "src/img/gloriosos/gloriosos_3.png" },      // 11:40 -> (11*60)+40 = 700
+                { s: 1005, img: "src/img/gloriosos/gloriosos_4.png" },     // 16:45 -> (16*60)+45 = 1005
+                { s: 1307, img: "src/img/gloriosos/gloriosos_5.png" },     // 21:47 -> (21*60)+47 = 1307
+                { s: 1622, img: "src/img/letanias.png" },      // 27:02 -> (27*60)+2 = 1622
             ]
         }
     }
