@@ -5,12 +5,12 @@ const audioData = {
         Gozosos: {
             src: "src/mp3/es/Gozosos.mp3",
             timeline: [
-                { s: 0, img: "src/img/gososos/gozosos.png" },          // 0:00
-                { s: 82, img: "src/img/gososos/gozosos_1.png" },       // 1:22 -> (1*60)+22 = 80
-                { s: 393, img: "src/img/gososos/gozosos_2.png" },      // 6:33 -> (6*60)+33 = 393
-                { s: 700, img: "src/img/gososos/gozosos_3.png" },      // 11:40 -> (11*60)+40 = 700
-                { s: 1005, img: "src/img/gososos/gozosos_4.png" },     // 16:45 -> (16*60)+45 = 1005
-                { s: 1307, img: "src/img/gososos/gozosos_5.png" },     // 21:47 -> (21*60)+47 = 1307
+                { s: 0, img: "src/img/gozosos/gozosos.png" },          // 0:00
+                { s: 82, img: "src/img/gozosos/gozosos_1.png" },       // 1:22 -> (1*60)+22 = 80
+                { s: 393, img: "src/img/gozosos/gozosos_2.png" },      // 6:33 -> (6*60)+33 = 393
+                { s: 700, img: "src/img/gozosos/gozosos_3.png" },      // 11:40 -> (11*60)+40 = 700
+                { s: 1005, img: "src/img/gozosos/gozosos_4.png" },     // 16:45 -> (16*60)+45 = 1005
+                { s: 1307, img: "src/img/gozosos/gozosos_5.png" },     // 21:47 -> (21*60)+47 = 1307
                 { s: 1622, img: "src/img/letanias.png" },      // 27:02 -> (27*60)+2 = 1622
             ]
         },
