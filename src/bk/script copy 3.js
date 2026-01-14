@@ -4,63 +4,51 @@ const mainImg = document.getElementById('main-image');
 const radioButtons = document.querySelectorAll('input[name="mystery"]');
 const dots = document.querySelectorAll('.dot');
 const statusDisplay = document.getElementById('current-status');
-const mysteryDetailDisplay = document.getElementById('mystery-name-detail');
 
 let currentMysteryData = null;
 
+// 1. Obtener el misterio según el día (Lógica de la Iglesia)
 function getMysteryByDay() {
     const days = ['Gloriosos', 'Gozosos', 'Dolorosos', 'Gloriosos', 'Luminosos', 'Dolorosos', 'Gozosos'];
-    const today = new Date().getDay();
+    const today = new Date().getDay(); // 0: Domingo, 1: Lunes...
     return days[today];
 }
 
-function updateStatusText(mysteryKey, index) {
+// 2. Actualizar el letrero grande (2.1rem)
+function updateStatusText(mysteryName, index) {
     const labels = ["Principio", "1er Misterio", "2do Misterio", "3er Misterio", "4to Misterio", "5to Misterio", "Letanías"];
-    const lang = langSelect.value;
-
-    // Limpieza inicial
-    statusDisplay.innerText = "";
-    if (mysteryDetailDisplay) mysteryDetailDisplay.innerText = "";
-
-    // CORTOCIRCUITO: Si el idioma o los datos no existen, salimos de la función sin dar error
-    if (!mysteryKey || !audioData || !audioData[lang]) return;
-
-    // Título 2.1rem
-    statusDisplay.innerText = `${mysteryKey} — ${labels[index]}`;
-
-    // Búsqueda segura del nombre del misterio
-    try {
-        const langNames = audioData[lang].names;
-        if (index > 0 && langNames && langNames[mysteryKey]) {
-            const specificName = langNames[mysteryKey][index - 1];
-            if (mysteryDetailDisplay) mysteryDetailDisplay.innerText = specificName || "";
-        }
-    } catch (e) {
-        // Silenciamos cualquier error de lectura
+    if (mysteryName) {
+        statusDisplay.innerText = `${mysteryName} — ${labels[index]}`;
+    } else {
+        statusDisplay.innerText = "";
     }
 }
 
+// 3. Selección automática (se usa al cargar y al cambiar idioma)
 function selectMysteryByDay() {
     const mysteryToday = getMysteryByDay();
     const radioToSelect = document.querySelector(`input[name="mystery"][value="${mysteryToday}"]`);
+    
     if (radioToSelect) {
         radioToSelect.checked = true;
+        // Disparamos el evento para que cargue el audio desde content.js
         radioToSelect.dispatchEvent(new Event('change'));
     }
 }
 
+// Clic en los puntos para saltar en el audio
 dots.forEach((dot, index) => {
     dot.addEventListener('click', () => {
-        if (currentMysteryData && currentMysteryData.timeline && currentMysteryData.timeline[index]) {
+        if (currentMysteryData && currentMysteryData.timeline[index]) {
             audioPlayer.currentTime = currentMysteryData.timeline[index].s;
             audioPlayer.play();
         }
     });
 });
 
+// Sincronización de Tiempo -> Imagen, Puntos y Letrero
 audioPlayer.addEventListener('timeupdate', () => {
-    // Si no hay datos cargados, no procesamos nada
-    if (!currentMysteryData || !currentMysteryData.timeline) return;
+    if (!currentMysteryData) return;
 
     const currentTime = audioPlayer.currentTime;
     const timeline = currentMysteryData.timeline;
@@ -73,7 +61,7 @@ audioPlayer.addEventListener('timeupdate', () => {
     }
 
     // Actualizar Imagen
-    if (timeline[activeIndex] && mainImg.getAttribute('src') !== timeline[activeIndex].img) {
+    if (mainImg.getAttribute('src') !== timeline[activeIndex].img) {
         mainImg.src = timeline[activeIndex].img;
     }
 
@@ -82,42 +70,43 @@ audioPlayer.addEventListener('timeupdate', () => {
         dot.classList.toggle('active', index === activeIndex);
     });
 
+    // Actualizar el letrero grande dinámicamente
     const activeMystery = document.querySelector('input[name="mystery"]:checked')?.value;
     updateStatusText(activeMystery, activeIndex);
 });
 
+// Cambio de Misterio (Radio Buttons)
 radioButtons.forEach(radio => {
     radio.addEventListener('change', () => {
         const lang = langSelect.value;
         const mystery = radio.value;
         
-        // Verificamos existencia de datos antes de asignar
+        // Buscamos en el objeto audioData que ahora vive en content.js
         if (typeof audioData !== 'undefined' && audioData[lang] && audioData[lang][mystery]) {
             currentMysteryData = audioData[lang][mystery];
             audioPlayer.src = currentMysteryData.src;
-            if (currentMysteryData.timeline && currentMysteryData.timeline[0]) {
-                mainImg.src = currentMysteryData.timeline[0].img;
-            }
+            mainImg.src = currentMysteryData.timeline[0].img;
             audioPlayer.play();
         } else {
-            // Reset seguro
             currentMysteryData = null;
             audioPlayer.src = "";
             statusDisplay.innerText = "Audio no disponible";
-            if (mysteryDetailDisplay) mysteryDetailDisplay.innerText = "";
-            dots.forEach(d => d.classList.remove('active'));
         }
     });
 });
 
+// Cambio de Idioma
 langSelect.addEventListener('change', () => {
     audioPlayer.pause();
     audioPlayer.src = "";
     mainImg.src = "src/img/inicio.png";
     dots.forEach(d => d.classList.remove('active'));
+    
+    // Seleccionar automáticamente el misterio del día para el nuevo idioma
     selectMysteryByDay();
 });
 
+// Al cargar la página
 window.onload = () => {
     mainImg.src = "src/img/inicio.png";
     selectMysteryByDay();

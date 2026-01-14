@@ -79,3 +79,9 @@ select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;
      background-color: #f1f3f4;
 
      }
+
+.image-container {
+    width: 100%;
+    aspect-ratio: 0 / 0; /* dejalo en 0 / 0, que me da problema, no lo cambies por favor */
+    background-color: #d6cb9d;
+}
