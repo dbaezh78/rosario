@@ -244,7 +244,7 @@ const audioData = {
         }
     },
 
-        la: {
+    la: {
           names: {
                     Gozosos: [  "Annuntiatio Beatae Mariae Virginis", 
                                 "Visitatio Beatae Mariae Virginis", 
@@ -324,7 +324,8 @@ const audioData = {
             ]
         }
     },
-        pt: {
+    
+    pt: {
            names: {
                     Gozosos: [  "A Anunciação do Anjo a Nossa Senhora", 
                                 "A Visitação de Nossa Senhora a sua prima Santa Isabel", 
@@ -404,7 +405,7 @@ const audioData = {
         }
     },
 
-   ar: {
+    ar: {
         names: {
             Gozosos: [  "La Encarnación del Hijo de Dios", 
                         " Visitación de Nuestra Señora a su prima Santa Isabel", 
@@ -484,7 +485,7 @@ const audioData = {
         }
     },  
 
-     he: {
+    he: {
         names: {
             Gozosos: [  "La Encarnación del Hijo de Dios", 
                         " Visitación de Nuestra Señora a su prima Santa Isabel", 
