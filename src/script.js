@@ -53,7 +53,12 @@ dots.forEach((dot, index) => {
     dot.addEventListener('click', () => {
         if (currentMysteryData && currentMysteryData.timeline && currentMysteryData.timeline[index]) {
             audioPlayer.currentTime = currentMysteryData.timeline[index].s;
+            
             audioPlayer.play();
+            /*
+            audioPlayer.play().catch(error => {
+                console.log("Autoplay bloqueado: El usuario debe interactuar para escuchar el audio."); 
+                }); */
         }
     });
 });
@@ -98,7 +103,10 @@ radioButtons.forEach(radio => {
             if (currentMysteryData.timeline && currentMysteryData.timeline[0]) {
                 mainImg.src = currentMysteryData.timeline[0].img;
             }
-            audioPlayer.play();
+            //audioPlayer.play();
+            audioPlayer.play().catch(error => {
+                    console.log("Autoplay bloqueado: El usuario debe interactuar para escuchar el audio.");
+                });
         } else {
             // Reset seguro
             currentMysteryData = null;
