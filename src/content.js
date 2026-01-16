@@ -405,6 +405,88 @@ const audioData = {
         }
     },
 
+        fr: {
+            names: {
+                Gozosos: [  "L'Annonciation", 
+                            "La Visitation de la Vierge Marie", 
+                            "La Naissance de Jésus", 
+                            "La Présentation de Jésus au Temple", 
+                            "Le Recouvrement de Jésus au Temple", 
+                            "Litanies"],
+
+                Dolorosos: ["L'Agonie de Jésus au Jardin des Oliviers", 
+                            "La Flagellation de Jésus", 
+                            "Le Couronnement d'épines", 
+                            "Le Portement de la Croix", 
+                            "La Crucifixion et la Mort de Jésus sur la Croix", 
+                            "Litanies"],
+
+                Luminosos: ["Le Baptême de Jésus au Jourdain", 
+                            "Les Noces de Cana", 
+                            "L'Annonce du Royaume de Dieu", 
+                            "La Transfiguration", 
+                            "L'Institution de l'Eucharistie", 
+                            "Litanies"],
+
+                Gloriosos: ["La Résurrection", 
+                            "L'Ascension de Jésus au Ciel", 
+                            "La Descente du Saint-Esprit", 
+                            "L'Assomption de la Vierge Marie", 
+                            "Le Couronnement de la Vierge Marie", 
+                            "Litanies"]
+            },
+
+        Gozosos: {
+            src: "src/mp3/fr/Gozosos.mp3",
+            timeline: [
+                { s: 0, img: "src/img/gozosos/gozosos.png" },          // 0:00
+                { s: 187, img: "src/img/gozosos/gozosos_1.png" },       // 1:22 -> (1*60)+22 = 80
+                { s: 452, img: "src/img/gozosos/gozosos_2.png" },      // 6:33 -> (6*60)+33 = 393
+                { s: 717, img: "src/img/gozosos/gozosos_3.png" },      // 11:40 -> (11*60)+40 = 700
+                { s: 983, img: "src/img/gozosos/gozosos_4.png" },     // 16:45 -> (16*60)+45 = 1005
+                { s: 1250, img: "src/img/gozosos/gozosos_5.png" },     // 21:47 -> (21*60)+47 = 1307
+                { s: 1514, img: "src/img/letanias.png" },      // 27:02 -> (27*60)+2 = 1622
+            ]
+        },
+
+        Dolorosos: {
+            src: "src/mp3/fr/Dolorosos.mp3",
+            timeline: [
+                { s: 0, img: "src/img/dolorosos/dolorosos.png" },          // 0:00
+                { s: 189, img: "src/img/dolorosos/dolorosos_1.png" },       // 1:22 -> (1*60)+22 = 80
+                { s: 458, img: "src/img/dolorosos/dolorosos_2.png" },      // 6:33 -> (6*60)+33 = 393
+                { s: 721, img: "src/img/dolorosos/dolorosos_3.png" },      // 11:40 -> (11*60)+40 = 700
+                { s: 987, img: "src/img/dolorosos/dolorosos_4.png" },     // 16:45 -> (16*60)+45 = 1005
+                { s: 1247, img: "src/img/dolorosos/dolorosos_5.png" },     // 21:47 -> (21*60)+47 = 1307
+                { s: 1514, img: "src/img/letanias.png" },      // 27:02 -> (27*60)+2 = 1622
+            ]
+        },
+        Luminosos: {
+            src: "src/mp3/fr/Luminosos.mp3",
+            timeline: [
+                { s: 0, img: "src/img/luminosos/luminosos.png" },          // 0:00
+                { s: 188, img: "src/img/luminosos/luminosos_1.png" },       // 1:22 -> (1*60)+22 = 80
+                { s: 455, img: "src/img/luminosos/luminosos_2.png" },      // 6:33 -> (6*60)+33 = 393
+                { s: 716, img: "src/img/luminosos/luminosos_3.png" },      // 11:40 -> (11*60)+40 = 700
+                { s: 984, img: "src/img/luminosos/luminosos_4.png" },     // 16:45 -> (16*60)+45 = 1005
+                { s: 1245, img: "src/img/luminosos/luminosos_5.png" },     // 21:47 -> (21*60)+47 = 1307
+                { s: 1511, img: "src/img/letanias.png" },      // 27:02 -> (27*60)+2 = 1622
+            ]
+        },
+        Gloriosos: {
+            src: "src/mp3/fr/Gloriosos.mp3",
+            timeline: [
+                { s: 0, img: "src/img/gloriosos/gloriosos.png" },          // 0:00
+                { s: 188, img: "src/img/gloriosos/gloriosos_1.png" },       // 1:22 -> (1*60)+22 = 80
+                { s: 453, img: "src/img/gloriosos/gloriosos_2.png" },      // 6:33 -> (6*60)+33 = 393
+                { s: 715, img: "src/img/gloriosos/gloriosos_3.png" },      // 11:40 -> (11*60)+40 = 700
+                { s: 981, img: "src/img/gloriosos/gloriosos_4.png" },     // 16:45 -> (16*60)+45 = 1005
+                { s: 1243, img: "src/img/gloriosos/gloriosos_5.png" },     // 21:47 -> (21*60)+47 = 1307
+                { s: 1510, img: "src/img/letanias.png" },                // 27:02 -> (27*60)+2 = 1622 
+            ]
+        }
+    },
+
     ar: {
         names: {
             Gozosos: [  "La Encarnación del Hijo de Dios", 
