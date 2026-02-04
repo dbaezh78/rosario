@@ -71,12 +71,12 @@ const audioData = {
             src: "src/mp3/es/Gloriosos.mp3",
             timeline: [
                 { s: 0, img: "src/img/gloriosos/gloriosos.png" },          // 0:00
-                { s: 187, img: "src/img/gloriosos/gloriosos_1.png" },       // 1:22 -> (1*60)+22 = 80
-                { s: 427, img: "src/img/gloriosos/gloriosos_2.png" },      // 6:33 -> (6*60)+33 = 393
-                { s: 645, img: "src/img/gloriosos/gloriosos_3.png" },      // 11:40 -> (11*60)+40 = 700
-                { s: 885, img: "src/img/gloriosos/gloriosos_4.png" },     // 16:45 -> (16*60)+45 = 1005
-                { s: 1106, img: "src/img/gloriosos/gloriosos_5.png" },     // 21:47 -> (21*60)+47 = 1307
-                { s: 1329, img: "src/img/letanias.png" },      // 27:02 -> (27*60)+2 = 1622
+                { s: 215, img: "src/img/gloriosos/gloriosos_1.png" },       // 1:22 -> (1*60)+22 = 80
+                { s: 494, img: "src/img/gloriosos/gloriosos_2.png" },      // 6:33 -> (6*60)+33 = 393
+                { s: 751, img: "src/img/gloriosos/gloriosos_3.png" },      // 11:40 -> (11*60)+40 = 700
+                { s: 1034, img: "src/img/gloriosos/gloriosos_4.png" },     // 16:45 -> (16*60)+45 = 1005
+                { s: 1298, img: "src/img/gloriosos/gloriosos_5.png" },     // 21:47 -> (21*60)+47 = 1307
+                { s: 1563, img: "src/img/letanias.png" },      // 27:02 -> (27*60)+2 = 1622
             ]
         }
     },
