@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Santo Rosario Interactivo</title>
+    <link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+
+    <div class="container">
+        <div class="image-container">
+            <img id="main-image" src="https://images.unsplash.com/photo-1544427928-c49cdfebf194?q=80&w=1000" alt="Rosario">
+        </div>
+
+        <div class="controls-container">
+            <h1>El Santo Rosario</h1>
+
+            <div class="input-group">
+                <label for="language-select">Selecciona el Idioma:</label>
+                <select id="language-select">
+                    <option value="">-- Seleccionar --</option>
+                    <option value="es">Español</option>
+                    <option value="en">English</option>
+                    <option value="it">Italiano</option>
+                    <option value="la">Latin</option>
+                    <option value="pt">Português</option>
+                    <option value="ar">Arameo</option>
+                    <option value="he">Hebreo</option>
+                </select>
+            </div>
+
+            <div id="mysteries-container" class="radio-group hidden">
+               <!--  <p>Selecciona el Misterio:</p> -->
+                <label class="radio-option">
+                    <input type="radio" name="mystery" value="joyful"> 
+                    <span id="label-joyful">Gozosos</span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="mystery" value="sorrowful"> 
+                    <span id="label-sorrowful">Dolorosos</span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="mystery" value="luminous"> 
+                    <span id="label-luminous">Luminosos</span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="mystery" value="glorious"> 
+                    <span id="label-glorious">Gloriosos</span>
+                </label>
+            </div>
+
+            <div class="player-container">
+                <audio id="audio-player" controls class="player-square"></audio>
+            </div>
+        </div>
+    </div>
+
+    <script src="src/script.js"></script>
+</body>
+</html>
