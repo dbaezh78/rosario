@@ -1,0 +1,594 @@
+[
+  {
+    "id": "crucifix",
+    "x": 157,
+    "y": 568,
+    "r": 12,
+    "type": "cross",
+    "label": "Crucifijo: Señal de la Cruz y Credo"
+  },
+  {
+    "id": "intro_pn",
+    "x": 157,
+    "y": 525,
+    "r": 8,
+    "type": "large",
+    "label": "Padre Nuestro (Intenciones del Papa)"
+  },
+  {
+    "id": "intro_am_1",
+    "x": 157,
+    "y": 500,
+    "r": 6,
+    "type": "small",
+    "label": "1ª Ave María (Fe)"
+  },
+  {
+    "id": "intro_am_2",
+    "x": 157,
+    "y": 486,
+    "r": 6,
+    "type": "small",
+    "label": "2ª Ave María (Esperanza)"
+  },
+  {
+    "id": "intro_am_3",
+    "x": 157,
+    "y": 471,
+    "r": 6,
+    "type": "small",
+    "label": "3ª Ave María (Caridad)"
+  },
+  {
+    "id": "intro_gloria",
+    "x": 157,
+    "y": 448,
+    "r": 8,
+    "type": "large",
+    "label": "Gloria al Padre y Jaculatoria"
+  },
+  {
+    "id": "medal",
+    "x": 157,
+    "y": 415,
+    "r": 12,
+    "type": "medal",
+    "label": "Medalla de la Virgen María"
+  },
+  {
+    "id": "d1_am_1",
+    "x": 195,
+    "y": 401,
+    "r": 6,
+    "type": "small",
+    "decade": 1,
+    "num": 1,
+    "label": "1er Misterio - 1ª Ave María"
+  },
+  {
+    "id": "d1_am_2",
+    "x": 206,
+    "y": 390,
+    "r": 6,
+    "type": "small",
+    "decade": 1,
+    "num": 2,
+    "label": "1er Misterio - 2ª Ave María"
+  },
+  {
+    "id": "d1_am_3",
+    "x": 216,
+    "y": 379,
+    "r": 6,
+    "type": "small",
+    "decade": 1,
+    "num": 3,
+    "label": "1er Misterio - 3ª Ave María"
+  },
+  {
+    "id": "d1_am_4",
+    "x": 224,
+    "y": 366,
+    "r": 6,
+    "type": "small",
+    "decade": 1,
+    "num": 4,
+    "label": "1er Misterio - 4ª Ave María"
+  },
+  {
+    "id": "d1_am_5",
+    "x": 231,
+    "y": 353,
+    "r": 6,
+    "type": "small",
+    "decade": 1,
+    "num": 5,
+    "label": "1er Misterio - 5ª Ave María"
+  },
+  {
+    "id": "d1_am_6",
+    "x": 239,
+    "y": 339,
+    "r": 6,
+    "type": "small",
+    "decade": 1,
+    "num": 6,
+    "label": "1er Misterio - 6ª Ave María"
+  },
+  {
+    "id": "d1_am_7",
+    "x": 245,
+    "y": 326,
+    "r": 6,
+    "type": "small",
+    "decade": 1,
+    "num": 7,
+    "label": "1er Misterio - 7ª Ave María"
+  },
+  {
+    "id": "d1_am_8",
+    "x": 251,
+    "y": 311,
+    "r": 6,
+    "type": "small",
+    "decade": 1,
+    "num": 8,
+    "label": "1er Misterio - 8ª Ave María"
+  },
+  {
+    "id": "d1_am_9",
+    "x": 256,
+    "y": 297,
+    "r": 6,
+    "type": "small",
+    "decade": 1,
+    "num": 9,
+    "label": "1er Misterio - 9ª Ave María"
+  },
+  {
+    "id": "d1_am_10",
+    "x": 261,
+    "y": 282,
+    "r": 6,
+    "type": "small",
+    "decade": 1,
+    "num": 10,
+    "label": "1er Misterio - 10ª Ave María"
+  },
+  {
+    "id": "d1_gl",
+    "x": 268,
+    "y": 252,
+    "r": 8,
+    "type": "large",
+    "decade": 1,
+    "label": "1er Misterio - Gloria / 2º Misterio - Padre Nuestro"
+  },
+  {
+    "id": "d2_am_1",
+    "x": 275,
+    "y": 224,
+    "r": 6,
+    "type": "small",
+    "decade": 2,
+    "num": 1,
+    "label": "2º Misterio - 1ª Ave María"
+  },
+  {
+    "id": "d2_am_2",
+    "x": 279,
+    "y": 209,
+    "r": 6,
+    "type": "small",
+    "decade": 2,
+    "num": 2,
+    "label": "2º Misterio - 2ª Ave María"
+  },
+  {
+    "id": "d2_am_3",
+    "x": 281,
+    "y": 194,
+    "r": 6,
+    "type": "small",
+    "decade": 2,
+    "num": 3,
+    "label": "2º Misterio - 3ª Ave María"
+  },
+  {
+    "id": "d2_am_4",
+    "x": 283,
+    "y": 178,
+    "r": 6,
+    "type": "small",
+    "decade": 2,
+    "num": 4,
+    "label": "2º Misterio - 4ª Ave María"
+  },
+  {
+    "id": "d2_am_5",
+    "x": 285,
+    "y": 163,
+    "r": 6,
+    "type": "small",
+    "decade": 2,
+    "num": 5,
+    "label": "2º Misterio - 5ª Ave María"
+  },
+  {
+    "id": "d2_am_6",
+    "x": 285,
+    "y": 148,
+    "r": 6,
+    "type": "small",
+    "decade": 2,
+    "num": 6,
+    "label": "2º Misterio - 6ª Ave María"
+  },
+  {
+    "id": "d2_am_7",
+    "x": 283,
+    "y": 132,
+    "r": 6,
+    "type": "small",
+    "decade": 2,
+    "num": 7,
+    "label": "2º Misterio - 7ª Ave María"
+  },
+  {
+    "id": "d2_am_8",
+    "x": 278,
+    "y": 117,
+    "r": 6,
+    "type": "small",
+    "decade": 2,
+    "num": 8,
+    "label": "2º Misterio - 8ª Ave María"
+  },
+  {
+    "id": "d2_am_9",
+    "x": 272,
+    "y": 103,
+    "r": 6,
+    "type": "small",
+    "decade": 2,
+    "num": 9,
+    "label": "2º Misterio - 9ª Ave María"
+  },
+  {
+    "id": "d2_am_10",
+    "x": 264,
+    "y": 90,
+    "r": 6,
+    "type": "small",
+    "decade": 2,
+    "num": 10,
+    "label": "2º Misterio - 10ª Ave María"
+  },
+  {
+    "id": "d2_gl",
+    "x": 245,
+    "y": 66,
+    "r": 8,
+    "type": "large",
+    "decade": 2,
+    "label": "2º Misterio - Gloria / 3er Misterio - Padre Nuestro"
+  },
+  {
+    "id": "d3_am_1",
+    "x": 221,
+    "y": 49,
+    "r": 6,
+    "type": "small",
+    "decade": 3,
+    "num": 1,
+    "label": "3er Misterio - 1ª Ave María"
+  },
+  {
+    "id": "d3_am_2",
+    "x": 208,
+    "y": 44,
+    "r": 6,
+    "type": "small",
+    "decade": 3,
+    "num": 2,
+    "label": "3er Misterio - 2ª Ave María"
+  },
+  {
+    "id": "d3_am_3",
+    "x": 194,
+    "y": 38,
+    "r": 6,
+    "type": "small",
+    "decade": 3,
+    "num": 3,
+    "label": "3er Misterio - 3ª Ave María"
+  },
+  {
+    "id": "d3_am_4",
+    "x": 180,
+    "y": 35,
+    "r": 6,
+    "type": "small",
+    "decade": 3,
+    "num": 4,
+    "label": "3er Misterio - 4ª Ave María"
+  },
+  {
+    "id": "d3_am_5",
+    "x": 165,
+    "y": 33,
+    "r": 6,
+    "type": "small",
+    "decade": 3,
+    "num": 5,
+    "label": "3er Misterio - 5ª Ave María"
+  },
+  {
+    "id": "d3_am_6",
+    "x": 148,
+    "y": 33,
+    "r": 6,
+    "type": "small",
+    "decade": 3,
+    "num": 6,
+    "label": "3er Misterio - 6ª Ave María"
+  },
+  {
+    "id": "d3_am_7",
+    "x": 133,
+    "y": 35,
+    "r": 6,
+    "type": "small",
+    "decade": 3,
+    "num": 7,
+    "label": "3er Misterio - 7ª Ave María"
+  },
+  {
+    "id": "d3_am_8",
+    "x": 119,
+    "y": 38,
+    "r": 6,
+    "type": "small",
+    "decade": 3,
+    "num": 8,
+    "label": "3er Misterio - 8ª Ave María"
+  },
+  {
+    "id": "d3_am_9",
+    "x": 105,
+    "y": 44,
+    "r": 6,
+    "type": "small",
+    "decade": 3,
+    "num": 9,
+    "label": "3er Misterio - 9ª Ave María"
+  },
+  {
+    "id": "d3_am_10",
+    "x": 92,
+    "y": 50,
+    "r": 6,
+    "type": "small",
+    "decade": 3,
+    "num": 10,
+    "label": "3er Misterio - 10ª Ave María"
+  },
+  {
+    "id": "d3_gl",
+    "x": 68,
+    "y": 66,
+    "r": 8,
+    "type": "large",
+    "decade": 3,
+    "label": "3er Misterio - Gloria / 4º Misterio - Padre Nuestro"
+  },
+  {
+    "id": "d4_am_1",
+    "x": 49,
+    "y": 90,
+    "r": 6,
+    "type": "small",
+    "decade": 4,
+    "num": 1,
+    "label": "4º Misterio - 1ª Ave María"
+  },
+  {
+    "id": "d4_am_2",
+    "x": 40,
+    "y": 103,
+    "r": 6,
+    "type": "small",
+    "decade": 4,
+    "num": 2,
+    "label": "4º Misterio - 2ª Ave María"
+  },
+  {
+    "id": "d4_am_3",
+    "x": 34,
+    "y": 117,
+    "r": 6,
+    "type": "small",
+    "decade": 4,
+    "num": 3,
+    "label": "4º Misterio - 3ª Ave María"
+  },
+  {
+    "id": "d4_am_4",
+    "x": 30,
+    "y": 132,
+    "r": 6,
+    "type": "small",
+    "decade": 4,
+    "num": 4,
+    "label": "4º Misterio - 4ª Ave María"
+  },
+  {
+    "id": "d4_am_5",
+    "x": 28,
+    "y": 148,
+    "r": 6,
+    "type": "small",
+    "decade": 4,
+    "num": 5,
+    "label": "4º Misterio - 5ª Ave María"
+  },
+  {
+    "id": "d4_am_6",
+    "x": 28,
+    "y": 163,
+    "r": 6,
+    "type": "small",
+    "decade": 4,
+    "num": 6,
+    "label": "4º Misterio - 6ª Ave María"
+  },
+  {
+    "id": "d4_am_7",
+    "x": 29,
+    "y": 178,
+    "r": 6,
+    "type": "small",
+    "decade": 4,
+    "num": 7,
+    "label": "4º Misterio - 7ª Ave María"
+  },
+  {
+    "id": "d4_am_8",
+    "x": 31,
+    "y": 194,
+    "r": 6,
+    "type": "small",
+    "decade": 4,
+    "num": 8,
+    "label": "4º Misterio - 8ª Ave María"
+  },
+  {
+    "id": "d4_am_9",
+    "x": 34,
+    "y": 209,
+    "r": 6,
+    "type": "small",
+    "decade": 4,
+    "num": 9,
+    "label": "4º Misterio - 9ª Ave María"
+  },
+  {
+    "id": "d4_am_10",
+    "x": 37,
+    "y": 224,
+    "r": 6,
+    "type": "small",
+    "decade": 4,
+    "num": 10,
+    "label": "4º Misterio - 10ª Ave María"
+  },
+  {
+    "id": "d4_gl",
+    "x": 45,
+    "y": 253,
+    "r": 8,
+    "type": "large",
+    "decade": 4,
+    "label": "4º Misterio - Gloria / 5º Misterio - Padre Nuestro"
+  },
+  {
+    "id": "d5_am_1",
+    "x": 52,
+    "y": 282,
+    "r": 6,
+    "type": "small",
+    "decade": 5,
+    "num": 1,
+    "label": "5º Misterio - 1ª Ave María"
+  },
+  {
+    "id": "d5_am_2",
+    "x": 57,
+    "y": 297,
+    "r": 6,
+    "type": "small",
+    "decade": 5,
+    "num": 2,
+    "label": "5º Misterio - 2ª Ave María"
+  },
+  {
+    "id": "d5_am_3",
+    "x": 62,
+    "y": 312,
+    "r": 6,
+    "type": "small",
+    "decade": 5,
+    "num": 3,
+    "label": "5º Misterio - 3ª Ave María"
+  },
+  {
+    "id": "d5_am_4",
+    "x": 68,
+    "y": 326,
+    "r": 6,
+    "type": "small",
+    "decade": 5,
+    "num": 4,
+    "label": "5º Misterio - 4ª Ave María"
+  },
+  {
+    "id": "d5_am_5",
+    "x": 74,
+    "y": 340,
+    "r": 6,
+    "type": "small",
+    "decade": 5,
+    "num": 5,
+    "label": "5º Misterio - 5ª Ave María"
+  },
+  {
+    "id": "d5_am_6",
+    "x": 82,
+    "y": 353,
+    "r": 6,
+    "type": "small",
+    "decade": 5,
+    "num": 6,
+    "label": "5º Misterio - 6ª Ave María"
+  },
+  {
+    "id": "d5_am_7",
+    "x": 89,
+    "y": 366,
+    "r": 6,
+    "type": "small",
+    "decade": 5,
+    "num": 7,
+    "label": "5º Misterio - 7ª Ave María"
+  },
+  {
+    "id": "d5_am_8",
+    "x": 97,
+    "y": 379,
+    "r": 6,
+    "type": "small",
+    "decade": 5,
+    "num": 8,
+    "label": "5º Misterio - 8ª Ave María"
+  },
+  {
+    "id": "d5_am_9",
+    "x": 107,
+    "y": 390,
+    "r": 6,
+    "type": "small",
+    "decade": 5,
+    "num": 9,
+    "label": "5º Misterio - 9ª Ave María"
+  },
+  {
+    "id": "d5_am_10",
+    "x": 118,
+    "y": 401,
+    "r": 6,
+    "type": "small",
+    "decade": 5,
+    "num": 10,
+    "label": "5º Misterio - 10ª Ave María"
+  }
+]

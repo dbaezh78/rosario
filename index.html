@@ -2,75 +2,315 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Santo Rosario Interactivo</title>
-    <link rel="icon"       href="src/img/favicon.ico" type="image/x-icon">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Santo Rosario Interactivo — Meditación y Audio</title>
+    <link rel="icon" href="src/img/favicon.ico" type="image/x-icon">
+    
+    <!-- Tipografías sagradas elegantes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,700;1,400&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="src/style.css">
 </head>
 <body>
 
-    <div class="container">
-        <div class="image-container">
-            <img id="main-image" src="src/img/inicio.png" alt="Imagen del Rosario">
+    <div class="app-container">
+        <!-- BARRA SUPERIOR / ENCABEZADO -->
+        <header class="app-header">
+            <div class="brand-section">
+                <div class="brand-icon">†</div>
+                <div class="brand-title">Santo Rosario</div>
+                <span id="today-badge" class="brand-day-tag">Hoy: Gozosos</span>
+            </div>
+
+            <!-- Selector de Misterios tipo píldora -->
+            <nav class="mysteries-pills" aria-label="Misterios del Rosario">
+                <button type="button" class="mystery-pill" data-mystery="Gozosos">Gozosos</button>
+                <button type="button" class="mystery-pill" data-mystery="Dolorosos">Dolorosos</button>
+                <button type="button" class="mystery-pill" data-mystery="Luminosos">Luminosos</button>
+                <button type="button" class="mystery-pill" data-mystery="Gloriosos">Gloriosos</button>
+            </nav>
+
+            <div class="header-actions">
+                <button id="btn-open-sync" class="btn-sync-trigger" title="Sincronizador de Tiempos y Cuentas" aria-label="Sincronizador de Tiempos">
+                    <span class="sync-btn-icon">⏱️</span>
+                    <span class="sync-btn-text">Sincronizar</span>
+                </button>
+                <div class="lang-select-wrapper">
+                    <select id="language-select" aria-label="Seleccionar idioma">
+                        <option value="es" selected>Español</option>
+                        <option value="en">English</option>
+                        <option value="la">Latīna</option>
+                        <option value="it">Italiano</option>
+                        <option value="pt">Português</option>
+                        <option value="fr">Français</option>
+                    </select>
+                </div>
+                <button id="btn-fullscreen" class="btn-icon" title="Pantalla Completa" aria-label="Pantalla Completa">⛶</button>
+            </div>
+        </header>
+
+        <!-- Selector de pestañas para móviles -->
+        <div class="mobile-view-tabs">
+            <button id="mobile-tab-rosary" class="mobile-tab-btn active">📿 Rosario</button>
+            <button id="mobile-tab-prayer" class="mobile-tab-btn">📜 Oración y Meditación</button>
         </div>
 
-        <div class="controls-container">
-            <div class="player-container">
-                <audio id="audio-player" controls class="player-square"></audio>
-            </div>
+        <!-- ESCENARIO PRINCIPAL (2 Columnas en Desktop y Tablet) -->
+        <main class="main-stage">
             
-            <div class="player-container">
-                <div id="progress-dots" class="dots-container">
-                    <span class="dot" title="Inicio"></span>
-                    <span class="dot" title="1er Misterio"></span>
-                    <span class="dot" title="2do Misterio"></span>
-                    <span class="dot" title="3er Misterio"></span>
-                    <span class="dot" title="4to Misterio"></span>
-                    <span class="dot" title="5to Misterio"></span>
-                    <span class="dot" title="Letanías"></span>
+            <!-- COLUMNA IZQUIERDA: EL ROSARIO DORADO CON CUENTAS ILUMINADAS -->
+            <section id="rosary-column" class="rosary-column">
+                <div class="rosary-stage-header">
+                    <span>MISTERIO Y CUENTAS</span>
+                    <span id="bead-current-hover" style="font-weight: normal; color: var(--text-muted); font-size: 0.8rem;">Toca cualquier cuenta</span>
                 </div>
-            </div>
 
-            <h1>Santo Rosario</h1>
-            <div id="current-status" style="text-align: center; font-weight: bold; color: var(--gold); margin-top: -15px; font-size: 1.1rem;"></div>
-            <div id="mystery-name-detail" style="text-align: center; font-style: italic; color: var(--gold); margin-bottom: 15px; font-size: 150%; min-height: 1.5rem; font-weight: bolder;"></div>
+                <!-- Visor SVG del Rosario -->
+                <div class="rosary-viewport">
+                    <svg id="rosary-svg" class="rosary-svg" viewBox="0 0 305 609" xmlns="http://www.w3.org/2000/svg">
+                        <!-- El script inyectará la imagen dorada y todas las cuentas interactivas -->
+                    </svg>
+                </div>
 
-            <div class="input-group">
-                <label for="language-select">Selecciona el Idioma:</label>
-                <select id="language-select">
-                    <option value="es" selected>Español</option>
-                    <option value="en">English</option>
-                    <option value="it">Italiano</option>
-                    <option value="la">Latin</option>
-                    <option value="pt">Português</option>
-                    <option value="fr">Frances</option>
-                    <option value="ar">Arameo</option>
-                    <option value="he">Hebreo</option>
-                </select>
-            </div>
+                <!-- Mini-Reproductor Ligero para Móviles (Visible en la pestaña del Rosario) -->
+                <div id="mobile-mini-player" class="mobile-mini-player" aria-label="Reproductor rápido">
+                    <div class="mini-player-top">
+                        <div class="mini-info">
+                            <span id="mini-prayer-title" class="mini-title">Santo Rosario</span>
+                            <span id="mini-time-display" class="mini-time">00:00 / 00:00</span>
+                        </div>
+                        <div class="mini-controls">
+                            <button id="mini-btn-prev" class="btn-mini-ctrl" title="Cuenta anterior" aria-label="Cuenta anterior">⏮</button>
+                            <button id="mini-btn-play-pause" class="btn-mini-ctrl btn-mini-play" title="Reproducir / Pausar" aria-label="Reproducir">▶</button>
+                            <button id="mini-btn-next" class="btn-mini-ctrl" title="Siguiente cuenta" aria-label="Siguiente cuenta">⏭</button>
+                        </div>
+                    </div>
+                    <div class="mini-slider-wrap">
+                        <input id="mini-seek-slider" class="mini-seek-slider" type="range" min="0" max="100" value="0" step="0.1" aria-label="Barra de tiempo">
+                    </div>
+                </div>
 
-            <div id="mysteries-container" class="radio-group">
-                <label class="radio-option">
-                    <input type="radio" name="mystery" value="Gozosos"> 
-                    <span>Gozosos</span>
-                </label>
-                <label class="radio-option">
-                    <input type="radio" name="mystery" value="Dolorosos"> 
-                    <span>Dolorosos</span>
-                </label>
-                <label class="radio-option">
-                    <input type="radio" name="mystery" value="Luminosos"> 
-                    <span>Luminosos</span>
-                </label>
-                <label class="radio-option">
-                    <input type="radio" name="mystery" value="Gloriosos"> 
-                    <span>Gloriosos</span>
-                </label>
-            </div>
+                <!-- Barra de las 7 Decenas / Puntos de progreso rápido -->
+                <div class="decades-nav" title="Saltar a una decena">
+                    <span class="decade-dot" title="Inicio del Rosario" data-decade="0">
+                        <span class="decade-dot-label">Inicio</span>
+                    </span>
+                    <span class="decade-dot" title="1er Misterio" data-decade="1">
+                        <span class="decade-dot-label">1º</span>
+                    </span>
+                    <span class="decade-dot" title="2do Misterio" data-decade="2">
+                        <span class="decade-dot-label">2º</span>
+                    </span>
+                    <span class="decade-dot" title="3er Misterio" data-decade="3">
+                        <span class="decade-dot-label">3º</span>
+                    </span>
+                    <span class="decade-dot" title="4to Misterio" data-decade="4">
+                        <span class="decade-dot-label">4º</span>
+                    </span>
+                    <span class="decade-dot" title="5to Misterio" data-decade="5">
+                        <span class="decade-dot-label">5º</span>
+                    </span>
+                    <span class="decade-dot" title="Letanías y Conclusión" data-decade="6">
+                        <span class="decade-dot-label">Letanías</span>
+                    </span>
+                </div>
+            </section>
+
+            <!-- COLUMNA DERECHA: TEXTO EN VIVO DE LAS ORACIONES Y REPRODUCTOR -->
+            <section id="prayer-column" class="prayer-column mobile-hidden">
+                
+                <!-- Banner del Misterio Actual y Miniatura de Arte Sacro -->
+                <article id="mystery-banner-card" class="mystery-banner-card" title="Toca para ampliar la ilustración del misterio">
+                    <div class="mystery-thumb-wrap">
+                        <img id="mystery-banner-thumb" class="mystery-thumb" src="src/img/inicio.png" alt="Misterio Actual">
+                    </div>
+                    <div class="mystery-banner-text">
+                        <div id="mystery-banner-tag" class="mystery-tag">Misterios Gozosos</div>
+                        <h2 id="mystery-banner-title" class="mystery-banner-title">Primer Misterio: La Encarnación</h2>
+                        <div id="mystery-banner-sub" class="mystery-banner-sub">Por las almas del purgatorio</div>
+                    </div>
+                    <div style="color: var(--gold-light); font-size: 1.2rem; margin-right: 4px;">🔍</div>
+                </article>
+
+                <!-- Tarjeta Principal con el Texto Completo de la Oración en Tiempo Real -->
+                <article class="prayer-display-card">
+                    <div class="prayer-card-header">
+                        <div class="bead-counter-badge">
+                            <span id="bead-counter-text">Cuenta 1 de 10 — Ave María</span>
+                            <div id="bead-mini-dots" class="bead-mini-dots">
+                                <!-- 10 mini puntos dorados -->
+                            </div>
+                        </div>
+
+                        <!-- Ajuste de tamaño de texto para fácil lectura -->
+                        <div class="font-size-controls">
+                            <button id="btn-font-minus" class="btn-font" title="Reducir letra">A-</button>
+                            <button id="btn-font-plus" class="btn-font" title="Aumentar letra">A+</button>
+                        </div>
+                    </div>
+
+                    <!-- Texto de la oración con scroll suave interno -->
+                    <div class="prayer-text-scroll-area">
+                        <h3 id="prayer-title" class="prayer-title-large">Ave María</h3>
+                        <div id="prayer-subtitle" class="prayer-subtitle">Misterios Gozosos — 1er Misterio</div>
+                        <p id="prayer-body" class="prayer-body-text">
+                            Dios te salve, María, llena eres de gracia; el Señor es contigo. Bendita tú eres entre todas las mujeres, y bendito es el fruto de tu vientre, Jesús.
+                            
+                            Santa María, Madre de Dios, ruega por nosotros, pecadores, ahora y en la hora de nuestra muerte. Amén.
+                        </p>
+                    </div>
+                </article>
+
+                <!-- Panel del Reproductor de Audio -->
+                <div class="audio-controls-panel">
+                    <!-- Barra de progreso -->
+                    <div class="audio-progress-bar-wrap">
+                        <span id="current-time-display" class="time-stamp">00:00</span>
+                        <input id="seek-slider" class="seek-slider" type="range" min="0" max="100" value="0" step="0.1" aria-label="Barra de progreso de audio">
+                        <span id="total-time-display" class="time-stamp">00:00</span>
+                    </div>
+
+                    <!-- Botones de control -->
+                    <div class="audio-buttons-row">
+                        <div class="playback-controls">
+                            <button id="btn-prev-bead" class="btn-ctrl btn-step" title="Cuenta anterior (Flecha Arriba)" aria-label="Cuenta anterior">⏮</button>
+                            <button id="btn-skip-back" class="btn-ctrl btn-skip" title="Retroceder 10s (Flecha Izq)" aria-label="Retroceder 10 segundos">↺ 10</button>
+                            <button id="btn-play-pause" class="btn-ctrl btn-play-pause" title="Reproducir / Pausar (Espacio)" aria-label="Reproducir">▶</button>
+                            <button id="btn-skip-forward" class="btn-ctrl btn-skip" title="Adelantar 10s (Flecha Der)" aria-label="Adelantar 10 segundos">10 ↻</button>
+                            <button id="btn-next-bead" class="btn-ctrl btn-step" title="Siguiente cuenta (Flecha Abajo)" aria-label="Siguiente cuenta">⏭</button>
+                        </div>
+
+                        <div class="volume-speed-controls">
+                            <select id="speed-select" class="speed-select" title="Velocidad de reproducción" aria-label="Velocidad">
+                                <option value="0.9">0.9x</option>
+                                <option value="1.0" selected>1.0x</option>
+                                <option value="1.25">1.25x</option>
+                                <option value="1.5">1.5x</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal para Contemplar la Pintura Sacra en Pantalla Completa -->
+    <div id="image-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="modal-close" class="modal-close-btn" title="Cerrar">✕</button>
+            <img id="modal-image" class="modal-image" src="src/img/inicio.png" alt="Ilustración del Misterio">
         </div>
     </div>
 
+    <!-- Modal Sincronizador de Tiempos y Cuentas -->
+    <div id="sync-modal" class="sync-modal-overlay">
+        <div class="sync-modal-window" role="dialog" aria-modal="true" aria-labelledby="sync-modal-title">
+            
+            <!-- Cabecera del Sincronizador -->
+            <div class="sync-modal-header">
+                <div class="sync-modal-title-wrap">
+                    <span class="sync-modal-icon">⏱️</span>
+                    <div>
+                        <h2 id="sync-modal-title" class="sync-modal-title">Sincronizador de Tiempos del Rosario</h2>
+                        <p class="sync-modal-subtitle">Ajusta los segundos exactos en que empieza cada oración y cuenta por misterio e idioma</p>
+                    </div>
+                </div>
+                <button id="sync-modal-close" class="sync-close-btn" title="Cerrar Sincronizador" aria-label="Cerrar">✕</button>
+            </div>
+
+            <!-- Barra Superior Fija: Selectores de Idioma/Misterio + Reproductor de Control -->
+            <div class="sync-toolbar">
+                <div class="sync-selectors-row">
+                    <div class="sync-field-group">
+                        <label for="sync-lang-select">Idioma:</label>
+                        <select id="sync-lang-select" class="sync-select" aria-label="Idioma para sincronizar">
+                            <option value="es" selected>Español</option>
+                            <option value="en">English</option>
+                            <option value="la">Latīna</option>
+                            <option value="it">Italiano</option>
+                            <option value="pt">Português</option>
+                            <option value="fr">Français</option>
+                        </select>
+                    </div>
+
+                    <div class="sync-field-group">
+                        <label for="sync-mystery-select">Misterio:</label>
+                        <select id="sync-mystery-select" class="sync-select" aria-label="Misterio para sincronizar">
+                            <option value="Gozosos" selected>Gozosos</option>
+                            <option value="Dolorosos">Dolorosos</option>
+                            <option value="Luminosos">Luminosos</option>
+                            <option value="Gloriosos">Gloriosos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Mini-reproductor y monitor de audio para capturar timestamps al vuelo -->
+                <div class="sync-audio-bar">
+                    <div class="sync-audio-controls">
+                        <button id="sync-btn-play-pause" class="btn-sync-play" title="Reproducir / Pausar">▶</button>
+                        <button id="sync-btn-back-5" class="btn-sync-step" title="Retroceder 5s">-5s</button>
+                        <button id="sync-btn-back-1" class="btn-sync-step" title="Retroceder 1s">-1s</button>
+                        <div class="sync-time-badge">
+                            <span id="sync-time-cur">00:00</span> / <span id="sync-time-dur">00:00</span>
+                        </div>
+                        <button id="sync-btn-fwd-1" class="btn-sync-step" title="Adelantar 1s">+1s</button>
+                        <button id="sync-btn-fwd-5" class="btn-sync-step" title="Adelantar 5s">+5s</button>
+                    </div>
+
+                    <div class="sync-slider-row">
+                        <input id="sync-audio-slider" class="sync-audio-slider" type="range" min="0" max="100" value="0" step="0.1" aria-label="Barra de posición de audio">
+                    </div>
+
+                    <div class="sync-tip-box">
+                        💡 <strong>Cómo sincronizar:</strong> Da clic en <strong>«▶»</strong> para escuchar el audio. Cuando empiece la oración o cuenta deseada, pulsa <strong>«⏱️ Ahora»</strong> en su fila para fijar el tiempo exacto.
+                    </div>
+                </div>
+
+                <!-- Píldoras de salto rápido entre secciones -->
+                <nav class="sync-pills-nav" aria-label="Navegación de secciones">
+                    <button type="button" class="sync-nav-pill active" data-target="sync-sec-intro">Inicio</button>
+                    <button type="button" class="sync-nav-pill" data-target="sync-sec-d1">1º Misterio</button>
+                    <button type="button" class="sync-nav-pill" data-target="sync-sec-d2">2º Misterio</button>
+                    <button type="button" class="sync-nav-pill" data-target="sync-sec-d3">3º Misterio</button>
+                    <button type="button" class="sync-nav-pill" data-target="sync-sec-d4">4º Misterio</button>
+                    <button type="button" class="sync-nav-pill" data-target="sync-sec-d5">5º Misterio</button>
+                    <button type="button" class="sync-nav-pill" data-target="sync-sec-letanias">Letanías</button>
+                </nav>
+            </div>
+
+            <!-- Lista Scrollable con las 7 secciones y todas las 75 cuentas -->
+            <div id="sync-list-container" class="sync-list-container">
+                <!-- Se poblará dinámicamente con getRosaryStructureDefinition -->
+            </div>
+
+            <!-- Barra Inferior Fija: Botones de Acción -->
+            <div class="sync-modal-footer">
+                <div class="sync-footer-status">
+                    <span id="sync-status-msg">Tiempos listos para ajustar</span>
+                    <span id="sync-cloud-status" class="sync-cloud-badge" title="Estado de la base de datos Firestore">☁️ Conectando a Firestore...</span>
+                </div>
+                <div class="sync-footer-actions">
+                    <button id="btn-sync-reset" class="btn-sync-sec" title="Restablecer los tiempos predeterminados calculados">🔄 Restablecer</button>
+                    <button id="btn-sync-copy" class="btn-sync-sec" title="Copiar código JS de este misterio para pegarlo en content.js">📋 Copiar Código</button>
+                    <button id="btn-sync-export" class="btn-sync-sec" title="Descargar archivo JSON con todos los tiempos personalizados">📤 Exportar JSON</button>
+                    <button id="btn-sync-import" class="btn-sync-sec" title="Importar archivo JSON de tiempos">📥 Importar JSON</button>
+                    <input type="file" id="sync-file-input" accept=".json" style="display: none;">
+                    <button id="btn-sync-save" class="btn-sync-prim" title="Guardar cambios y actualizar la app inmediatamente">💾 Guardar y Aplicar</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Elemento Audio Oculto -->
+    <audio id="audio-player" preload="metadata"></audio>
+
+    <!-- Scripts de la Aplicación -->
     <script src="src/content.js"></script>
     <script src="src/script.js"></script>
+    <script type="module" src="src/firebase.js"></script>
 </body>
 </html>

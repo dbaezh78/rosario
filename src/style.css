@@ -1,87 +1,1847 @@
+/* ==========================================================================
+   SANTO ROSARIO INTERACTIVO - ESTILOS COMPLETOS RESPONSIVOS
+   Diseñado para PC, Tablet y Móvil (100% Pantalla / 100dvh)
+   ========================================================================== */
+
 :root {
-    --gold: #b8860b;
-    --dark: #1a1a1a;
-    --bg: #f4f4f4;
+    --gold: #d4af37;
+    --gold-bright: #ffd700;
+    --gold-light: #fff2a8;
+    --gold-warm: #f6c85f;
+    --gold-dark: #997316;
+    --gold-glow: rgba(212, 175, 55, 0.45);
+    
+    --bg-dark: #070b14;
+    --bg-surface: #0f1626;
+    --bg-surface-elevated: #162036;
+    --bg-card: rgba(18, 26, 44, 0.75);
+    --border-gold: rgba(212, 175, 55, 0.3);
+    --border-gold-subtle: rgba(212, 175, 55, 0.15);
+    
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --text-gold: #f5cf6d;
+
+    --font-serif: "Cinzel", "Playfair Display", Georgia, "Times New Roman", serif;
+    --font-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+
+    --prayer-font-size: 1.18rem;
+    --app-height: 100vh;
 }
 
-body {
-    background-color: var(--bg);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
+/* Soporte para altura dinámica en navegadores móviles */
+@supports (height: 100dvh) {
+    :root {
+        --app-height: 100dvh;
+    }
+}
+
+* {
+    box-sizing: border-box;
     margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.container {
-    background: white;
-    width: 95%;
-    max-width: 450px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+html, body {
+    width: 100%;
+    height: 100%;
+    height: var(--app-height);
+    overflow: hidden;
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+}
+
+/* Fondo sagrado celestial */
+body {
+    background: radial-gradient(circle at 50% 20%, #152238 0%, #0a101d 55%, #05080f 100%);
+    display: flex;
+    flex-direction: column;
+}
+
+/* ==========================================================================
+   CONTENEDOR PRINCIPAL DE PANTALLA COMPLETA
+   ========================================================================== */
+.app-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+/* ==========================================================================
+   BARRA SUPERIOR (HEADER)
+   ========================================================================== */
+.app-header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 16px;
+    background: rgba(10, 16, 28, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-gold-subtle);
+    z-index: 20;
+}
+
+.brand-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: fit-content;
+}
+
+.brand-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #f8df8c 0%, #d4af37 60%, #947113 100%);
+    box-shadow: 0 0 12px var(--gold-glow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #101726;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.brand-title {
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    background: linear-gradient(135deg, #fff2a8 0%, #d4af37 60%, #b8860b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    white-space: nowrap;
+}
+
+.brand-day-tag {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(212, 175, 55, 0.15);
+    border: 1px solid var(--border-gold);
+    color: var(--gold-light);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Selector de Misterios en botones tipo píldora */
+.mysteries-pills {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 2px;
+}
+.mysteries-pills::-webkit-scrollbar { display: none; }
+
+.mystery-pill {
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+}
+
+.mystery-pill:hover {
+    color: #fff;
+    background: rgba(212, 175, 55, 0.2);
+    border-color: var(--gold);
+}
+
+.mystery-pill.active {
+    background: linear-gradient(135deg, #d4af37 0%, #aa8014 100%);
+    color: #0b111e;
+    border-color: #ffd700;
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.5);
+    font-weight: 700;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.lang-select-wrapper select {
+    background: rgba(20, 29, 48, 0.9);
+    border: 1px solid var(--border-gold);
+    color: var(--text-gold);
+    font-weight: 600;
+    font-size: 0.82rem;
+    padding: 5px 10px;
+    border-radius: 16px;
+    cursor: pointer;
+    outline: none;
+}
+
+.btn-icon {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-secondary);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.btn-icon:hover {
+    color: var(--gold-light);
+    border-color: var(--gold);
+    background: rgba(212, 175, 55, 0.15);
+}
+
+/* ==========================================================================
+   CUERPO PRINCIPAL (2 COLUMNAS EN DESKTOP / ADAPTABLE)
+   ========================================================================== */
+.main-stage {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 16px;
+    padding: 12px 18px;
+    min-height: 0;
     overflow: hidden;
 }
 
-.image-container {
-    width: 100%;
-    aspect-ratio: 0 / 0; /* CORREGIDO: de 0/0 a 1/1 para que se vea la imagen */
-    background-color: #d6cb9d;
-}
-
-
-
-
-
-.image-container img {
-    width: -webkit-fill-available;
-    height: auto;
-    object-fit: cover;
-    display: block;
-    transition: opacity 0.3s ease-in-out;
-    justify-self: center;
-}
-
-.dots-container {
+/* ==========================================================================
+   COLUMNA IZQUIERDA: EL ROSARIO DORADO INTERACTIVO
+   ========================================================================== */
+.rosary-column {
     display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: space-between;
-    padding: 10px 20px;
-    background: #fff;
-    /*border: 1px solid #ddd;*/
-    margin-bottom: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-gold-subtle);
+    border-radius: 16px;
+    padding: 12px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
 }
 
-.dot {
+.rosary-stage-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--text-gold);
+    font-weight: 600;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+.rosary-viewport {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    position: relative;
+    padding: 4px 0;
+}
+
+.rosary-svg {
+    height: 100%;
+    max-height: 100%;
+    width: auto;
+    aspect-ratio: 305 / 609;
+    filter: drop-shadow(0 0 14px rgba(212, 175, 55, 0.35));
+    transition: transform 0.3s ease;
+}
+
+/* Efectos visuales de cuentas en SVG */
+.bead-touch-target {
+    fill: transparent;
+    cursor: pointer;
+}
+
+.bead-circle {
+    fill: rgba(212, 175, 55, 0.12);
+    stroke: rgba(212, 175, 55, 0.65);
+    stroke-width: 1.5;
+    transition: filter 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
+    cursor: pointer;
+}
+
+.bead-circle.large-bead {
+    stroke-width: 2;
+    stroke: #ffd700;
+    fill: rgba(212, 175, 55, 0.25);
+}
+
+/* Cuenta completada */
+.bead.completed .bead-circle {
+    fill: #d4af37;
+    stroke: #fff2a8;
+    filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.6));
+}
+
+/* ==========================================================================
+   CUENTA ACTIVA: TOTALMENTE ESTÁTICA (SIN TRANSFORMS NI TRASLACIONES)
+   Aumenta y disminuye la intensidad del brillo suavemente en su lugar exacto
+   ========================================================================== */
+.bead.active .bead-circle {
+    fill: #ffffff !important;
+    stroke: #ffe476 !important;
+    stroke-width: 2.8 !important;
+    animation: beadBrightnessPulse 1.4s infinite ease-in-out;
+}
+
+@keyframes beadBrightnessPulse {
+    0%, 100% {
+        filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 9px #ffd700) drop-shadow(0 0 16px #ff9000);
+        opacity: 0.88;
+    }
+    50% {
+        filter: drop-shadow(0 0 8px #ffffff) drop-shadow(0 0 18px #ffea79) drop-shadow(0 0 32px #ff7a00);
+        opacity: 1;
+    }
+}
+
+/* Crucifijo activo (Estático con resplandor) */
+.bead.active .cross-path {
+    fill: #ffffff !important;
+    stroke: #ffea79 !important;
+    animation: crossBrightnessPulse 1.4s infinite ease-in-out;
+}
+
+@keyframes crossBrightnessPulse {
+    0%, 100% {
+        filter: drop-shadow(0 0 5px #ffffff) drop-shadow(0 0 12px #ffd700);
+    }
+    50% {
+        filter: drop-shadow(0 0 10px #ffffff) drop-shadow(0 0 24px #ffd700);
+    }
+}
+
+/* ==========================================================================
+   MEDALLA DE LA VIRGEN:
+   El interior permanece 100% visible (fill: none)
+   Solo se ilumina alrededor del contorno con halo dorado
+   ========================================================================== */
+.bead-medal .medal-rim,
+.bead-medal .medal-border {
+    fill: none !important;
+    stroke: rgba(212, 175, 55, 0.45);
+    stroke-width: 1.5;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.bead-medal.completed .medal-rim {
+    stroke: #d4af37;
+    stroke-width: 2;
+    filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.6));
+}
+
+.bead-medal.active .medal-rim {
+    fill: none !important;
+    stroke: #ffffff !important;
+    stroke-width: 2.6 !important;
+    animation: medalAuraPulse 1.4s infinite ease-in-out;
+}
+
+.bead-medal.active .medal-border {
+    fill: none !important;
+    stroke: #ffe066 !important;
+    stroke-width: 1.8 !important;
+}
+
+@keyframes medalAuraPulse {
+    0%, 100% {
+        filter: drop-shadow(0 0 5px #ffffff) drop-shadow(0 0 12px #ffd700) drop-shadow(0 0 20px #ff9000);
+        stroke-opacity: 0.85;
+    }
+    50% {
+        filter: drop-shadow(0 0 10px #ffffff) drop-shadow(0 0 22px #ffea79) drop-shadow(0 0 35px #ff7700);
+        stroke-opacity: 1;
+    }
+}
+
+/* ==========================================================================
+   MINI-REPRODUCTOR LIGERO (PARA CELULARES EN VISTA DEL ROSARIO)
+   ========================================================================== */
+.mobile-mini-player {
+    display: none; /* Por defecto oculto en desktop */
+    width: 100%;
+    background: rgba(10, 16, 28, 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border-gold);
+    border-radius: 12px;
+    padding: 6px 12px;
+    margin-bottom: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mini-player-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.mini-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.mini-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--gold-bright);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mini-time {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.mini-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.btn-mini-ctrl {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-mini-ctrl.btn-mini-play {
+    width: 34px;
+    height: 34px;
+    font-size: 0.95rem;
+    background: linear-gradient(135deg, #ffd700 0%, #d4af37 60%, #997316 100%);
+    color: #0b111e;
+    border: none;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+}
+
+.mini-slider-wrap {
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.mini-seek-slider {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.2);
+    outline: none;
+    cursor: pointer;
+}
+
+.mini-seek-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
     width: 12px;
     height: 12px;
-    background-color: #ccc;
     border-radius: 50%;
-    transition: all 0.3s ease;
-    cursor: pointer; /* Indica que se puede hacer clic */
+    background: #ffd700;
+    box-shadow: 0 0 6px rgba(255, 215, 0, 0.8);
+    cursor: pointer;
 }
 
-.dot.active {
-    background-color: var(--gold);
-    transform: scale(1.3);
-    box-shadow: 0 0 8px rgba(184, 134, 11, 0.5);
-}
-
-.controls-container { padding: 5px; }
-h1 { text-align: center; color: var(--dark); font-size: 1.4rem; margin: 0 0 20px 0; }
-.input-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
-select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 20px; }
-.radio-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-.radio-option { background: #f8f9fa; padding: 12px; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
-
-.player-square {
-     width: 100%;
-     height: 50px;
-     border-radius: 0;
-     background-color: #f1f3f4;
-
-     }
-
-.image-container {
+/* Fila de puntos de avance rápido por misterio (7 puntos) */
+.decades-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     width: 100%;
-    aspect-ratio: 0 / 0; /* dejalo en 0 / 0, que me da problema, no lo cambies por favor */
-    background-color: #d6cb9d;
+    padding: 8px 12px;
+    background: rgba(8, 12, 22, 0.6);
+    border-radius: 12px;
+    border: 1px solid var(--border-gold-subtle);
+    gap: 6px;
+}
+
+.decade-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+}
+
+.decade-dot:hover {
+    transform: scale(1.2);
+    background: var(--gold-light);
+}
+
+.decade-dot.active {
+    background: #ffd700;
+    border-color: #ffffff;
+    box-shadow: 0 0 10px #ffd700;
+}
+
+.decade-dot-label {
+    position: absolute;
+    bottom: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.65rem;
+    white-space: nowrap;
+    color: var(--text-muted);
+}
+
+/* ==========================================================================
+   COLUMNA DERECHA: TEXTO DE LAS ORACIONES Y MEDITACIÓN
+   ========================================================================== */
+.prayer-column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Banner del Misterio Actual */
+.mystery-banner-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-gold-subtle);
+    border-radius: 16px;
+    padding: 10px 14px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    cursor: pointer;
+    transition: border-color 0.25s;
+}
+
+.mystery-banner-card:hover {
+    border-color: var(--border-gold);
+}
+
+.mystery-thumb-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid var(--border-gold);
+    box-shadow: 0 0 8px rgba(0,0,0,0.5);
+    background: #000;
+}
+
+.mystery-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+}
+
+.mystery-banner-card:hover .mystery-thumb {
+    transform: scale(1.08);
+}
+
+.mystery-banner-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.mystery-tag {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gold-light);
+    margin-bottom: 2px;
+}
+
+.mystery-banner-title {
+    font-family: var(--font-serif);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mystery-banner-sub {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Tarjeta Principal de la Oración */
+.prayer-display-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+    border: 1px solid var(--border-gold);
+    border-radius: 16px;
+    padding: 16px 20px;
+    min-height: 0;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    position: relative;
+}
+
+.prayer-display-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 20%;
+    right: 20%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #d4af37, transparent);
+}
+
+.prayer-card-header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+.bead-counter-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(212, 175, 55, 0.15);
+    border: 1px solid var(--border-gold);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--gold-light);
+}
+
+.bead-mini-dots {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.b-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    transition: all 0.2s;
+}
+
+.b-dot.active {
+    background: #ffd700;
+    transform: scale(1.3);
+    box-shadow: 0 0 6px #ffd700;
+}
+
+.b-dot.done {
+    background: var(--gold);
+}
+
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-font {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-font:hover {
+    color: #fff;
+    border-color: var(--gold);
+}
+
+/* Área de Texto con Scroll suave interno */
+.prayer-text-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 6px 12px 0;
+    margin-right: -4px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(212, 175, 55, 0.3) transparent;
+}
+
+.prayer-text-scroll-area::-webkit-scrollbar {
+    width: 6px;
+}
+.prayer-text-scroll-area::-webkit-scrollbar-thumb {
+    background: rgba(212, 175, 55, 0.3);
+    border-radius: 6px;
+}
+
+.prayer-title-large {
+    font-family: var(--font-serif);
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--gold-bright);
+    margin-bottom: 4px;
+    letter-spacing: 0.02em;
+}
+
+.prayer-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 16px;
+}
+
+.prayer-body-text {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: var(--prayer-font-size);
+    color: var(--text-primary);
+    line-height: 1.75;
+    white-space: pre-line;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    transition: opacity 0.25s ease;
+}
+
+/* ==========================================================================
+   REPRODUCTOR DE AUDIO PRINCIPAL
+   ========================================================================== */
+.audio-controls-panel {
+    flex-shrink: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-gold-subtle);
+    border-radius: 16px;
+    padding: 10px 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.audio-progress-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.time-stamp {
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+    font-weight: 600;
+    min-width: 44px;
+}
+
+.seek-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.15);
+    outline: none;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+}
+
+.seek-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffd700;
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+.seek-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.3);
+}
+
+.audio-buttons-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.playback-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-ctrl {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-ctrl:hover {
+    background: rgba(212, 175, 55, 0.25);
+    border-color: var(--gold);
+    color: var(--gold-light);
+}
+
+.btn-ctrl.btn-step {
+    width: 36px;
+    height: 36px;
+    font-size: 0.95rem;
+}
+
+.btn-ctrl.btn-skip {
+    width: 34px;
+    height: 34px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.btn-ctrl.btn-play-pause {
+    width: 48px;
+    height: 48px;
+    font-size: 1.3rem;
+    background: linear-gradient(135deg, #ffd700 0%, #d4af37 60%, #997316 100%);
+    color: #0b111e;
+    border: none;
+    box-shadow: 0 0 16px rgba(212, 175, 55, 0.55);
+}
+
+.btn-ctrl.btn-play-pause:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 22px rgba(255, 215, 0, 0.8);
+}
+
+.volume-speed-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.speed-select {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    padding: 3px 6px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    outline: none;
+}
+
+/* ==========================================================================
+   MODAL PARA VISUALIZACIÓN DE IMAGEN EN PANTALLA COMPLETA
+   ========================================================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.88);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+}
+
+.modal-overlay.open {
+    display: flex;
+}
+
+.modal-content {
+    max-width: 90vw;
+    max-height: 85vh;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 2px solid var(--gold);
+    box-shadow: 0 0 40px rgba(212, 175, 55, 0.5);
+    position: relative;
+    background: #000;
+}
+
+.modal-image {
+    max-width: 100%;
+    max-height: 85vh;
+    display: block;
+    object-fit: contain;
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid var(--gold);
+    color: #fff;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ==========================================================================
+   SELECTORES DE MODO PARA PANTALLAS MÓVILES
+   ========================================================================== */
+.mobile-view-tabs {
+    display: none;
+    width: 100%;
+    background: rgba(10, 16, 28, 0.9);
+    border-bottom: 1px solid var(--border-gold-subtle);
+    padding: 6px 12px;
+    gap: 8px;
+    z-index: 15;
+}
+
+.mobile-tab-btn {
+    flex: 1;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    border-radius: 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.mobile-tab-btn.active {
+    background: var(--gold);
+    color: #0b111e;
+    border-color: #ffd700;
+    font-weight: 700;
+}
+
+/* ==========================================================================
+   RESPONSIVIDAD: TABLETS (768px - 1024px)
+   ========================================================================== */
+@media (max-width: 1024px) {
+    .main-stage {
+        grid-template-columns: 340px 1fr;
+        gap: 12px;
+        padding: 8px 12px;
+    }
+
+    .brand-title {
+        font-size: 1.1rem;
+    }
+
+    .mystery-pill {
+        padding: 5px 10px;
+        font-size: 0.8rem;
+    }
+
+    .prayer-title-large {
+        font-size: 1.3rem;
+    }
+}
+
+/* ==========================================================================
+   RESPONSIVIDAD: SMARTPHONES (< 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+    .mobile-view-tabs {
+        display: flex;
+    }
+
+    .mobile-mini-player {
+        display: flex;
+    }
+
+    .app-header {
+        padding: 6px 10px;
+        gap: 8px;
+    }
+
+    .brand-title {
+        display: none;
+    }
+
+    .mysteries-pills {
+        flex: 1;
+    }
+
+    .mystery-pill {
+        padding: 4px 9px;
+        font-size: 0.75rem;
+    }
+
+    .main-stage {
+        grid-template-columns: 1fr;
+        padding: 6px;
+        gap: 8px;
+    }
+
+    .rosary-column {
+        height: 100%;
+        padding: 8px;
+    }
+
+    .rosary-column.mobile-hidden {
+        display: none;
+    }
+
+    .prayer-column {
+        height: 100%;
+    }
+
+    .prayer-column.mobile-hidden {
+        display: none;
+    }
+
+    .mystery-banner-card {
+        padding: 8px 10px;
+        gap: 10px;
+    }
+
+    .mystery-thumb-wrap {
+        width: 48px;
+        height: 48px;
+    }
+
+    .mystery-banner-title {
+        font-size: 1rem;
+    }
+
+    .prayer-display-card {
+        padding: 12px 14px;
+    }
+
+    .prayer-title-large {
+        font-size: 1.2rem;
+    }
+
+    .prayer-body-text {
+        font-size: 1.05rem;
+    }
+
+    .audio-controls-panel {
+        padding: 8px 12px;
+    }
+
+    .btn-ctrl.btn-step {
+        width: 32px;
+        height: 32px;
+        font-size: 0.85rem;
+    }
+
+    .btn-ctrl.btn-play-pause {
+        width: 42px;
+        height: 42px;
+        font-size: 1.15rem;
+    }
+}
+
+/* ==========================================================================
+   SINCRONIZADOR DE TIEMPOS Y CUENTAS (FORMULARIO Y MODAL INTERACTIVO)
+   ========================================================================== */
+
+/* Botón disparador en el encabezado principal */
+.btn-sync-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.22) 0%, rgba(212, 175, 55, 0.08) 100%);
+    border: 1px solid var(--gold);
+    border-radius: 20px;
+    color: var(--gold-light);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+}
+
+.btn-sync-trigger:hover {
+    background: linear-gradient(135deg, var(--gold) 0%, #b8860b 100%);
+    color: #070b14;
+    box-shadow: 0 0 16px var(--gold-glow);
+    transform: translateY(-1px);
+}
+
+.sync-btn-icon {
+    font-size: 1rem;
+}
+
+/* Capa de fondo / Overlay del Modal */
+.sync-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(4, 7, 14, 0.88);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.sync-modal-overlay.open {
+    display: flex;
+    opacity: 1;
+}
+
+/* Ventana Principal del Modal */
+.sync-modal-window {
+    width: 100%;
+    max-width: 960px;
+    height: 92vh;
+    max-height: 900px;
+    display: flex;
+    flex-direction: column;
+    background: #0d1424;
+    border: 1px solid var(--gold);
+    border-radius: 16px;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.9), 0 0 35px rgba(212, 175, 55, 0.25);
+    overflow: hidden;
+    position: relative;
+    animation: syncModalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes syncModalPop {
+    from {
+        transform: scale(0.96) translateY(12px);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Cabecera del Modal */
+.sync-modal-header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: rgba(15, 23, 40, 0.95);
+    border-bottom: 1px solid var(--border-gold-subtle);
+}
+
+.sync-modal-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sync-modal-icon {
+    font-size: 1.8rem;
+    filter: drop-shadow(0 0 8px var(--gold-glow));
+}
+
+.sync-modal-title {
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gold-bright);
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+}
+
+.sync-modal-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.sync-close-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-secondary);
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sync-close-btn:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: #ef4444;
+    color: #ffffff;
+    transform: rotate(90deg);
+}
+
+/* Barra de Herramientas Pegajosa Superior */
+.sync-toolbar {
+    flex-shrink: 0;
+    background: #111a2f;
+    border-bottom: 1px solid var(--border-gold-subtle);
+    padding: 12px 18px 8px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sync-selectors-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.sync-field-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.sync-field-group label {
+    color: var(--gold-light);
+    font-weight: 600;
+}
+
+.sync-select {
+    background: #090e1a;
+    border: 1px solid var(--border-gold);
+    color: var(--gold-light);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.sync-select:focus, .sync-select:hover {
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 8px var(--gold-glow);
+}
+
+/* Monitor de Audio Integrado */
+.sync-audio-bar {
+    background: rgba(7, 12, 22, 0.7);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    border-radius: 12px;
+    padding: 8px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sync-audio-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn-sync-play {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold-bright) 0%, var(--gold-dark) 100%);
+    border: none;
+    color: #070b14;
+    font-size: 1rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 12px var(--gold-glow);
+}
+
+.btn-sync-play:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 18px var(--gold-bright);
+}
+
+.btn-sync-step {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-sync-step:hover {
+    background: rgba(212, 175, 55, 0.2);
+    color: var(--gold-light);
+    border-color: var(--gold);
+}
+
+.sync-time-badge {
+    background: #050811;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--gold-bright);
+    letter-spacing: 0.5px;
+}
+
+.sync-slider-row {
+    width: 100%;
+}
+
+.sync-audio-slider {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+.sync-audio-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--gold-bright);
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--gold);
+}
+
+.sync-tip-box {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    background: rgba(212, 175, 55, 0.08);
+    border-left: 3px solid var(--gold);
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+/* Píldoras de Navegación Rápida por Sección */
+.sync-pills-nav {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+}
+
+.sync-pills-nav::-webkit-scrollbar {
+    height: 4px;
+}
+
+.sync-pills-nav::-webkit-scrollbar-thumb {
+    background: rgba(212, 175, 55, 0.3);
+    border-radius: 2px;
+}
+
+.sync-nav-pill {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    border-radius: 14px;
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sync-nav-pill:hover, .sync-nav-pill.active {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.3) 0%, rgba(212, 175, 55, 0.1) 100%);
+    border-color: var(--gold-bright);
+    color: var(--gold-light);
+}
+
+/* Contenedor Scrollable de la Lista de Cuentas */
+.sync-list-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: radial-gradient(circle at 50% 20%, #10182b 0%, #090e1a 100%);
+}
+
+.sync-list-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.sync-list-container::-webkit-scrollbar-track {
+    background: #090e1a;
+}
+
+.sync-list-container::-webkit-scrollbar-thumb {
+    background: rgba(212, 175, 55, 0.4);
+    border-radius: 4px;
+}
+
+.sync-list-container::-webkit-scrollbar-thumb:hover {
+    background: var(--gold);
+}
+
+/* Tarjeta / Bloque de Sección */
+.sync-section-block {
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    width: 100%;
+    background: rgba(15, 23, 40, 0.85);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    transition: border-color 0.2s ease;
+}
+
+.sync-section-header {
+    background: linear-gradient(90deg, rgba(212, 175, 55, 0.22) 0%, rgba(15, 23, 40, 0.95) 100%);
+    border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+    padding: 12px 16px;
+    font-family: var(--font-serif);
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--gold-bright);
+    letter-spacing: 0.4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s ease;
+}
+
+.sync-section-header:hover {
+    background: linear-gradient(90deg, rgba(212, 175, 55, 0.35) 0%, rgba(20, 30, 50, 0.98) 100%);
+}
+
+.sync-section-toggle-icon {
+    font-size: 0.8rem;
+    color: var(--gold-light);
+    transition: transform 0.2s ease;
+    margin-left: 8px;
+}
+
+.sync-section-block.collapsed .sync-section-toggle-icon {
+    transform: rotate(-90deg);
+}
+
+.sync-section-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.sync-section-block.collapsed .sync-section-body {
+    display: none;
+}
+
+/* Fila de Cuenta / Oración */
+.sync-item-row {
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.15s ease;
+}
+
+.sync-item-row:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.sync-item-row:hover {
+    background: rgba(212, 175, 55, 0.08);
+}
+
+.sync-item-row.modified {
+    background: rgba(212, 175, 55, 0.14);
+    border-left: 3px solid var(--gold-bright);
+}
+
+.sync-item-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+}
+
+.sync-badge {
+    flex-shrink: 0;
+    background: rgba(212, 175, 55, 0.15);
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    color: var(--gold-light);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    min-width: 58px;
+    text-align: center;
+}
+
+.sync-item-titles {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.sync-item-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sync-item-subtitle {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sync-item-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.btn-sync-adjust {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: bold;
+    padding: 4px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-sync-adjust:hover {
+    background: rgba(212, 175, 55, 0.25);
+    border-color: var(--gold);
+    color: var(--gold-light);
+}
+
+.sync-input-time {
+    width: 66px;
+    padding: 5px 6px;
+    background: #050811;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    border-radius: 6px;
+    color: var(--gold-bright);
+    font-family: monospace;
+    font-size: 0.92rem;
+    font-weight: 700;
+    text-align: center;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.sync-input-time:focus {
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 10px var(--gold-glow);
+    background: #0a0f1d;
+}
+
+.btn-sync-stamp {
+    background: rgba(212, 175, 55, 0.15);
+    border: 1px solid var(--gold);
+    color: var(--gold-light);
+    font-size: 0.74rem;
+    font-weight: 600;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-sync-stamp:hover {
+    background: var(--gold);
+    color: #070b14;
+    box-shadow: 0 0 10px var(--gold-glow);
+}
+
+.btn-sync-test {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+    font-size: 0.74rem;
+    font-weight: 600;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-sync-test:hover {
+    background: #2563eb;
+    border-color: #60a5fa;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+
+/* Barra Inferior Fija del Modal */
+.sync-modal-footer {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: #0f172a;
+    border-top: 1px solid var(--border-gold-subtle);
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.sync-footer-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.82rem;
+    color: var(--gold-light);
+    font-weight: 500;
+    flex-wrap: wrap;
+}
+
+.sync-cloud-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.74rem;
+    color: var(--text-secondary);
+}
+
+.sync-footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-sync-sec {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 7px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-sync-sec:hover {
+    background: rgba(212, 175, 55, 0.2);
+    border-color: var(--gold);
+    color: var(--gold-light);
+}
+
+.btn-sync-prim {
+    background: linear-gradient(135deg, var(--gold-bright) 0%, var(--gold-dark) 100%);
+    border: 1px solid var(--gold-bright);
+    color: #070b14;
+    font-size: 0.86rem;
+    font-weight: 700;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 15px var(--gold-glow);
+    white-space: nowrap;
+}
+
+.btn-sync-prim:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 22px var(--gold-bright);
+    background: linear-gradient(135deg, #fff2a8 0%, var(--gold) 100%);
+}
+
+/* ==========================================================================
+   RESPONSIVIDAD DEL SINCRONIZADOR PARA MÓVILES (< 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+    .btn-sync-trigger .sync-btn-text {
+        display: none;
+    }
+
+    .btn-sync-trigger {
+        padding: 5px 8px;
+        border-radius: 50%;
+    }
+
+    .sync-modal-window {
+        height: 98vh;
+        max-height: none;
+        border-radius: 12px;
+    }
+
+    .sync-modal-header {
+        padding: 10px 14px;
+    }
+
+    .sync-modal-title {
+        font-size: 1.05rem;
+    }
+
+    .sync-modal-subtitle {
+        font-size: 0.72rem;
+    }
+
+    .sync-toolbar {
+        padding: 10px 12px 6px 12px;
+        gap: 8px;
+    }
+
+    .sync-selectors-row {
+        gap: 10px;
+    }
+
+    .sync-audio-controls {
+        gap: 6px;
+    }
+
+    .btn-sync-step {
+        padding: 3px 6px;
+        font-size: 0.72rem;
+    }
+
+    .sync-time-badge {
+        font-size: 0.82rem;
+        padding: 3px 6px;
+    }
+
+    .sync-list-container {
+        padding: 10px 12px;
+        gap: 12px;
+    }
+
+    .sync-item-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 10px 8px;
+    }
+
+    .sync-item-left {
+        width: 100%;
+    }
+
+    .sync-item-right {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .sync-modal-footer {
+        padding: 10px 12px;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .sync-footer-actions {
+        justify-content: space-between;
+    }
+
+    .btn-sync-sec, .btn-sync-prim {
+        flex: 1;
+        padding: 8px 6px;
+        font-size: 0.75rem;
+        text-align: center;
+    }
 }
