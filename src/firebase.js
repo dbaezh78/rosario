@@ -104,6 +104,71 @@ function subscribeToCloudTimes(onUpdateCallback) {
     }
 }
 
+// Guarda oraciones en Cloud Firestore
+async function savePrayersToCloud(lang, prayers) {
+    if (!db) {
+        console.warn("Firestore no está disponible.");
+        return false;
+    }
+    try {
+        const docRef = doc(db, "rosary_prayers", lang);
+        await setDoc(docRef, {
+            lang: lang,
+            prayers: prayers,
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
+        console.log(`☁️ Oraciones guardadas en la nube (${lang})`);
+        return true;
+    } catch (e) {
+        console.error("Error al guardar oraciones en Firestore:", e);
+        return false;
+    }
+}
+
+// Carga todas las oraciones desde Cloud Firestore
+async function loadAllPrayersFromCloud() {
+    if (!db) return null;
+    try {
+        const querySnapshot = await getDocs(collection(db, "rosary_prayers"));
+        const cloudData = {};
+        querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (data.lang && data.prayers) {
+                cloudData[data.lang] = data.prayers;
+            }
+        });
+        return cloudData;
+    } catch (e) {
+        console.error("Error al cargar oraciones de Firestore:", e);
+        return null;
+    }
+}
+
+// Escucha cambios de oraciones en tiempo real desde la nube
+function subscribeToCloudPrayers(onUpdateCallback) {
+    if (!db) return () => {};
+    try {
+        const unsubscribe = onSnapshot(collection(db, "rosary_prayers"), (snapshot) => {
+            const cloudData = {};
+            snapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                if (data.lang && data.prayers) {
+                    cloudData[data.lang] = data.prayers;
+                }
+            });
+            if (typeof onUpdateCallback === 'function') {
+                onUpdateCallback(cloudData);
+            }
+        }, (error) => {
+            console.warn("Error en suscripción Firestore oraciones:", error);
+        });
+        return unsubscribe;
+    } catch (e) {
+        console.warn("No se pudo iniciar suscripción a oraciones Firestore:", e);
+        return () => {};
+    }
+}
+
 // Exponer la interfaz en window.RosaryCloud
 window.RosaryCloud = {
     app,
@@ -111,29 +176,35 @@ window.RosaryCloud = {
     isConnected,
     saveTimesToCloud,
     loadAllTimesFromCloud,
-    subscribeToCloudTimes
+    subscribeToCloudTimes,
+    savePrayersToCloud,
+    loadAllPrayersFromCloud,
+    subscribeToCloudPrayers
 };
 
 // Auto-sincronización inicial al cargar el script
 async function initCloudSync() {
     if (!isConnected) return;
     try {
-        // Escuchar en tiempo real
+        // Actualizar badges visuales si ya están en el DOM
+        const updateBadges = () => {
+            const syncBadge = document.getElementById('sync-cloud-status');
+            if (syncBadge) syncBadge.innerHTML = '☁️ <span style="color: #4ade80;">Conectado a Firestore (Nube)</span>';
+            const prayersBadge = document.getElementById('prayers-cloud-status');
+            if (prayersBadge) prayersBadge.innerHTML = '☁️ <span style="color: #4ade80;">Conectado a Firestore (Nube)</span>';
+        };
+        updateBadges();
+
+        // 1. Escuchar tiempos en tiempo real
         subscribeToCloudTimes((cloudData) => {
-            console.log("☁️ Actualización recibida desde Cloud Firestore:", cloudData);
-            
-            // Integrar en localStorage
+            console.log("☁️ Actualización de tiempos recibida desde Cloud Firestore:", cloudData);
             if (typeof localStorage !== 'undefined' && cloudData) {
                 const raw = localStorage.getItem('rosary_custom_times_v1');
                 const local = raw ? JSON.parse(raw) : {};
-                
-                // Mezclar datos de la nube con locales
                 for (const l in cloudData) {
                     if (!local[l]) local[l] = {};
                     for (const m in cloudData[l]) {
                         local[l][m] = Object.assign({}, local[l][m] || {}, cloudData[l][m]);
-                        
-                        // Actualizar objeto en memoria si existe
                         if (typeof audioData !== 'undefined' && audioData[l] && audioData[l][m]) {
                             audioData[l][m].customTimes = Object.assign({}, audioData[l][m].customTimes || {}, cloudData[l][m]);
                         }
@@ -141,17 +212,29 @@ async function initCloudSync() {
                 }
                 localStorage.setItem('rosary_custom_times_v1', JSON.stringify(local));
 
-                // Si la función de actualización existe en script.js, refrescar
                 if (typeof window.refreshActiveTimeline === 'function') {
                     window.refreshActiveTimeline();
                 }
             }
+            updateBadges();
+        });
 
-            // Notificar indicador visual si existe
-            const badge = document.getElementById('sync-cloud-status');
-            if (badge) {
-                badge.innerHTML = '☁️ <span style="color: #4ade80;">Conectado a Firestore (Nube)</span>';
+        // 2. Escuchar oraciones en tiempo real
+        subscribeToCloudPrayers((cloudPrayers) => {
+            console.log("☁️ Actualización de oraciones recibida desde Cloud Firestore:", cloudPrayers);
+            if (typeof localStorage !== 'undefined' && cloudPrayers) {
+                const raw = localStorage.getItem('rosary_custom_prayers_v1');
+                const local = raw ? JSON.parse(raw) : {};
+                for (const l in cloudPrayers) {
+                    local[l] = Object.assign({}, local[l] || {}, cloudPrayers[l]);
+                }
+                localStorage.setItem('rosary_custom_prayers_v1', JSON.stringify(local));
+
+                if (typeof window.refreshActivePrayersUI === 'function') {
+                    window.refreshActivePrayersUI();
+                }
             }
+            updateBadges();
         });
     } catch (e) {
         console.warn("Error en sincronización inicial Firestore:", e);

@@ -33,6 +33,10 @@
             </nav>
 
             <div class="header-actions">
+                <button id="btn-open-prayers" class="btn-sync-trigger" title="Formulario y Editor de Oraciones" aria-label="Editor de Oraciones">
+                    <span class="sync-btn-icon">📜</span>
+                    <span class="sync-btn-text">Oraciones</span>
+                </button>
                 <button id="btn-open-sync" class="btn-sync-trigger" title="Sincronizador de Tiempos y Cuentas" aria-label="Sincronizador de Tiempos">
                     <span class="sync-btn-icon">⏱️</span>
                     <span class="sync-btn-text">Sincronizar</span>
@@ -299,6 +303,82 @@
                     <button id="btn-sync-import" class="btn-sync-sec" title="Importar archivo JSON de tiempos">📥 Importar JSON</button>
                     <input type="file" id="sync-file-input" accept=".json" style="display: none;">
                     <button id="btn-sync-save" class="btn-sync-prim" title="Guardar cambios y actualizar la app inmediatamente">💾 Guardar y Aplicar</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    
+    <!-- Modal Formulario y Editor de Oraciones -->
+    <div id="prayers-modal" class="sync-modal-overlay">
+        <div class="sync-modal-window prayers-modal-window" role="dialog" aria-modal="true" aria-labelledby="prayers-modal-title">
+            
+            <!-- Cabecera del Editor de Oraciones -->
+            <div class="sync-modal-header">
+                <div class="sync-modal-title-wrap">
+                    <span class="sync-modal-icon">📜</span>
+                    <div>
+                        <h2 id="prayers-modal-title" class="sync-modal-title">Formulario y Editor de Oraciones</h2>
+                        <p class="sync-modal-subtitle">Visualiza, edita y personaliza los textos del Santo Rosario por idioma con sincronización en la nube</p>
+                    </div>
+                </div>
+                <button id="prayers-modal-close" class="sync-close-btn" title="Cerrar Editor" aria-label="Cerrar">✕</button>
+            </div>
+
+            <!-- Barra Superior: Selector de Idioma + Filtro de Búsqueda -->
+            <div class="sync-toolbar">
+                <div class="sync-selectors-row">
+                    <div class="sync-field-group">
+                        <label for="prayers-lang-select">Idioma:</label>
+                        <select id="prayers-lang-select" class="sync-select" aria-label="Idioma para editar oraciones">
+                            <option value="es" selected>Español</option>
+                            <option value="en">English</option>
+                            <option value="la">Latīna</option>
+                            <option value="it">Italiano</option>
+                            <option value="pt">Português</option>
+                            <option value="fr">Français</option>
+                        </select>
+                    </div>
+
+                    <div class="sync-field-group prayers-search-group">
+                        <label for="prayers-search-input">Buscar:</label>
+                        <input type="text" id="prayers-search-input" class="prayers-search-input" placeholder="Filtrar por título o texto..." aria-label="Buscar oración">
+                    </div>
+                </div>
+
+                <div class="sync-tip-box">
+                    💡 <strong>Cómo usar el editor:</strong> Selecciona el idioma para revisar o personalizar cualquier oración. Al pulsar <strong>«💾 Guardar Textos»</strong>, los cambios se aplican de inmediato en la app y se respaldan en la nube para tus demás dispositivos.
+                </div>
+
+                <!-- Píldoras de salto rápido y filtro entre oraciones -->
+                <nav id="prayers-pills-nav" class="sync-pills-nav" aria-label="Filtro rápido de oraciones">
+                    <button type="button" class="sync-nav-pill active" data-filter="all">Todas</button>
+                    <button type="button" class="sync-nav-pill" data-filter="padreNuestro">Padre Nuestro</button>
+                    <button type="button" class="sync-nav-pill" data-filter="aveMaria">Ave María</button>
+                    <button type="button" class="sync-nav-pill" data-filter="gloria">Gloria & Fátima</button>
+                    <button type="button" class="sync-nav-pill" data-filter="salve">La Salve</button>
+                    <button type="button" class="sync-nav-pill" data-filter="letanias">Letanías</button>
+                    <button type="button" class="sync-nav-pill" data-filter="credo">Credo</button>
+                    <button type="button" class="sync-nav-pill" data-filter="iniciales">Iniciales & Final</button>
+                </nav>
+            </div>
+
+            <!-- Lista Scrollable con las tarjetas de oraciones -->
+            <div id="prayers-list-container" class="sync-list-container prayers-list-container">
+                <!-- Se poblará dinámicamente con las oraciones -->
+            </div>
+
+            <!-- Barra Inferior Fija: Botones de Acción -->
+            <div class="sync-modal-footer">
+                <div class="sync-footer-status">
+                    <span id="prayers-status-msg">Textos listos para editar</span>
+                    <span id="prayers-cloud-status" class="sync-cloud-badge" title="Estado de la base de datos Firestore">☁️ Conectando a Firestore...</span>
+                </div>
+                <div class="sync-footer-actions">
+                    <button id="btn-prayers-reset" class="btn-sync-sec" title="Restablecer textos originales de este idioma">🔄 Restablecer Predeterminados</button>
+                    <button id="btn-prayers-copy" class="btn-sync-sec" title="Copiar textos en formato JSON">📋 Copiar JSON</button>
+                    <button id="btn-prayers-save" class="btn-sync-prim" title="Guardar cambios y actualizar la pantalla inmediatamente">💾 Guardar Textos</button>
                 </div>
             </div>
 

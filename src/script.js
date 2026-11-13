@@ -262,6 +262,9 @@ function loadMystery(mysteryKey) {
 
         audioPlayer.src = mData.src;
         audioPlayer.load();
+        if (speedSelect) {
+            audioPlayer.playbackRate = parseFloat(speedSelect.value) || 1.0;
+        }
 
         // Reiniciar al primer paso
         currentStepIndex = 0;
@@ -472,7 +475,12 @@ function togglePlay() {
 if (btnPlayPause) btnPlayPause.addEventListener('click', togglePlay);
 if (miniBtnPlayPause) miniBtnPlayPause.addEventListener('click', togglePlay);
 
-audioPlayer.addEventListener('play', () => updatePlayPauseButton(true));
+audioPlayer.addEventListener('play', () => {
+    updatePlayPauseButton(true);
+    if (speedSelect) {
+        audioPlayer.playbackRate = parseFloat(speedSelect.value) || 1.0;
+    }
+});
 audioPlayer.addEventListener('pause', () => updatePlayPauseButton(false));
 
 // Deslizadores de tiempo
@@ -994,6 +1002,290 @@ window.refreshActiveTimeline = function() {
         }
     }
 };
+
+
+// =============================================================================
+// FORMULARIO Y EDITOR DE ORACIONES DEL SANTO ROSARIO
+// =============================================================================
+
+const btnOpenPrayers = document.getElementById('btn-open-prayers');
+const prayersModal = document.getElementById('prayers-modal');
+const prayersModalClose = document.getElementById('prayers-modal-close');
+const prayersLangSelect = document.getElementById('prayers-lang-select');
+const prayersSearchInput = document.getElementById('prayers-search-input');
+const prayersPillsNav = document.getElementById('prayers-pills-nav');
+const prayersListContainer = document.getElementById('prayers-list-container');
+const prayersStatusMsg = document.getElementById('prayers-status-msg');
+const btnPrayersReset = document.getElementById('btn-prayers-reset');
+const btnPrayersCopy = document.getElementById('btn-prayers-copy');
+const btnPrayersSave = document.getElementById('btn-prayers-save');
+
+const PRAYERS_CONFIG_LIST = [
+    { key: "padreNuestro", badge: "Padre Nuestro", label: "Padre Nuestro", cat: "padreNuestro" },
+    { key: "aveMaria", badge: "Ave María", label: "Ave María", cat: "aveMaria" },
+    { key: "gloria", badge: "Gloria al Padre", label: "Gloria al Padre", cat: "gloria" },
+    { key: "jaculatoria", badge: "Jaculatoria", label: "Jaculatoria y Oración de Fátima", cat: "gloria" },
+    { key: "salve", badge: "La Salve", label: "Dios te Salve, Reina y Madre", cat: "salve", isLarge: true },
+    { key: "letanias", badge: "Letanías", label: "Letanías Lauretanas", cat: "letanias", isLarge: true },
+    { key: "credo", badge: "Credo", label: "Credo de los Apóstoles", cat: "credo", isLarge: true },
+    { key: "padreNuestroIntro", badge: "P. Nuestro (Papa)", label: "Padre Nuestro por las intenciones del Santo Padre", cat: "padreNuestro" },
+    { key: "aveMariaFe", badge: "1ª Ave María (Fe)", label: "1ª Ave María por el aumento de la Fe", cat: "aveMaria" },
+    { key: "aveMariaEsperanza", badge: "2ª Ave María (Esperanza)", label: "2ª Ave María por el aumento de la Esperanza", cat: "aveMaria" },
+    { key: "aveMariaCaridad", badge: "3ª Ave María (Caridad)", label: "3ª Ave María por el aumento de la Caridad", cat: "aveMaria" },
+    { key: "senalCruz", badge: "Señal Cruz", label: "Señal de la Santa Cruz", cat: "iniciales" },
+    { key: "invocacion", badge: "Invocación", label: "Invocación al Espíritu Santo", cat: "iniciales" },
+    { key: "actoContricion", badge: "Acto Contrición", label: "Acto de Contrición", cat: "iniciales" },
+    { key: "oracionFinal", badge: "Oración Final", label: "Oración Final y Bendición", cat: "iniciales" }
+];
+
+let currentPrayerFilter = 'all';
+
+function escapeHtmlStr(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function escapeAttrStr(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderPrayersList(lang) {
+    if (!prayersListContainer) return;
+    const effective = (typeof getEffectivePrayers === 'function') ? getEffectivePrayers(lang) : (rosaryPrayers[lang] || rosaryPrayers.es);
+    const base = (typeof rosaryPrayers !== 'undefined' && rosaryPrayers[lang]) ? rosaryPrayers[lang] : (rosaryPrayers.es || {});
+
+    let html = '';
+    PRAYERS_CONFIG_LIST.forEach(item => {
+        const prayer = effective[item.key] || base[item.key] || { title: item.label, text: '' };
+        const basePrayer = base[item.key] || { title: item.label, text: '' };
+        const isModified = (prayer.title !== basePrayer.title || prayer.text !== basePrayer.text);
+        const rows = item.isLarge ? 12 : 5;
+
+        html += `
+            <div class="prayer-card-block ${isModified ? 'prayer-card-modified' : ''}" data-key="${item.key}" data-category="${item.cat}">
+                <div class="prayer-card-header">
+                    <span class="prayer-badge">${item.badge}</span>
+                    <div class="prayer-title-input-wrap">
+                        <label class="prayer-label">Título:</label>
+                        <input type="text" class="prayer-input-title" data-key="${item.key}" value="${escapeAttrStr(prayer.title || '')}" />
+                    </div>
+                    ${isModified ? '<span class="sync-row-badge-custom" title="Texto modificado respecto al predeterminado">Modificado</span>' : ''}
+                    <button type="button" class="btn-prayer-reset-single" data-key="${item.key}" title="Restablecer sólo esta oración a su valor original">↺</button>
+                </div>
+                <div class="prayer-card-body">
+                    <label class="prayer-label">Texto de la oración:</label>
+                    <textarea class="prayer-input-text" data-key="${item.key}" rows="${rows}">${escapeHtmlStr(prayer.text || '')}</textarea>
+                </div>
+            </div>
+        `;
+    });
+
+    prayersListContainer.innerHTML = html;
+
+    // Asignar eventos de restablecimiento individual
+    prayersListContainer.querySelectorAll('.btn-prayer-reset-single').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const key = btn.getAttribute('data-key');
+            if (!key) return;
+            const card = prayersListContainer.querySelector(`.prayer-card-block[data-key="${key}"]`);
+            if (card && base[key]) {
+                const titleInput = card.querySelector('.prayer-input-title');
+                const textArea = card.querySelector('.prayer-input-text');
+                if (titleInput) titleInput.value = base[key].title || '';
+                if (textArea) textArea.value = base[key].text || '';
+                card.classList.remove('prayer-card-modified');
+                const badge = card.querySelector('.sync-row-badge-custom');
+                if (badge) badge.remove();
+            }
+        });
+    });
+
+    applyPrayersFilter();
+}
+
+function applyPrayersFilter() {
+    if (!prayersListContainer) return;
+    const q = (prayersSearchInput?.value || '').toLowerCase().trim();
+    const cards = prayersListContainer.querySelectorAll('.prayer-card-block');
+
+    cards.forEach(card => {
+        const cat = card.getAttribute('data-category');
+        const title = (card.querySelector('.prayer-input-title')?.value || '').toLowerCase();
+        const text = (card.querySelector('.prayer-input-text')?.value || '').toLowerCase();
+
+        const matchCat = (currentPrayerFilter === 'all' || cat === currentPrayerFilter);
+        const matchQuery = !q || title.includes(q) || text.includes(q);
+
+        card.classList.toggle('hidden', !(matchCat && matchQuery));
+    });
+}
+
+// Abrir y cerrar modal de oraciones
+if (btnOpenPrayers && prayersModal) {
+    btnOpenPrayers.addEventListener('click', () => {
+        const curLang = langSelect ? (langSelect.value || 'es') : 'es';
+        if (prayersLangSelect) prayersLangSelect.value = curLang;
+        renderPrayersList(curLang);
+        prayersModal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    });
+}
+
+function closePrayersModal() {
+    if (prayersModal) {
+        prayersModal.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+}
+
+if (prayersModalClose) {
+    prayersModalClose.addEventListener('click', closePrayersModal);
+}
+if (prayersModal) {
+    prayersModal.addEventListener('click', (e) => {
+        if (e.target === prayersModal) {
+            closePrayersModal();
+        }
+    });
+}
+
+// Selector de idioma en modal de oraciones
+if (prayersLangSelect) {
+    prayersLangSelect.addEventListener('change', () => {
+        renderPrayersList(prayersLangSelect.value);
+    });
+}
+
+// Filtro por búsqueda
+if (prayersSearchInput) {
+    prayersSearchInput.addEventListener('input', applyPrayersFilter);
+}
+
+// Píldoras de filtro rápido
+if (prayersPillsNav) {
+    prayersPillsNav.querySelectorAll('.sync-nav-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+            prayersPillsNav.querySelectorAll('.sync-nav-pill').forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            currentPrayerFilter = pill.getAttribute('data-filter') || 'all';
+            applyPrayersFilter();
+        });
+    });
+}
+
+// Guardar oraciones editadas
+if (btnPrayersSave) {
+    btnPrayersSave.addEventListener('click', () => {
+        const lang = prayersLangSelect ? (prayersLangSelect.value || 'es') : 'es';
+        const cards = prayersListContainer.querySelectorAll('.prayer-card-block');
+        const customPrayers = {};
+
+        cards.forEach(card => {
+            const key = card.getAttribute('data-key');
+            const titleInput = card.querySelector('.prayer-input-title');
+            const textArea = card.querySelector('.prayer-input-text');
+            if (key && titleInput && textArea) {
+                customPrayers[key] = {
+                    title: titleInput.value.trim(),
+                    text: textArea.value.trim()
+                };
+            }
+        });
+
+        // 1. Guardar localmente
+        if (typeof saveCustomPrayersToStorage === 'function') {
+            saveCustomPrayersToStorage(lang, customPrayers);
+        }
+
+        // 2. Guardar en Cloud Firestore si está disponible
+        if (window.RosaryCloud && typeof window.RosaryCloud.savePrayersToCloud === 'function') {
+            window.RosaryCloud.savePrayersToCloud(lang, customPrayers).then(ok => {
+                if (prayersStatusMsg) {
+                    prayersStatusMsg.innerText = ok ? `☁️ Guardado en la nube (${lang})` : '💾 Guardado localmente';
+                }
+            });
+        }
+
+        // 3. Actualizar la interfaz si el idioma guardado es el actual
+        if (lang === langSelect.value) {
+            const mData = (audioData[lang] && audioData[lang][currentMystery]) ? audioData[lang][currentMystery] : audioData.es.Gozosos;
+            currentSteps = generateDetailedTimeline(currentMystery, mData, lang);
+            updateUIForStep(currentStepIndex);
+            if (currentSteps[currentStepIndex]) {
+                updateBeadHighlights(currentSteps[currentStepIndex].beadId);
+            }
+        }
+
+        // 4. Feedback visual
+        renderPrayersList(lang);
+        if (prayersStatusMsg) {
+            prayersStatusMsg.innerText = '✅ ¡Oraciones guardadas y aplicadas con éxito!';
+            setTimeout(() => {
+                if (prayersStatusMsg) prayersStatusMsg.innerText = 'Textos listos para editar';
+            }, 3500);
+        }
+    });
+}
+
+// Restablecer oraciones a originales
+if (btnPrayersReset) {
+    btnPrayersReset.addEventListener('click', () => {
+        const lang = prayersLangSelect ? (prayersLangSelect.value || 'es') : 'es';
+        if (confirm(`¿Deseas restablecer todas las oraciones del idioma ${lang.toUpperCase()} a sus textos originales oficiales?`)) {
+            if (typeof clearCustomPrayersFromStorage === 'function') {
+                clearCustomPrayersFromStorage(lang);
+            }
+            renderPrayersList(lang);
+            if (lang === langSelect.value) {
+                const mData = (audioData[lang] && audioData[lang][currentMystery]) ? audioData[lang][currentMystery] : audioData.es.Gozosos;
+                currentSteps = generateDetailedTimeline(currentMystery, mData, lang);
+                updateUIForStep(currentStepIndex);
+                if (currentSteps[currentStepIndex]) {
+                    updateBeadHighlights(currentSteps[currentStepIndex].beadId);
+                }
+            }
+            if (prayersStatusMsg) {
+                prayersStatusMsg.innerText = '🔄 Oraciones restablecidas a los textos originales';
+            }
+        }
+    });
+}
+
+// Copiar JSON
+if (btnPrayersCopy) {
+    btnPrayersCopy.addEventListener('click', () => {
+        const lang = prayersLangSelect ? (prayersLangSelect.value || 'es') : 'es';
+        const effective = (typeof getEffectivePrayers === 'function') ? getEffectivePrayers(lang) : (rosaryPrayers[lang] || rosaryPrayers.es);
+        const jsonStr = JSON.stringify(effective, null, 2);
+        navigator.clipboard.writeText(jsonStr).then(() => {
+            if (prayersStatusMsg) {
+                prayersStatusMsg.innerText = '📋 ¡Textos en JSON copiados al portapapeles!';
+                setTimeout(() => {
+                    if (prayersStatusMsg) prayersStatusMsg.innerText = 'Textos listos para editar';
+                }, 3000);
+            }
+        }).catch(err => {
+            console.error('Error al copiar:', err);
+        });
+    });
+}
+
+// Exponer refresco de oraciones para actualizaciones de Firestore
+window.refreshActivePrayersUI = function() {
+    const lang = langSelect ? (langSelect.value || 'es') : 'es';
+    if (typeof audioData !== 'undefined' && audioData[lang] && audioData[lang][currentMystery]) {
+        currentSteps = generateDetailedTimeline(currentMystery, audioData[lang][currentMystery], lang);
+        updateUIForStep(currentStepIndex);
+        if (currentSteps[currentStepIndex]) {
+            updateBeadHighlights(currentSteps[currentStepIndex].beadId);
+        }
+    }
+    if (prayersModal && prayersModal.classList.contains('open') && prayersLangSelect) {
+        renderPrayersList(prayersLangSelect.value);
+    }
+};
+
 
 // 13. INICIALIZACIÓN AL CARGAR LA PÁGINA
 window.addEventListener('DOMContentLoaded', () => {
