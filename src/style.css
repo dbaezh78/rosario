@@ -463,6 +463,18 @@ body {
     box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
 }
 
+.mini-speed-select {
+    padding: 2px 4px;
+    font-size: 0.72rem;
+    height: 28px;
+    border-radius: 6px;
+    background: #0f1626;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    color: var(--gold-light);
+    outline: none;
+    cursor: pointer;
+}
+
 .mini-slider-wrap {
     width: 100%;
     display: flex;

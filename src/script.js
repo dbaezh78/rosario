@@ -121,6 +121,7 @@ const miniBtnNext = document.getElementById('mini-btn-next');
 const miniSeekSlider = document.getElementById('mini-seek-slider');
 const miniTimeDisplay = document.getElementById('mini-time-display');
 const miniPrayerTitle = document.getElementById('mini-prayer-title');
+const miniSpeedSelect = document.getElementById('mini-speed-select');
 
 // Controles de tamaño de fuente
 const btnFontMinus = document.getElementById('btn-font-minus');
@@ -532,12 +533,47 @@ if (btnNextBead) btnNextBead.addEventListener('click', goNextBead);
 if (miniBtnPrev) miniBtnPrev.addEventListener('click', goPrevBead);
 if (miniBtnNext) miniBtnNext.addEventListener('click', goNextBead);
 
-// Velocidad de reproducción
-if (speedSelect) {
-    speedSelect.addEventListener('change', () => {
-        audioPlayer.playbackRate = parseFloat(speedSelect.value) || 1.0;
+// Velocidad de reproducción con persistencia en localStorage y sincronización
+const ROSARY_SPEED_KEY = 'rosary_playback_speed';
+
+function syncSpeedSelects(value) {
+    const num = parseFloat(value) || 1.0;
+    audioPlayer.playbackRate = num;
+
+    [speedSelect, miniSpeedSelect].forEach(sel => {
+        if (!sel) return;
+        for (let i = 0; i < sel.options.length; i++) {
+            if (Math.abs(parseFloat(sel.options[i].value) - num) < 0.001) {
+                sel.selectedIndex = i;
+                break;
+            }
+        }
     });
+
+    try {
+        localStorage.setItem(ROSARY_SPEED_KEY, num.toFixed(2));
+    } catch (e) {}
 }
+
+// Inicializar velocidad guardada
+try {
+    const savedSpeed = localStorage.getItem(ROSARY_SPEED_KEY);
+    if (savedSpeed) {
+        syncSpeedSelects(savedSpeed);
+    }
+} catch (e) {}
+
+if (speedSelect) {
+    speedSelect.addEventListener('change', () => syncSpeedSelects(speedSelect.value));
+}
+if (miniSpeedSelect) {
+    miniSpeedSelect.addEventListener('change', () => syncSpeedSelects(miniSpeedSelect.value));
+}
+
+audioPlayer.addEventListener('loadedmetadata', () => {
+    const curVal = speedSelect ? speedSelect.value : (miniSpeedSelect ? miniSpeedSelect.value : '1.0');
+    audioPlayer.playbackRate = parseFloat(curVal) || 1.0;
+});
 
 // Clic en los 7 puntos de las decenas
 decadeDots.forEach((dot, index) => {
