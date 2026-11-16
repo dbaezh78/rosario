@@ -830,6 +830,23 @@ function getAllStoredCustomTimes() {
     }
 }
 
+const ROSARY_LITANY_SPEED_KEY = 'rosary_litany_scroll_speed_v1';
+
+// Obtiene la velocidad configurada para el desplazamiento automático de las Letanías
+function getEffectiveLitanyScrollSpeed(lang = 'es', mysteryKey = 'Gozosos') {
+    const custom = getEffectiveCustomTimes(lang, mysteryKey);
+    if (custom && custom.letanias_scroll_speed) {
+        return custom.letanias_scroll_speed;
+    }
+    try {
+        if (typeof localStorage !== 'undefined') {
+            const saved = localStorage.getItem(ROSARY_LITANY_SPEED_KEY);
+            if (saved) return saved;
+        }
+    } catch (e) {}
+    return "1.0x";
+}
+
 // =============================================================================
 // GESTIÓN DE ORACIONES PERSONALIZADAS (ALMACENAMIENTO, FORMULARIO Y LECTURA)
 // =============================================================================
@@ -1165,6 +1182,9 @@ function getRosaryStructureDefinition(lang = 'es', mysteryKey = 'Gozosos') {
             item.sec = effectiveSec;
             item.formatted = formatTime(effectiveSec);
             item.isCustom = (customTimes[item.key] !== undefined);
+            if (item.key === 'letanias') {
+                item.scrollSpeed = getEffectiveLitanyScrollSpeed(lang, mysteryKey);
+            }
         });
     });
 
@@ -1190,7 +1210,8 @@ function generateDetailedTimeline(mysteryKey, mysteryObj, lang = 'es') {
                 title: item.title,
                 subtitle: item.subtitle,
                 prayerText: item.prayerText,
-                img: item.img
+                img: item.img,
+                scrollSpeed: item.scrollSpeed || '1.0x'
             });
         });
     });

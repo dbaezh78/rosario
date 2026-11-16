@@ -91,6 +91,7 @@ const currentDayBadge = document.getElementById('today-badge');
 const prayerTitleElem = document.getElementById('prayer-title');
 const prayerSubtitleElem = document.getElementById('prayer-subtitle');
 const prayerBodyElem = document.getElementById('prayer-body');
+const prayerScrollArea = document.querySelector('.prayer-text-scroll-area');
 const beadCounterText = document.getElementById('bead-counter-text');
 const beadMiniDotsContainer = document.getElementById('bead-mini-dots');
 const beadCurrentHover = document.getElementById('bead-current-hover');
@@ -345,6 +346,18 @@ function updateUIForStep(stepIndex) {
     if (beadCurrentHover) {
         beadCurrentHover.innerText = `${step.subtitle}`;
     }
+
+    // 6. Resetear o preparar scroll del área de oración
+    if (prayerScrollArea) {
+        if (step.key !== 'letanias' && step.type !== 'letanias') {
+            prayerScrollArea.scrollTop = 0;
+        } else {
+            // Si apenas comienzan las letanías, asegurar inicio arriba
+            if (audioPlayer.currentTime <= (step.s + 1)) {
+                prayerScrollArea.scrollTop = 0;
+            }
+        }
+    }
 }
 
 // 8. RENDERIZADO DE LOS 10 MINI-PUNTOS DE LA DECENA
@@ -579,10 +592,17 @@ audioPlayer.addEventListener('loadedmetadata', () => {
 decadeDots.forEach((dot, index) => {
     dot.addEventListener('click', () => {
         if (!currentSteps) return;
-        const step = currentSteps.find(s => s.decade === index);
+        let step;
+        if (index === 6) {
+            // El botón de Letanías debe ir directamente a las Letanías Lauretanas
+            step = currentSteps.find(s => s.key === 'letanias') || currentSteps.find(s => s.decade === 6);
+        } else {
+            step = currentSteps.find(s => s.decade === index);
+        }
         if (step) {
             audioPlayer.currentTime = step.s;
             audioPlayer.play().catch(() => {});
+            updatePlayPauseButton(true);
         }
     });
 });
@@ -689,6 +709,77 @@ function formatTime(secs) {
 }
 
 // =============================================================================
+// 13. DESPLAZAMIENTO AUTOMÁTICO SUAVE DE LAS LETANÍAS
+// =============================================================================
+
+let userScrollPausedUntil = 0;
+let litanyScrollRafId = null;
+
+// Pausar auto-scroll si el usuario interactúa manualmente con el área de texto
+if (prayerScrollArea) {
+    const pauseOnUserInteraction = () => {
+        userScrollPausedUntil = Date.now() + 3500;
+    };
+    prayerScrollArea.addEventListener('wheel', pauseOnUserInteraction, { passive: true });
+    prayerScrollArea.addEventListener('touchstart', pauseOnUserInteraction, { passive: true });
+    prayerScrollArea.addEventListener('pointerdown', pauseOnUserInteraction, { passive: true });
+}
+
+// Interpreta la velocidad ingresada (ej. '1.0x', '1.2x', '0.8x' o segundos '200s')
+function parseLitanyScrollSpeed(speedVal, duration) {
+    if (!speedVal) return 1.0;
+    const str = String(speedVal).trim().toLowerCase().replace('x', '').replace(',', '.');
+    const num = parseFloat(str);
+    if (isNaN(num) || num <= 0) return 1.0;
+    // Si se ingresó una cantidad de segundos total (número > 15)
+    if (num > 15 && duration > 0) {
+        return duration / num;
+    }
+    return num;
+}
+
+// Bucle de animación continuo a 60fps para que el texto descienda suavemente durante las letanías
+function updateLitanyAutoScroll() {
+    if (prayerScrollArea && currentSteps && currentSteps.length > 0 && !audioPlayer.paused) {
+        const curStep = currentSteps[currentStepIndex];
+        if (curStep && (curStep.key === 'letanias' || curStep.type === 'letanias')) {
+            const now = Date.now();
+            if (now >= userScrollPausedUntil) {
+                const maxScroll = prayerScrollArea.scrollHeight - prayerScrollArea.clientHeight;
+                if (maxScroll > 5) {
+                    const startSec = curStep.s;
+                    const nextStep = currentSteps[currentStepIndex + 1];
+                    const endSec = nextStep ? nextStep.s : (audioPlayer.duration || (startSec + 300));
+                    const totalDur = Math.max(30, endSec - startSec);
+                    const speedMultiplier = parseLitanyScrollSpeed(curStep.scrollSpeed, totalDur);
+
+                    const curSec = audioPlayer.currentTime;
+                    const elapsed = Math.max(0, curSec - startSec);
+                    const effectiveDuration = totalDur / speedMultiplier;
+                    const rawRatio = elapsed / effectiveDuration;
+                    const clampedRatio = Math.max(0, Math.min(1.0, rawRatio));
+
+                    const targetScrollTop = maxScroll * clampedRatio;
+                    const currentScrollTop = prayerScrollArea.scrollTop;
+                    const diff = targetScrollTop - currentScrollTop;
+
+                    // Desplazamiento cinemático suave y continuo (lerp a 60fps)
+                    if (Math.abs(diff) > 0.5) {
+                        prayerScrollArea.scrollTop = currentScrollTop + diff * 0.08;
+                    }
+                }
+            }
+        }
+    }
+    litanyScrollRafId = requestAnimationFrame(updateLitanyAutoScroll);
+}
+
+// Iniciar bucle continuo
+if (typeof requestAnimationFrame !== 'undefined') {
+    litanyScrollRafId = requestAnimationFrame(updateLitanyAutoScroll);
+}
+
+// =============================================================================
 // 14. CONTROLADOR DEL FORMULARIO SINCRONIZADOR DE TIEMPOS
 // =============================================================================
 
@@ -720,6 +811,12 @@ function renderSyncItems(lang, mystery) {
                         </div>
                     </div>
                     <div class="sync-item-right">
+                        ${item.key === 'letanias' ? `
+                            <div class="sync-scroll-speed-wrap" title="Velocidad con la que baja automáticamente el texto de las Letanías">
+                                <span class="sync-scroll-speed-label">Vel. Scroll:</span>
+                                <input type="text" class="sync-input-scroll-speed" id="sync-letanias-speed" data-key="letanias_scroll_speed" value="${item.scrollSpeed || '1.0x'}" placeholder="1.0x" spellcheck="false" autocomplete="off" title="Velocidad de desplazamiento automático (ej. 1.0x, 1.2x, 0.8x)">
+                            </div>
+                        ` : ''}
                         <button type="button" class="btn-sync-adjust" data-delta="-1" title="Restar 1 segundo">-1s</button>
                         <input type="text" class="sync-input-time" data-key="${item.key}" value="${item.formatted}" placeholder="MM:SS" spellcheck="false" autocomplete="off">
                         <button type="button" class="btn-sync-adjust" data-delta="1" title="Sumar 1 segundo">+1s</button>
@@ -752,6 +849,7 @@ function renderSyncItems(lang, mystery) {
     const rows = syncListContainer.querySelectorAll('.sync-item-row');
     rows.forEach(row => {
         const input = row.querySelector('.sync-input-time');
+        const speedInput = row.querySelector('#sync-letanias-speed');
         const btnStamp = row.querySelector('.btn-sync-stamp');
         const btnTest = row.querySelector('.btn-sync-test');
         const adjustBtns = row.querySelectorAll('.btn-sync-adjust');
@@ -760,6 +858,12 @@ function renderSyncItems(lang, mystery) {
         input.addEventListener('input', () => {
             row.classList.add('modified');
         });
+
+        if (speedInput) {
+            speedInput.addEventListener('input', () => {
+                row.classList.add('modified');
+            });
+        }
 
         adjustBtns.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -872,6 +976,34 @@ syncNavPills.forEach(pill => {
         if (targetEl) {
             targetEl.classList.remove('collapsed');
             targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // Sincronizar el reproductor de audio al tiempo exacto de la sección
+            let targetInput = null;
+            if (targetId === 'sync-sec-letanias') {
+                targetInput = targetEl.querySelector('.sync-input-time[data-key="letanias"]');
+            }
+            if (!targetInput) {
+                targetInput = targetEl.querySelector('.sync-input-time');
+            }
+
+            if (targetInput && targetInput.value) {
+                const targetSec = toSec(targetInput.value);
+                const wasPlaying = !audioPlayer.paused;
+                audioPlayer.currentTime = targetSec;
+                if (wasPlaying) {
+                    audioPlayer.play().catch(() => {});
+                }
+                const dur = audioPlayer.duration || 1800;
+                if (syncTimeCur) syncTimeCur.innerText = formatTime(targetSec);
+                if (currentTimeDisplay) currentTimeDisplay.innerText = formatTime(targetSec);
+                if (miniTimeDisplay) miniTimeDisplay.innerText = `${formatTime(targetSec)} / ${formatTime(dur)}`;
+                if (syncAudioSlider && dur > 0) syncAudioSlider.value = (targetSec / dur) * 100;
+                if (seekSlider && dur > 0) seekSlider.value = (targetSec / dur) * 100;
+                if (miniSeekSlider && dur > 0) miniSeekSlider.value = (targetSec / dur) * 100;
+                if (syncStatusMsg) {
+                    syncStatusMsg.innerText = `⏱️ Sincronizado en ${formatTime(targetSec)}: ${pill.innerText.trim()}`;
+                }
+            }
         }
     });
 });
@@ -891,6 +1023,18 @@ if (btnSyncSave) {
                 times[key] = val;
             }
         });
+
+        // Guardar velocidad de scroll de letanías si fue configurada
+        const speedInput = syncListContainer.querySelector('#sync-letanias-speed');
+        if (speedInput) {
+            const speedVal = speedInput.value.trim() || '1.0x';
+            times.letanias_scroll_speed = speedVal;
+            try {
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.setItem('rosary_litany_scroll_speed_v1', speedVal);
+                }
+            } catch (e) {}
+        }
 
         // Guardar en almacenamiento permanente de navegador
         saveCustomTimesToStorage(lang, mystery, times);
@@ -912,6 +1056,16 @@ if (btnSyncSave) {
         // Si es el misterio e idioma que el usuario está rezando, aplicar en vivo
         if (lang === langSelect.value && mystery === currentMystery) {
             currentSteps = generateDetailedTimeline(currentMystery, audioData[lang][currentMystery], lang);
+            const curTime = audioPlayer.currentTime;
+            let newStepIndex = 0;
+            for (let i = 0; i < currentSteps.length; i++) {
+                if (curTime >= currentSteps[i].s) {
+                    newStepIndex = i;
+                } else {
+                    break;
+                }
+            }
+            currentStepIndex = newStepIndex;
             updateUIForStep(currentStepIndex);
             if (currentSteps[currentStepIndex]) {
                 updateBeadHighlights(currentSteps[currentStepIndex].beadId);
@@ -938,6 +1092,11 @@ if (btnSyncCopy) {
                 lines.push(`                ${key}: "${val}"`);
             }
         });
+
+        const speedInput = syncListContainer.querySelector('#sync-letanias-speed');
+        if (speedInput && speedInput.value.trim()) {
+            lines.push(`                letanias_scroll_speed: "${speedInput.value.trim()}"`);
+        }
 
         const snippet = `// Tiempos personalizados para ${syncMysterySelect.value} (${syncLangSelect.value})\ncustomTimes: {\n${lines.join(',\n')}\n}`;
         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1009,6 +1168,11 @@ if (btnSyncReset) {
         const mystery = syncMysterySelect.value;
         if (confirm(`¿Deseas restablecer los tiempos de ${mystery} (${lang.toUpperCase()}) a sus valores calculados originales?`)) {
             clearCustomTimesFromStorage(lang, mystery);
+            try {
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.removeItem('rosary_litany_scroll_speed_v1');
+                }
+            } catch (e) {}
             if (audioData[lang] && audioData[lang][mystery]) {
                 delete audioData[lang][mystery].customTimes;
             }
