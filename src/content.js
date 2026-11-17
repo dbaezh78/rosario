@@ -927,6 +927,62 @@ function clearCustomPrayersFromStorage(lang) {
 }
 
 // =============================================================================
+// GESTIÓN DE CONTENIDOS PERSONALIZADOS POR ITEM (TÍTULO, SUBTÍTULO, ORACIÓN/MEDITACIÓN)
+// =============================================================================
+
+const ROSARY_CUSTOM_ITEM_CONTENT_KEY = 'rosary_custom_item_content_v1';
+
+// Obtiene todo el registro de contenidos personalizados por item de localStorage
+function getAllStoredItemContent() {
+    try {
+        if (typeof localStorage === 'undefined') return {};
+        const raw = localStorage.getItem(ROSARY_CUSTOM_ITEM_CONTENT_KEY);
+        return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+        return {};
+    }
+}
+
+// Obtiene los contenidos personalizados para un idioma y misterio específico
+function getEffectiveItemContent(lang = 'es', mysteryKey = 'Gozosos') {
+    try {
+        const all = getAllStoredItemContent();
+        if (all[lang] && all[lang][mysteryKey]) {
+            return all[lang][mysteryKey];
+        }
+    } catch (e) {}
+    return {};
+}
+
+// Guarda contenido personalizado de un item en localStorage
+function saveItemContentToStorage(lang, mysteryKey, itemKey, contentObj) {
+    try {
+        if (typeof localStorage === 'undefined') return;
+        const all = getAllStoredItemContent();
+        if (!all[lang]) all[lang] = {};
+        if (!all[lang][mysteryKey]) all[lang][mysteryKey] = {};
+        all[lang][mysteryKey][itemKey] = Object.assign({}, all[lang][mysteryKey][itemKey] || {}, contentObj);
+        localStorage.setItem(ROSARY_CUSTOM_ITEM_CONTENT_KEY, JSON.stringify(all));
+    } catch (e) {
+        console.error('Error guardando contenido de item en localStorage:', e);
+    }
+}
+
+// Elimina el contenido personalizado de un item para restaurar su valor original
+function clearItemContentFromStorage(lang, mysteryKey, itemKey) {
+    try {
+        if (typeof localStorage === 'undefined') return;
+        const all = getAllStoredItemContent();
+        if (all[lang] && all[lang][mysteryKey] && all[lang][mysteryKey][itemKey]) {
+            delete all[lang][mysteryKey][itemKey];
+            localStorage.setItem(ROSARY_CUSTOM_ITEM_CONTENT_KEY, JSON.stringify(all));
+        }
+    } catch (e) {
+        console.error('Error eliminando contenido de item de localStorage:', e);
+    }
+}
+
+// =============================================================================
 // DEFINICIÓN DE ESTRUCTURA CANÓNICA DE LAS 75 CUENTAS / EVENTOS DEL ROSARIO
 // =============================================================================
 // Esta función provee la lista completa y organizada de todas las cuentas,
@@ -939,6 +995,7 @@ function getRosaryStructureDefinition(lang = 'es', mysteryKey = 'Gozosos') {
     const checkpoints = mData.checkpoints || [0, 186, 437, 708, 1008, 1287, 1569];
     const totalDuration = mData.duration || 1900;
     const customTimes = getEffectiveCustomTimes(lang, mysteryKey);
+    const customContent = getEffectiveItemContent(lang, mysteryKey);
     const introEnd = checkpoints[1] || 186;
 
     const sections = [
@@ -1177,7 +1234,7 @@ function getRosaryStructureDefinition(lang = 'es', mysteryKey = 'Gozosos') {
         ]
     });
 
-    // Calcular tiempo efectivo y formateado para cada elemento
+    // Calcular tiempo efectivo y formateado para cada elemento, y aplicar personalizaciones de contenido
     sections.forEach(sec => {
         sec.items.forEach(item => {
             const effectiveSec = (customTimes[item.key] !== undefined) ? toSec(customTimes[item.key]) : item.defaultSec;
@@ -1186,6 +1243,28 @@ function getRosaryStructureDefinition(lang = 'es', mysteryKey = 'Gozosos') {
             item.isCustom = (customTimes[item.key] !== undefined);
             if (item.key === 'letanias') {
                 item.scrollSpeed = getEffectiveLitanyScrollSpeed(lang, mysteryKey);
+            }
+
+            // Guardar valores predeterminados para poder restablecerlos en el editor
+            item.defaultTitle = item.title;
+            item.defaultSubtitle = item.subtitle;
+            item.defaultPrayerText = item.prayerText;
+
+            // Aplicar contenido personalizado si existe
+            if (customContent && customContent[item.key]) {
+                const c = customContent[item.key];
+                if (c.title !== undefined && c.title !== null && c.title.trim() !== '') {
+                    item.title = c.title;
+                }
+                if (c.subtitle !== undefined && c.subtitle !== null) {
+                    item.subtitle = c.subtitle;
+                }
+                if (c.prayerText !== undefined && c.prayerText !== null) {
+                    item.prayerText = c.prayerText;
+                }
+                item.isCustomContent = true;
+            } else {
+                item.isCustomContent = false;
             }
         });
     });

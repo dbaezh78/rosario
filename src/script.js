@@ -257,7 +257,6 @@ const DOLOROSOS_VERSION_KEY = 'rosary_dolorosos_version';
 let audioVersion = (typeof localStorage !== 'undefined' && (localStorage.getItem(AUDIO_VERSION_KEY) || localStorage.getItem(DOLOROSOS_VERSION_KEY))) || 'v1';
 
 const btnBrandCross = document.getElementById('btn-brand-cross');
-const crossBadge = document.getElementById('cross-badge');
 const btnVersionSwitch = document.getElementById('btn-version-switch');
 
 function getActiveMysterySrc(mysteryKey, lang = 'es') {
@@ -272,26 +271,22 @@ function getActiveMysterySrc(mysteryKey, lang = 'es') {
 function updateAudioVersionUI() {
     const isV1 = (audioVersion === 'v1');
     
-    // 1. Actualizar apariencia, glow y badge de la Cruz
+    // 1. Actualizar color de la Cruz: Amarilla (V1) vs Roja (V2)
     if (btnBrandCross) {
         btnBrandCross.classList.toggle('version-v1', isV1);
         btnBrandCross.classList.toggle('version-v2', !isV1);
         btnBrandCross.title = isV1
-            ? "Audio: Versión 1 (v1.mp3) — Clic en la cruz para cambiar a Versión 2 (Original)"
-            : "Audio: Versión 2 (Original) — Clic en la cruz para volver a Versión 1 (v1.mp3)";
-    }
-    
-    if (crossBadge) {
-        crossBadge.innerText = isV1 ? 'V1' : 'V2';
+            ? "Cruz Amarilla (V1 activa) — Clic para cambiar a Cruz Roja (V2)"
+            : "Cruz Roja (V2 activa) — Clic para volver a Cruz Amarilla (V1)";
     }
 
-    // 2. Actualizar Switch visual
+    // 2. Actualizar Switch visual (V1 / V2)
     if (btnVersionSwitch) {
         btnVersionSwitch.classList.toggle('is-v1', isV1);
         btnVersionSwitch.classList.toggle('is-v2', !isV1);
         btnVersionSwitch.title = isV1
-            ? "Versión 1 (v1.mp3) activa — Clic para alternar a Versión 2"
-            : "Versión 2 (Original) activa — Clic para alternar a Versión 1";
+            ? "Switch en V1 — Clic para alternar a V2"
+            : "Switch en V2 — Clic para alternar a V1";
     }
 }
 
@@ -357,8 +352,8 @@ function toggleAudioVersion() {
 
     const currentFile = (audioVersion === 'v1') ? `${currentMystery}v1.mp3` : `${currentMystery}.mp3`;
     const toastMsg = (audioVersion === 'v1')
-        ? `✝️ <strong>${currentMystery}: Versión 1</strong> (${currentFile}) activada`
-        : `✝️ <strong>${currentMystery}: Versión 2</strong> (${currentFile} original) activada`;
+        ? `🟡 <strong>Cruz Amarilla · Versión 1</strong> (${currentFile}) activada`
+        : `🔴 <strong>Cruz Roja · Versión 2</strong> (${currentFile} original) activada`;
     showVersionToast(toastMsg);
 }
 
@@ -927,13 +922,14 @@ function renderSyncItems(lang, mystery) {
 
         sec.items.forEach(item => {
             html += `
-                <div class="sync-item-row" data-key="${item.key}">
+                <div class="sync-item-row ${item.isCustomContent ? 'has-custom-content' : ''}" data-key="${item.key}">
                     <div class="sync-item-left">
                         <span class="sync-badge">${item.badge}</span>
                         <div class="sync-item-titles">
                             <span class="sync-item-title">${item.title}</span>
                             <span class="sync-item-subtitle">${item.subtitle}</span>
                         </div>
+                        ${item.isCustomContent ? `<span class="sync-custom-content-badge" title="Contenido personalizado y guardado">✏️ Editado</span>` : ''}
                     </div>
                     <div class="sync-item-right">
                         ${item.key === 'letanias' ? `
@@ -947,6 +943,7 @@ function renderSyncItems(lang, mystery) {
                         <button type="button" class="btn-sync-adjust" data-delta="1" title="Sumar 1 segundo">+1s</button>
                         <button type="button" class="btn-sync-stamp" data-key="${item.key}" title="Fijar tiempo actual del audio en esta casilla">⏱️ Ahora</button>
                         <button type="button" class="btn-sync-test" data-key="${item.key}" title="Reproducir audio desde este tiempo">▶ Probar</button>
+                        <button type="button" class="btn-sync-edit ${item.isCustomContent ? 'is-custom' : ''}" data-key="${item.key}" title="Editar contenido y texto de esta oración">✏️</button>
                     </div>
                 </div>
             `;
@@ -1016,6 +1013,21 @@ function renderSyncItems(lang, mystery) {
                 syncStatusMsg.innerText = `▶ Probando en ${input.value}: ${itemTitle}`;
             }
         });
+
+        const btnEdit = row.querySelector('.btn-sync-edit');
+        if (btnEdit) {
+            btnEdit.addEventListener('click', () => {
+                const key = btnEdit.getAttribute('data-key');
+                let targetItem = null;
+                for (const s of sections) {
+                    targetItem = s.items.find(it => it.key === key);
+                    if (targetItem) break;
+                }
+                if (targetItem && typeof openEditContentModal === 'function') {
+                    openEditContentModal(lang, mystery, targetItem);
+                }
+            });
+        }
     });
 }
 
@@ -1329,6 +1341,188 @@ window.refreshActiveTimeline = function() {
         if (currentSteps[currentStepIndex]) {
             updateBeadHighlights(currentSteps[currentStepIndex].beadId);
         }
+    }
+};
+
+// =============================================================================
+// EDITOR INDIVIDUAL DE CONTENIDO DE CUENTA / ORACIÓN (#edit-content-modal)
+// =============================================================================
+
+const editContentModal = document.getElementById('edit-content-modal');
+const editContentModalClose = document.getElementById('edit-content-modal-close');
+const editContentModalTitle = document.getElementById('edit-content-modal-title');
+const editContentModalSubtitle = document.getElementById('edit-content-modal-subtitle');
+const editContentBadge = document.getElementById('edit-content-badge');
+const editContentMeta = document.getElementById('edit-content-meta');
+const editContentStatusPill = document.getElementById('edit-content-status-pill');
+const editItemTitleInput = document.getElementById('edit-item-title-input');
+const editItemSubtitleInput = document.getElementById('edit-item-subtitle-input');
+const editItemTextInput = document.getElementById('edit-item-text-input');
+const editContentStatusMsg = document.getElementById('edit-content-status-msg');
+const btnEditContentReset = document.getElementById('btn-edit-content-reset');
+const btnEditContentCancel = document.getElementById('btn-edit-content-cancel');
+const btnEditContentSave = document.getElementById('btn-edit-content-save');
+
+let activeEditItemContext = null;
+
+function openEditContentModal(lang, mystery, item) {
+    if (!editContentModal) return;
+    activeEditItemContext = {
+        lang: lang,
+        mystery: mystery,
+        itemKey: item.key,
+        item: Object.assign({}, item)
+    };
+
+    if (editContentBadge) editContentBadge.innerText = item.badge || '📿';
+    if (editContentMeta) {
+        const langName = (langSelect && langSelect.options) ? (Array.from(langSelect.options).find(o => o.value === lang)?.text || lang) : lang;
+        editContentMeta.innerText = `${langName} • ${mystery} • ${item.key}`;
+    }
+
+    if (editContentStatusPill) {
+        if (item.isCustomContent) {
+            editContentStatusPill.innerText = 'Personalizado';
+            editContentStatusPill.classList.add('is-custom');
+        } else {
+            editContentStatusPill.innerText = 'Original';
+            editContentStatusPill.classList.remove('is-custom');
+        }
+    }
+
+    if (editItemTitleInput) editItemTitleInput.value = item.title || '';
+    if (editItemSubtitleInput) editItemSubtitleInput.value = item.subtitle || '';
+    if (editItemTextInput) editItemTextInput.value = item.prayerText || '';
+
+    if (editContentStatusMsg) editContentStatusMsg.innerText = 'Listo para editar contenido.';
+
+    editContentModal.classList.add('open');
+}
+
+function closeEditContentModal() {
+    if (editContentModal) editContentModal.classList.remove('open');
+    activeEditItemContext = null;
+}
+
+if (editContentModalClose) editContentModalClose.addEventListener('click', closeEditContentModal);
+if (btnEditContentCancel) btnEditContentCancel.addEventListener('click', closeEditContentModal);
+if (editContentModal) {
+    editContentModal.addEventListener('click', (e) => {
+        if (e.target === editContentModal) closeEditContentModal();
+    });
+}
+
+// Guardar contenido editado en LocalStorage y Cloud Firestore
+if (btnEditContentSave) {
+    btnEditContentSave.addEventListener('click', async () => {
+        if (!activeEditItemContext) return;
+        const { lang, mystery, itemKey } = activeEditItemContext;
+
+        const newTitle = editItemTitleInput ? editItemTitleInput.value.trim() : '';
+        const newSubtitle = editItemSubtitleInput ? editItemSubtitleInput.value.trim() : '';
+        const newText = editItemTextInput ? editItemTextInput.value.trim() : '';
+
+        if (!newTitle) {
+            if (editContentStatusMsg) editContentStatusMsg.innerText = '⚠️ El título no puede quedar vacío';
+            if (editItemTitleInput) editItemTitleInput.focus();
+            return;
+        }
+
+        const contentObj = {
+            title: newTitle,
+            subtitle: newSubtitle,
+            prayerText: newText
+        };
+
+        if (editContentStatusMsg) editContentStatusMsg.innerText = '💾 Guardando en Firestore...';
+
+        // 1. Guardar en localStorage
+        if (typeof saveItemContentToStorage === 'function') {
+            saveItemContentToStorage(lang, mystery, itemKey, contentObj);
+        }
+
+        // 2. Guardar en Cloud Firestore
+        let cloudSaved = false;
+        if (window.RosaryCloud && typeof window.RosaryCloud.saveItemContentToCloud === 'function') {
+            cloudSaved = await window.RosaryCloud.saveItemContentToCloud(lang, mystery, itemKey, contentObj);
+        }
+
+        // 3. Si la clave corresponde a una oración canónica, sincronizar también en rosaryPrayers
+        if (typeof rosaryPrayers !== 'undefined' && rosaryPrayers[lang] && rosaryPrayers[lang][itemKey]) {
+            if (typeof saveCustomPrayersToStorage === 'function') {
+                saveCustomPrayersToStorage(lang, {
+                    [itemKey]: { title: newTitle, text: newText }
+                });
+            }
+            if (window.RosaryCloud && typeof window.RosaryCloud.savePrayersToCloud === 'function') {
+                window.RosaryCloud.savePrayersToCloud(lang, {
+                    [itemKey]: { title: newTitle, text: newText }
+                });
+            }
+        }
+
+        // 4. Actualizar sincronizador en pantalla
+        if (syncLangSelect && syncMysterySelect) {
+            renderSyncItems(syncLangSelect.value, syncMysterySelect.value);
+        }
+
+        // 5. Actualizar la línea de tiempo activa si coincide el misterio
+        if (typeof window.refreshActiveTimeline === 'function') {
+            window.refreshActiveTimeline();
+        }
+
+        // 6. Notificar al usuario con toast
+        const msg = cloudSaved 
+            ? '✅ ¡Contenido guardado en Firebase (Nube) y aplicado!'
+            : '✅ ¡Contenido guardado localmente y aplicado!';
+        showVersionToast(msg);
+
+        closeEditContentModal();
+    });
+}
+
+// Restablecer contenido original predeterminado
+if (btnEditContentReset) {
+    btnEditContentReset.addEventListener('click', async () => {
+        if (!activeEditItemContext) return;
+        const { lang, mystery, itemKey } = activeEditItemContext;
+
+        if (editContentStatusMsg) editContentStatusMsg.innerText = '🔄 Restableciendo al original...';
+
+        // 1. Eliminar de localStorage
+        if (typeof clearItemContentFromStorage === 'function') {
+            clearItemContentFromStorage(lang, mystery, itemKey);
+        }
+
+        // 2. Limpiar en Cloud Firestore
+        if (window.RosaryCloud && typeof window.RosaryCloud.saveItemContentToCloud === 'function') {
+            await window.RosaryCloud.saveItemContentToCloud(lang, mystery, itemKey, {
+                title: '',
+                subtitle: '',
+                prayerText: '',
+                reset: true
+            });
+        }
+
+        // 3. Volver a renderizar sincronizador
+        if (syncLangSelect && syncMysterySelect) {
+            renderSyncItems(syncLangSelect.value, syncMysterySelect.value);
+        }
+
+        // 4. Actualizar línea de tiempo activa
+        if (typeof window.refreshActiveTimeline === 'function') {
+            window.refreshActiveTimeline();
+        }
+
+        showVersionToast('↺ Contenido restablecido a su valor original.');
+        closeEditContentModal();
+    });
+}
+
+// Actualizar sincronizador desde listener de Firestore si está abierto
+window.refreshSyncModalContentUI = function() {
+    if (syncModal && syncModal.classList.contains('open') && syncLangSelect && syncMysterySelect) {
+        renderSyncItems(syncLangSelect.value, syncMysterySelect.value);
     }
 };
 

@@ -19,9 +19,8 @@
         <!-- BARRA SUPERIOR / ENCABEZADO -->
         <header class="app-header">
             <div class="brand-section">
-                <button type="button" id="btn-brand-cross" class="brand-icon brand-icon-btn version-v1" title="Audio Dolorosos: Versión 1 (Dolorososv1.mp3) — Clic para alternar versión" aria-label="Alternar versión del audio de Dolorosos">
+                <button type="button" id="btn-brand-cross" class="brand-icon brand-icon-btn version-v1" title="Clic para alternar versión de audio: V1 (Amarilla) / V2 (Roja)" aria-label="Alternar versión del audio">
                     <span class="cross-sym">†</span>
-                    <span class="cross-badge" id="cross-badge">V1</span>
                 </button>
                 <div class="version-switch-wrap" id="version-switch-wrap" title="Haz clic en la cruz o aquí para alternar versión de Dolorosos">
                     <button type="button" class="version-switch-btn is-v1" id="btn-version-switch" aria-label="Alternar versión del audio de Dolorosos">
@@ -441,6 +440,67 @@
                     <button id="btn-prayers-reset" class="btn-sync-sec" title="Restablecer textos originales de este idioma">🔄 Restablecer Predeterminados</button>
                     <button id="btn-prayers-copy" class="btn-sync-sec" title="Copiar textos en formato JSON">📋 Copiar JSON</button>
                     <button id="btn-prayers-save" class="btn-sync-prim" title="Guardar cambios y actualizar la pantalla inmediatamente">💾 Guardar Textos</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Modal Editor de Contenido de Cuenta / Oración -->
+    <div id="edit-content-modal" class="sync-modal-overlay edit-content-modal-overlay">
+        <div class="sync-modal-window edit-content-modal-window" role="dialog" aria-modal="true" aria-labelledby="edit-content-modal-title">
+            
+            <!-- Cabecera del Editor -->
+            <div class="sync-modal-header">
+                <div class="sync-modal-title-wrap">
+                    <span class="sync-modal-icon">✏️</span>
+                    <div>
+                        <h2 id="edit-content-modal-title" class="sync-modal-title">Editar Contenido de la Oración</h2>
+                        <p id="edit-content-modal-subtitle" class="sync-modal-subtitle">Personaliza el título, subtítulo/ofrecimiento y texto para esta cuenta</p>
+                    </div>
+                </div>
+                <button id="edit-content-modal-close" class="sync-close-btn" title="Cerrar Editor" aria-label="Cerrar">✕</button>
+            </div>
+
+            <!-- Contexto / Info de la Cuenta -->
+            <div class="edit-content-context-bar">
+                <span id="edit-content-badge" class="sync-badge">† Cruz</span>
+                <span id="edit-content-meta" class="edit-content-meta">Español • Gozosos</span>
+                <span id="edit-content-status-pill" class="edit-content-status-pill">Original</span>
+            </div>
+
+            <!-- Formulario de Edición -->
+            <div class="edit-content-body">
+                <div class="edit-content-field">
+                    <label for="edit-item-title-input" class="edit-content-label">Título principal:</label>
+                    <input type="text" id="edit-item-title-input" class="edit-content-input" placeholder="Ej. Señal de la Cruz, 1º Misterio..." spellcheck="false" autocomplete="off">
+                </div>
+
+                <div class="edit-content-field">
+                    <label for="edit-item-subtitle-input" class="edit-content-label">Subtítulo / Ofrecimiento o Intención:</label>
+                    <input type="text" id="edit-item-subtitle-input" class="edit-content-input" placeholder="Ej. Principio del Santo Rosario, Anuncio del Misterio..." spellcheck="false" autocomplete="off">
+                </div>
+
+                <div class="edit-content-field edit-content-field-grow">
+                    <label for="edit-item-text-input" class="edit-content-label">Texto completo de la oración o meditación bíblica:</label>
+                    <textarea id="edit-item-text-input" class="edit-content-textarea" rows="9" placeholder="Escribe o pega aquí la oración completa o reflexión..." spellcheck="false"></textarea>
+                </div>
+
+                <div class="edit-content-tip">
+                    ☁️ <strong>Sincronización en la Nube:</strong> Al guardar, este contenido se guardará en tu navegador y se sincronizará automáticamente en <strong>Firebase Cloud Firestore</strong> para que esté disponible en tu móvil, tablet y PC.
+                </div>
+            </div>
+
+            <!-- Barra Inferior Fija: Botones de Acción -->
+            <div class="sync-modal-footer">
+                <div class="sync-footer-status">
+                    <span id="edit-content-status-msg">Listo para editar</span>
+                    <span id="edit-content-cloud-status" class="sync-cloud-badge" title="Estado de Firestore">☁️ Conectado a Firestore (Nube)</span>
+                </div>
+                <div class="sync-footer-actions">
+                    <button id="btn-edit-content-reset" class="btn-sync-sec" title="Restablecer este texto a su valor original predeterminado">🔄 Restablecer Original</button>
+                    <button id="btn-edit-content-cancel" class="btn-sync-sec" title="Descartar cambios">Cancelar</button>
+                    <button id="btn-edit-content-save" class="btn-sync-prim" title="Guardar cambios y sincronizar en Firebase">💾 Guardar en Firebase (Nube)</button>
                 </div>
             </div>
 
