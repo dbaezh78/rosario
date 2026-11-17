@@ -247,6 +247,128 @@ function buildRosarySvg() {
     });
 }
 
+// =============================================================================
+// GESTOR DE VERSIONES DE AUDIO (V1 vs V2 / Original)
+// =============================================================================
+
+const AUDIO_VERSION_KEY = 'rosary_audio_version';
+const DOLOROSOS_VERSION_KEY = 'rosary_dolorosos_version';
+// Por defecto siempre 'v1' según requerimiento ("pongas la version Dolorososv1.mp3 por defecto")
+let audioVersion = (typeof localStorage !== 'undefined' && (localStorage.getItem(AUDIO_VERSION_KEY) || localStorage.getItem(DOLOROSOS_VERSION_KEY))) || 'v1';
+
+const btnBrandCross = document.getElementById('btn-brand-cross');
+const crossBadge = document.getElementById('cross-badge');
+const btnVersionSwitch = document.getElementById('btn-version-switch');
+
+function getActiveMysterySrc(mysteryKey, lang = 'es') {
+    if (lang === 'es') {
+        return (audioVersion === 'v1')
+            ? `src/mp3/es/${mysteryKey}v1.mp3`
+            : `src/mp3/es/${mysteryKey}.mp3`;
+    }
+    return (audioData[lang] && audioData[lang][mysteryKey]) ? audioData[lang][mysteryKey].src : '';
+}
+
+function updateAudioVersionUI() {
+    const isV1 = (audioVersion === 'v1');
+    
+    // 1. Actualizar apariencia, glow y badge de la Cruz
+    if (btnBrandCross) {
+        btnBrandCross.classList.toggle('version-v1', isV1);
+        btnBrandCross.classList.toggle('version-v2', !isV1);
+        btnBrandCross.title = isV1
+            ? "Audio: Versión 1 (v1.mp3) — Clic en la cruz para cambiar a Versión 2 (Original)"
+            : "Audio: Versión 2 (Original) — Clic en la cruz para volver a Versión 1 (v1.mp3)";
+    }
+    
+    if (crossBadge) {
+        crossBadge.innerText = isV1 ? 'V1' : 'V2';
+    }
+
+    // 2. Actualizar Switch visual
+    if (btnVersionSwitch) {
+        btnVersionSwitch.classList.toggle('is-v1', isV1);
+        btnVersionSwitch.classList.toggle('is-v2', !isV1);
+        btnVersionSwitch.title = isV1
+            ? "Versión 1 (v1.mp3) activa — Clic para alternar a Versión 2"
+            : "Versión 2 (Original) activa — Clic para alternar a Versión 1";
+    }
+}
+
+function showVersionToast(msg) {
+    let toast = document.getElementById('rosary-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'rosary-toast';
+        toast.className = 'rosary-toast';
+        document.body.appendChild(toast);
+    }
+    toast.innerHTML = msg;
+    toast.classList.add('show');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 2800);
+}
+
+function toggleAudioVersion() {
+    audioVersion = (audioVersion === 'v1') ? 'original' : 'v1';
+    try {
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(AUDIO_VERSION_KEY, audioVersion);
+            localStorage.setItem(DOLOROSOS_VERSION_KEY, audioVersion);
+        }
+    } catch (e) {}
+
+    updateAudioVersionUI();
+
+    const lang = langSelect ? (langSelect.value || 'es') : 'es';
+    const newSrc = getActiveMysterySrc(currentMystery, lang);
+
+    if (typeof audioData !== 'undefined' && audioData[lang] && audioData[lang][currentMystery]) {
+        audioData[lang][currentMystery].src = newSrc;
+    }
+
+    // Aplicar cambio en vivo al reproductor
+    const wasPlaying = !audioPlayer.paused;
+    audioPlayer.src = newSrc;
+    audioPlayer.load();
+
+    if (typeof audioData !== 'undefined' && audioData[lang] && audioData[lang][currentMystery]) {
+        currentSteps = generateDetailedTimeline(currentMystery, audioData[lang][currentMystery], lang);
+        currentStepIndex = 0;
+        updateUIForStep(0);
+        if (currentSteps[0]) {
+            updateBeadHighlights(currentSteps[0].beadId);
+        }
+    }
+
+    if (wasPlaying) {
+        audioPlayer.play().catch(() => {});
+        updatePlayPauseButton(true);
+    } else {
+        updatePlayPauseButton(false);
+    }
+
+    // Si el sincronizador de tiempos está abierto
+    if (syncModal && syncModal.classList.contains('open')) {
+        renderSyncItems(syncLangSelect ? syncLangSelect.value : 'es', syncMysterySelect ? syncMysterySelect.value : currentMystery);
+    }
+
+    const currentFile = (audioVersion === 'v1') ? `${currentMystery}v1.mp3` : `${currentMystery}.mp3`;
+    const toastMsg = (audioVersion === 'v1')
+        ? `✝️ <strong>${currentMystery}: Versión 1</strong> (${currentFile}) activada`
+        : `✝️ <strong>${currentMystery}: Versión 2</strong> (${currentFile} original) activada`;
+    showVersionToast(toastMsg);
+}
+
+if (btnBrandCross) {
+    btnBrandCross.addEventListener('click', toggleAudioVersion);
+}
+if (btnVersionSwitch) {
+    btnVersionSwitch.addEventListener('click', toggleAudioVersion);
+}
+
 // 6. INICIALIZAR Y CARGAR MISTERIO
 function loadMystery(mysteryKey) {
     currentMystery = mysteryKey;
@@ -259,6 +381,9 @@ function loadMystery(mysteryKey) {
 
     // Cargar datos del audio y generar pasos
     if (typeof audioData !== 'undefined' && audioData[lang] && audioData[lang][mysteryKey]) {
+        if (lang === 'es') {
+            audioData[lang][mysteryKey].src = getActiveMysterySrc(mysteryKey, lang);
+        }
         const mData = audioData[lang][mysteryKey];
         currentSteps = generateDetailedTimeline(mysteryKey, mData, lang);
 
@@ -929,6 +1054,10 @@ function onSyncSelectionChange() {
     const lang = syncLangSelect.value;
     const mystery = syncMysterySelect.value;
 
+    if (lang === 'es' && audioData.es && audioData.es[mystery]) {
+        audioData.es[mystery].src = getActiveMysterySrc(mystery, lang);
+    }
+
     if (audioData[lang] && audioData[lang][mystery]) {
         const newSrc = audioData[lang][mystery].src;
         if (!audioPlayer.src.endsWith(newSrc)) {
@@ -1489,6 +1618,7 @@ window.refreshActivePrayersUI = function() {
 
 // 13. INICIALIZACIÓN AL CARGAR LA PÁGINA
 window.addEventListener('DOMContentLoaded', () => {
+    updateAudioVersionUI();
     buildRosarySvg();
     const todayMystery = getMysteryByDay();
     loadMystery(todayMystery);

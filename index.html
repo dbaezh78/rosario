@@ -19,7 +19,17 @@
         <!-- BARRA SUPERIOR / ENCABEZADO -->
         <header class="app-header">
             <div class="brand-section">
-                <div class="brand-icon">†</div>
+                <button type="button" id="btn-brand-cross" class="brand-icon brand-icon-btn version-v1" title="Audio Dolorosos: Versión 1 (Dolorososv1.mp3) — Clic para alternar versión" aria-label="Alternar versión del audio de Dolorosos">
+                    <span class="cross-sym">†</span>
+                    <span class="cross-badge" id="cross-badge">V1</span>
+                </button>
+                <div class="version-switch-wrap" id="version-switch-wrap" title="Haz clic en la cruz o aquí para alternar versión de Dolorosos">
+                    <button type="button" class="version-switch-btn is-v1" id="btn-version-switch" aria-label="Alternar versión del audio de Dolorosos">
+                        <span class="v-sw-opt v1">V1</span>
+                        <span class="v-sw-thumb"></span>
+                        <span class="v-sw-opt v2">V2</span>
+                    </button>
+                </div>
                 <div class="brand-title">Santo Rosario</div>
                 <span id="today-badge" class="brand-day-tag">Hoy: Gozosos</span>
             </div>
@@ -439,6 +449,9 @@
 
     <!-- Elemento Audio Oculto -->
     <audio id="audio-player" preload="metadata"></audio>
+
+    <!-- Toast Flotante de Notificaciones -->
+    <div id="rosary-toast" class="rosary-toast" aria-live="polite"></div>
 
     <!-- Scripts de la Aplicación -->
     <script src="src/content.js"></script>

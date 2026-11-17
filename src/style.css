@@ -112,6 +112,179 @@ body {
     font-size: 1.1rem;
 }
 
+/* Botón de la Cruz (Switch de Versión Dolorosos) */
+.brand-icon-btn {
+    position: relative;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, background 0.3s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.brand-icon-btn:hover {
+    transform: scale(1.1);
+}
+
+.brand-icon-btn:active {
+    transform: scale(0.95);
+}
+
+/* Versión 1 (Dolorososv1.mp3 - Predeterminada Dorada) */
+.brand-icon-btn.version-v1 {
+    background: radial-gradient(circle, #fff5b8 0%, #d4af37 60%, #8a6508 100%);
+    box-shadow: 0 0 14px var(--gold-glow);
+    color: #0b111e;
+}
+
+/* Versión 2 (Dolorosos.mp3 - Original Pasión Rubí) */
+.brand-icon-btn.version-v2 {
+    background: radial-gradient(circle, #ff8a8a 0%, #dc2626 60%, #7f1d1d 100%);
+    box-shadow: 0 0 16px rgba(220, 38, 38, 0.85);
+    color: #ffffff;
+}
+
+.cross-sym {
+    display: inline-block;
+    line-height: 1;
+    font-size: 1.15rem;
+    font-weight: 900;
+}
+
+/* Mini insignia V1/V2 en la cruz */
+.cross-badge {
+    position: absolute;
+    bottom: -3px;
+    right: -5px;
+    font-size: 0.58rem;
+    font-weight: 800;
+    padding: 1px 3px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 0, 0, 0.4);
+    line-height: 1;
+    letter-spacing: -0.3px;
+    transition: all 0.25s ease;
+}
+
+.brand-icon-btn.version-v1 .cross-badge {
+    background: #ffd700;
+    color: #0a0f1d;
+    box-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
+}
+
+.brand-icon-btn.version-v2 .cross-badge {
+    background: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
+}
+
+/* Switch visual de versión */
+.version-switch-wrap {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 2px;
+}
+
+.version-switch-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 50px;
+    height: 22px;
+    background: #080d19;
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    border-radius: 12px;
+    padding: 2px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.25s ease;
+    user-select: none;
+}
+
+.version-switch-btn:hover {
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+}
+
+.v-sw-opt {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    text-align: center;
+    font-size: 0.65rem;
+    font-weight: 800;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.45);
+    transition: color 0.25s ease;
+}
+
+.v-sw-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 21px;
+    height: 16px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #fff2a8, #d4af37);
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s ease, box-shadow 0.25s ease;
+    z-index: 1;
+}
+
+/* Estado V1 (Izquierda) */
+.version-switch-btn.is-v1 .v-sw-thumb {
+    transform: translateX(0);
+    background: linear-gradient(135deg, #fff2a8, #d4af37);
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.6);
+}
+
+.version-switch-btn.is-v1 .v-sw-opt.v1 {
+    color: #080e1a;
+}
+
+/* Estado V2 (Derecha) */
+.version-switch-btn.is-v2 {
+    border-color: rgba(239, 68, 68, 0.6);
+}
+
+.version-switch-btn.is-v2 .v-sw-thumb {
+    transform: translateX(23px);
+    background: linear-gradient(135deg, #fca5a5, #dc2626);
+    box-shadow: 0 0 10px rgba(220, 38, 38, 0.7);
+}
+
+.version-switch-btn.is-v2 .v-sw-opt.v2 {
+    color: #ffffff;
+}
+
+/* Toast flotante */
+.rosary-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(70px);
+    background: rgba(11, 17, 30, 0.95);
+    border: 1px solid var(--gold);
+    color: var(--gold-light);
+    padding: 9px 18px;
+    border-radius: 20px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 15px var(--gold-glow);
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+}
+
+.rosary-toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
 .brand-title {
     font-family: var(--font-serif);
     font-size: 1.25rem;

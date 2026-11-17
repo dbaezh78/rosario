@@ -605,8 +605,10 @@ const audioData = {
             ]
         },
         Dolorosos: {
-            src: "src/mp3/es/Dolorosos.mp3",
-            duration: 1863,
+            src: "src/mp3/es/Dolorososv1.mp3",
+            srcV1: "src/mp3/es/Dolorososv1.mp3",
+            srcOriginal: "src/mp3/es/Dolorosos.mp3",
+            duration: 1987,
             checkpoints: [0, 186, 463, 711, 969, 1217, 1492],
             timeline: [
                 { s: 0, img: "src/img/dolorosos/dolorosos.png" },
