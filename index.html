@@ -30,7 +30,52 @@
                     </button>
                 </div>
                 <div class="brand-title">Santo Rosario</div>
-                <span id="today-badge" class="brand-day-tag">Hoy: Gozosos</span>
+                <div class="mystery-dropdown-wrap" id="mystery-dropdown-wrap">
+                    <button type="button" id="today-badge" class="brand-day-tag brand-day-btn" title="Clic para cambiar de misterio" aria-haspopup="true" aria-expanded="false">
+                        <span class="day-prefix" id="day-prefix">Hoy: </span>
+                        <span class="mystery-name-txt" id="mystery-name-txt">Gozosos</span>
+                        <span class="mystery-dropdown-arrow">▾</span>
+                    </button>
+                    <div id="mystery-dropdown-menu" class="mystery-dropdown-menu" role="menu" aria-label="Seleccionar Misterio">
+                        <div class="mystery-dropdown-header">
+                            <span>Misterios del Rosario</span>
+                        </div>
+                        <div class="mystery-dropdown-list">
+                            <button type="button" class="mystery-dropdown-item active" data-mystery="Gozosos">
+                                <span class="m-item-icon">🕊️</span>
+                                <div class="m-item-content">
+                                    <span class="m-item-name">Gozosos</span>
+                                    <span class="m-item-sub">Lunes y Sábados</span>
+                                </div>
+                                <span class="m-item-check">✓</span>
+                            </button>
+                            <button type="button" class="mystery-dropdown-item" data-mystery="Luminosos">
+                                <span class="m-item-icon">💡</span>
+                                <div class="m-item-content">
+                                    <span class="m-item-name">Luminosos</span>
+                                    <span class="m-item-sub">Jueves</span>
+                                </div>
+                                <span class="m-item-check">✓</span>
+                            </button>
+                            <button type="button" class="mystery-dropdown-item" data-mystery="Dolorosos">
+                                <span class="m-item-icon">✝️</span>
+                                <div class="m-item-content">
+                                    <span class="m-item-name">Dolorosos</span>
+                                    <span class="m-item-sub">Martes y Viernes</span>
+                                </div>
+                                <span class="m-item-check">✓</span>
+                            </button>
+                            <button type="button" class="mystery-dropdown-item" data-mystery="Gloriosos">
+                                <span class="m-item-icon">👑</span>
+                                <div class="m-item-content">
+                                    <span class="m-item-name">Gloriosos</span>
+                                    <span class="m-item-sub">Miércoles y Domingos</span>
+                                </div>
+                                <span class="m-item-check">✓</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Selector de Misterios tipo píldora -->

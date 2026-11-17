@@ -402,9 +402,30 @@ function loadMystery(mysteryKey) {
 
     // Actualizar nombre del misterio del día
     const todayMystery = getMysteryByDay();
-    if (currentDayBadge) {
-        currentDayBadge.innerText = (mysteryKey === todayMystery) ? `Hoy: ${todayMystery}` : `Día recomendado: ${todayMystery}`;
+    const isToday = (mysteryKey === todayMystery);
+    const dayPrefixElem = document.getElementById('day-prefix');
+    const mysteryNameElem = document.getElementById('mystery-name-txt');
+
+    if (dayPrefixElem) {
+        dayPrefixElem.innerText = isToday ? 'Hoy: ' : '';
     }
+    if (mysteryNameElem) {
+        mysteryNameElem.innerText = mysteryKey;
+    } else if (currentDayBadge) {
+        currentDayBadge.innerText = isToday ? `Hoy: ${mysteryKey}` : mysteryKey;
+    }
+
+    if (currentDayBadge) {
+        currentDayBadge.title = isToday
+            ? `Hoy corresponden los Misterios ${mysteryKey} — Clic para cambiar`
+            : `Misterios ${mysteryKey} (Hoy: ${todayMystery}) — Clic para cambiar`;
+    }
+
+    // Actualizar elemento activo en el menú desplegable de misterios
+    document.querySelectorAll('.mystery-dropdown-item').forEach(item => {
+        const itemM = item.getAttribute('data-mystery');
+        item.classList.toggle('active', itemM === mysteryKey);
+    });
 }
 
 // 7. ACTUALIZACIÓN DE UI SEGÚN EL PASO ACTUAL
@@ -727,7 +748,7 @@ decadeDots.forEach((dot, index) => {
     });
 });
 
-// Clic en selector de misterio
+// Clic en selector de misterio (píldoras desktop)
 mysteryPills.forEach(pill => {
     pill.addEventListener('click', () => {
         const mystery = pill.dataset.mystery;
@@ -736,6 +757,59 @@ mysteryPills.forEach(pill => {
             audioPlayer.play().catch(() => {});
         }
     });
+});
+
+// Selector desplegable de misterios (especialmente optimizado para móviles y cabecera)
+const mysteryDropdownWrap = document.getElementById('mystery-dropdown-wrap');
+const mysteryDropdownMenu = document.getElementById('mystery-dropdown-menu');
+
+function toggleMysteryDropdown(e) {
+    if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    if (!mysteryDropdownMenu) return;
+    const isOpen = mysteryDropdownMenu.classList.contains('open');
+    if (isOpen) {
+        closeMysteryDropdown();
+    } else {
+        openMysteryDropdown();
+    }
+}
+
+function openMysteryDropdown() {
+    if (!mysteryDropdownMenu) return;
+    mysteryDropdownMenu.classList.add('open');
+    if (currentDayBadge) currentDayBadge.setAttribute('aria-expanded', 'true');
+}
+
+function closeMysteryDropdown() {
+    if (!mysteryDropdownMenu) return;
+    mysteryDropdownMenu.classList.remove('open');
+    if (currentDayBadge) currentDayBadge.setAttribute('aria-expanded', 'false');
+}
+
+if (currentDayBadge) {
+    currentDayBadge.addEventListener('click', toggleMysteryDropdown);
+}
+
+document.querySelectorAll('.mystery-dropdown-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const mystery = item.getAttribute('data-mystery');
+        if (mystery) {
+            loadMystery(mystery);
+            audioPlayer.play().then(() => updatePlayPauseButton(true)).catch(() => {});
+            closeMysteryDropdown();
+            showVersionToast(`📿 Misterios <strong>${mystery}</strong> activados`);
+        }
+    });
+});
+
+document.addEventListener('click', (e) => {
+    if (mysteryDropdownWrap && !mysteryDropdownWrap.contains(e.target)) {
+        closeMysteryDropdown();
+    }
 });
 
 // Cambio de idioma

@@ -88,7 +88,7 @@ body {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border-gold-subtle);
-    z-index: 20;
+    z-index: 50;
 }
 
 .brand-section {
@@ -269,9 +269,15 @@ body {
     white-space: nowrap;
 }
 
+.mystery-dropdown-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
 .brand-day-tag {
     font-size: 0.75rem;
-    padding: 2px 8px;
+    padding: 3px 8px;
     border-radius: 12px;
     background: rgba(212, 175, 55, 0.15);
     border: 1px solid var(--border-gold);
@@ -280,7 +286,151 @@ body {
     white-space: nowrap;
 }
 
-/* Selector de Misterios en botones tipo píldora */
+.brand-day-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+.brand-day-btn:hover,
+.brand-day-btn:focus-visible {
+    background: rgba(212, 175, 55, 0.28);
+    border-color: var(--gold-bright);
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+}
+
+.mystery-dropdown-arrow {
+    font-size: 0.65rem;
+    color: var(--gold);
+    transition: transform 0.2s ease;
+}
+
+.brand-day-btn[aria-expanded="true"] .mystery-dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+/* Menú Desplegable de Misterios */
+.mystery-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    min-width: 220px;
+    background: #0d1424;
+    border: 1px solid var(--gold);
+    border-radius: 12px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.9), 0 0 20px rgba(212, 175, 55, 0.25);
+    z-index: 1000;
+    padding: 6px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+.mystery-dropdown-menu.open {
+    display: block;
+    animation: fadeInDown 0.18s ease;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.mystery-dropdown-header {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--gold-light);
+    padding: 6px 10px 8px 10px;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+    margin-bottom: 4px;
+}
+
+.mystery-dropdown-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.mystery-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.mystery-dropdown-item:hover {
+    background: rgba(212, 175, 55, 0.15);
+    border-color: rgba(212, 175, 55, 0.35);
+    color: #ffffff;
+}
+
+.mystery-dropdown-item.active {
+    background: rgba(212, 175, 55, 0.22);
+    border-color: var(--gold);
+    color: var(--gold-bright);
+}
+
+.m-item-icon {
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.m-item-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+}
+
+.m-item-name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: inherit;
+}
+
+.m-item-sub {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+.m-item-check {
+    font-size: 0.85rem;
+    color: var(--gold-bright);
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.mystery-dropdown-item.active .m-item-check {
+    opacity: 1;
+}
+
+/* Selector de Misterios en botones tipo píldora (Desktop) */
 .mysteries-pills {
     display: flex;
     align-items: center;
@@ -326,16 +476,38 @@ body {
     flex-shrink: 0;
 }
 
+.lang-select-wrapper {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
 .lang-select-wrapper select {
-    background: rgba(20, 29, 48, 0.9);
+    background-color: rgba(13, 20, 36, 0.95);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23d4af37' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 8px 5px;
     border: 1px solid var(--border-gold);
     color: var(--text-gold);
     font-weight: 600;
     font-size: 0.82rem;
-    padding: 5px 10px;
+    padding: 5px 22px 5px 10px;
     border-radius: 16px;
     cursor: pointer;
     outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.lang-select-wrapper select:hover,
+.lang-select-wrapper select:focus {
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.35);
+    background-color: #0d172a;
 }
 
 .btn-icon {
@@ -1188,8 +1360,16 @@ body {
     }
 
     .app-header {
-        padding: 6px 10px;
-        gap: 8px;
+        padding: 6px 8px;
+        gap: 6px;
+    }
+
+    .brand-section {
+        gap: 6px;
+    }
+
+    .header-actions {
+        gap: 6px;
     }
 
     .brand-title {
@@ -1197,12 +1377,29 @@ body {
     }
 
     .mysteries-pills {
-        flex: 1;
+        display: none !important;
     }
 
-    .mystery-pill {
-        padding: 4px 9px;
-        font-size: 0.75rem;
+    .day-prefix {
+        display: none !important;
+    }
+
+    .brand-day-tag {
+        font-size: 0.72rem;
+        padding: 3px 7px;
+    }
+
+    .lang-select-wrapper select {
+        font-size: 0.76rem;
+        padding: 4px 18px 4px 7px;
+        background-position: right 6px center;
+        background-size: 7px 4px;
+        max-width: 90px;
+    }
+
+    .mystery-dropdown-menu {
+        left: -35px;
+        max-width: calc(100vw - 20px);
     }
 
     .main-stage {
