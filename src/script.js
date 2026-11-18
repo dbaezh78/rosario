@@ -974,12 +974,97 @@ if (typeof requestAnimationFrame !== 'undefined') {
 }
 
 // =============================================================================
-// 14. CONTROLADOR DEL FORMULARIO SINCRONIZADOR DE TIEMPOS
+// 14. CONTROLADOR DEL FORMULARIO SINCRONIZADOR DE TIEMPOS & AUTOGUARDADO EN VIVO
 // =============================================================================
+
+let syncAutoSaveTimer = null;
+const ROSARY_CUSTOM_TIMES_BACKUP_KEY = 'rosary_custom_times_backup_v1';
+let activeSyncLang = 'es';
+let activeSyncMystery = 'Gozosos';
+
+function collectCurrentSyncTimes() {
+    if (!syncListContainer) return {};
+    const inputs = syncListContainer.querySelectorAll('.sync-input-time');
+    const times = {};
+    inputs.forEach(input => {
+        const key = input.getAttribute('data-key');
+        const val = input.value.trim();
+        if (key && val) {
+            times[key] = val;
+        }
+    });
+    const speedInput = syncListContainer.querySelector('#sync-letanias-speed');
+    if (speedInput && speedInput.value.trim()) {
+        times.letanias_scroll_speed = speedInput.value.trim();
+    }
+    return times;
+}
+
+function autoSaveSyncTimesImmediate(lang, mystery) {
+    if (!syncListContainer) return;
+    const times = collectCurrentSyncTimes();
+    if (Object.keys(times).length === 0) return;
+
+    // 1. Guardar de inmediato en almacenamiento local (localStorage)
+    if (typeof saveCustomTimesToStorage === 'function') {
+        saveCustomTimesToStorage(lang, mystery, times);
+    }
+
+    // 2. Guardar copia de seguridad histórica local
+    try {
+        if (typeof localStorage !== 'undefined') {
+            const rawBak = localStorage.getItem(ROSARY_CUSTOM_TIMES_BACKUP_KEY);
+            const bak = rawBak ? JSON.parse(rawBak) : {};
+            if (!bak[lang]) bak[lang] = {};
+            bak[lang][mystery] = {
+                times: Object.assign({}, times),
+                savedAt: new Date().toISOString()
+            };
+            localStorage.setItem(ROSARY_CUSTOM_TIMES_BACKUP_KEY, JSON.stringify(bak));
+        }
+    } catch (e) {}
+
+    // 3. Actualizar objeto en memoria
+    if (audioData && audioData[lang] && audioData[lang][mystery]) {
+        audioData[lang][mystery].customTimes = Object.assign({}, audioData[lang][mystery].customTimes || {}, times);
+    }
+
+    // 4. Si coincide con el rezo activo, refrescar tiempos en vivo
+    if (langSelect && syncLangSelect && lang === langSelect.value && mystery === currentMystery) {
+        if (typeof window.refreshActiveTimeline === 'function') {
+            window.refreshActiveTimeline();
+        }
+    }
+}
+
+function autoSaveSyncTimesDebounced(lang, mystery) {
+    // Guardado local instantáneo para máxima seguridad contra recargas o cierres
+    autoSaveSyncTimesImmediate(lang, mystery);
+
+    if (syncStatusMsg) {
+        syncStatusMsg.innerHTML = '💾 <span style="color: #60a5fa;">Guardado localmente en tiempo real...</span>';
+    }
+
+    // Debounce para sincronizar con Cloud Firestore en segundo plano sin saturar la red
+    clearTimeout(syncAutoSaveTimer);
+    syncAutoSaveTimer = setTimeout(() => {
+        const times = collectCurrentSyncTimes();
+        if (window.RosaryCloud && typeof window.RosaryCloud.saveTimesToCloud === 'function' && Object.keys(times).length > 0) {
+            window.RosaryCloud.saveTimesToCloud(lang, mystery, times).then(success => {
+                if (success && syncStatusMsg) {
+                    syncStatusMsg.innerHTML = '☁️ <span style="color: #4ade80;">¡Autoguardado y sincronizado en Firestore (Nube)!</span>';
+                }
+            }).catch(() => {});
+        }
+    }, 1200);
+}
 
 function renderSyncItems(lang, mystery) {
     if (!syncListContainer) return;
     if (typeof getRosaryStructureDefinition !== 'function') return;
+
+    activeSyncLang = lang;
+    activeSyncMystery = mystery;
 
     const sections = getRosaryStructureDefinition(lang, mystery);
     let html = '';
@@ -1053,11 +1138,13 @@ function renderSyncItems(lang, mystery) {
 
         input.addEventListener('input', () => {
             row.classList.add('modified');
+            autoSaveSyncTimesDebounced(lang, mystery);
         });
 
         if (speedInput) {
             speedInput.addEventListener('input', () => {
                 row.classList.add('modified');
+                autoSaveSyncTimesDebounced(lang, mystery);
             });
         }
 
@@ -1067,6 +1154,7 @@ function renderSyncItems(lang, mystery) {
                 const curSec = Math.max(0, toSec(input.value) + delta);
                 input.value = formatTime(curSec);
                 row.classList.add('modified');
+                autoSaveSyncTimesDebounced(lang, mystery);
             });
         });
 
@@ -1075,8 +1163,9 @@ function renderSyncItems(lang, mystery) {
             input.value = formatTime(curSec);
             row.classList.add('modified');
             if (syncStatusMsg) {
-                syncStatusMsg.innerText = `⏱️ Fijado ${input.value} para: ${itemTitle}`;
+                syncStatusMsg.innerHTML = `⏱️ Fijado <strong>${input.value}</strong> para: ${itemTitle} <span style="color:#4ade80;font-size:0.75rem;">(Guardado)</span>`;
             }
+            autoSaveSyncTimesDebounced(lang, mystery);
         });
 
         btnTest.addEventListener('click', () => {
@@ -1110,6 +1199,9 @@ function openSyncModal() {
     if (syncLangSelect) syncLangSelect.value = langSelect.value || 'es';
     if (syncMysterySelect) syncMysterySelect.value = currentMystery || 'Gozosos';
     
+    activeSyncLang = syncLangSelect.value;
+    activeSyncMystery = syncMysterySelect.value;
+
     renderSyncItems(syncLangSelect.value, syncMysterySelect.value);
     syncModal.classList.add('open');
     updatePlayPauseButton(!audioPlayer.paused);
@@ -1123,6 +1215,9 @@ function openSyncModal() {
 }
 
 function closeSyncModal() {
+    if (syncLangSelect && syncMysterySelect) {
+        autoSaveSyncTimesImmediate(syncLangSelect.value, syncMysterySelect.value);
+    }
     if (syncModal) syncModal.classList.remove('open');
 }
 
@@ -1135,10 +1230,24 @@ if (syncModal) {
     });
 }
 
+// Guardar al cerrar o recargar la pestaña
+window.addEventListener('beforeunload', () => {
+    if (syncModal && syncModal.classList.contains('open') && syncLangSelect && syncMysterySelect) {
+        autoSaveSyncTimesImmediate(syncLangSelect.value, syncMysterySelect.value);
+    }
+});
+
 // Cambio de idioma o misterio dentro del formulario
 function onSyncSelectionChange() {
+    // Si la selección anterior tenía cambios, autoguardarlos antes de cambiar
+    if (activeSyncLang && activeSyncMystery) {
+        autoSaveSyncTimesImmediate(activeSyncLang, activeSyncMystery);
+    }
+
     const lang = syncLangSelect.value;
     const mystery = syncMysterySelect.value;
+    activeSyncLang = lang;
+    activeSyncMystery = mystery;
 
     if (lang === 'es' && audioData.es && audioData.es[mystery]) {
         audioData.es[mystery].src = getActiveMysterySrc(mystery, lang);
@@ -1406,6 +1515,34 @@ if (btnSyncReset) {
     });
 }
 
+// Restaurar última sincronización guardada en Cloud Firestore
+const btnSyncCloudRestore = document.getElementById('btn-sync-cloud-restore');
+if (btnSyncCloudRestore) {
+    btnSyncCloudRestore.addEventListener('click', async () => {
+        const lang = syncLangSelect.value;
+        const mystery = syncMysterySelect.value;
+        if (syncStatusMsg) {
+            syncStatusMsg.innerHTML = '☁️ <span style="color: #60a5fa;">Conectando con Cloud Firestore para restaurar...</span>';
+        }
+        if (window.RosaryCloud && typeof window.RosaryCloud.restoreTimesFromCloud === 'function') {
+            const ok = await window.RosaryCloud.restoreTimesFromCloud(lang, mystery);
+            if (ok) {
+                renderSyncItems(lang, mystery);
+                if (syncStatusMsg) {
+                    syncStatusMsg.innerHTML = `✅ <strong style="color: #4ade80;">¡Sincronización de ${mystery} restaurada desde Cloud Firestore!</strong>`;
+                }
+                showVersionToast(`☁️ Tiempos de <strong>${mystery}</strong> restaurados desde la nube`);
+            } else {
+                if (syncStatusMsg) {
+                    syncStatusMsg.innerHTML = `⚠️ No se encontró registro guardado en la nube para ${mystery}.`;
+                }
+            }
+        } else {
+            alert('Cloud Firestore no está disponible en este momento.');
+        }
+    });
+}
+
 // Exponer refresco de línea de tiempo interactiva para sincronizaciones en la nube
 window.refreshActiveTimeline = function() {
     const lang = langSelect ? (langSelect.value || 'es') : 'es';
@@ -1414,6 +1551,16 @@ window.refreshActiveTimeline = function() {
         updateUIForStep(currentStepIndex);
         if (currentSteps[currentStepIndex]) {
             updateBeadHighlights(currentSteps[currentStepIndex].beadId);
+        }
+    }
+};
+
+// Refresco automático de los campos del sincronizador si está abierto al recibir datos de Firestore
+window.refreshSyncModalTimesUI = function() {
+    if (syncModal && syncModal.classList.contains('open') && syncLangSelect && syncMysterySelect) {
+        const hasUnsaved = syncListContainer && syncListContainer.querySelector('.sync-item-row.modified');
+        if (!hasUnsaved) {
+            renderSyncItems(syncLangSelect.value, syncMysterySelect.value);
         }
     }
 };

@@ -246,6 +246,43 @@ function subscribeToCloudContent(onUpdateCallback) {
     }
 }
 
+// Restaura tiempos desde Cloud Firestore para un misterio e idioma
+async function restoreTimesFromCloud(lang, mystery) {
+    if (!db) {
+        console.warn("Firestore no está disponible.");
+        return false;
+    }
+    try {
+        const docRef = doc(db, "rosary_times", `${lang}_${mystery}`);
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+            const data = snap.data();
+            if (data && data.times) {
+                if (typeof saveCustomTimesToStorage === 'function') {
+                    saveCustomTimesToStorage(lang, mystery, data.times);
+                }
+                if (typeof audioData !== 'undefined' && audioData[lang] && audioData[lang][mystery]) {
+                    audioData[lang][mystery].customTimes = Object.assign({}, audioData[lang][mystery].customTimes || {}, data.times);
+                }
+                if (typeof renderSyncItems === 'function' && typeof syncLangSelect !== 'undefined' && typeof syncMysterySelect !== 'undefined') {
+                    renderSyncItems(lang, mystery);
+                }
+                if (typeof window.refreshActiveTimeline === 'function') {
+                    window.refreshActiveTimeline();
+                }
+                if (typeof window.refreshSyncModalTimesUI === 'function') {
+                    window.refreshSyncModalTimesUI();
+                }
+                return true;
+            }
+        }
+        return false;
+    } catch (e) {
+        console.error("Error restaurando de Firestore:", e);
+        return false;
+    }
+}
+
 // Exponer la interfaz en window.RosaryCloud
 window.RosaryCloud = {
     app,
@@ -254,6 +291,7 @@ window.RosaryCloud = {
     saveTimesToCloud,
     loadAllTimesFromCloud,
     subscribeToCloudTimes,
+    restoreTimesFromCloud,
     savePrayersToCloud,
     loadAllPrayersFromCloud,
     subscribeToCloudPrayers,
@@ -296,6 +334,9 @@ async function initCloudSync() {
 
                 if (typeof window.refreshActiveTimeline === 'function') {
                     window.refreshActiveTimeline();
+                }
+                if (typeof window.refreshSyncModalTimesUI === 'function') {
+                    window.refreshSyncModalTimesUI();
                 }
             }
             updateBadges();
@@ -343,6 +384,9 @@ async function initCloudSync() {
 
                 if (typeof window.refreshActiveTimeline === 'function') {
                     window.refreshActiveTimeline();
+                }
+                if (typeof window.refreshSyncModalTimesUI === 'function') {
+                    window.refreshSyncModalTimesUI();
                 }
                 if (typeof window.refreshSyncModalContentUI === 'function') {
                     window.refreshSyncModalContentUI();
