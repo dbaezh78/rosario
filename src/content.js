@@ -2,30 +2,52 @@
 // SANTO ROSARIO - BASE DE DATOS Y CONFIGURACIÓN DE CONTENIDOS
 // =============================================================================
 
-// Helper para convertir formato "MM:SS" o número a segundos totales
+// Helper para convertir formato "MM:SS" o número a segundos totales (admite centésimas .00 - .99 y coma decimal)
 function toSec(val) {
-    if (typeof val === 'number') return val;
+    if (typeof val === 'number') return isNaN(val) ? 0 : Math.round(val * 100) / 100;
     if (typeof val === 'string') {
-        const parts = val.trim().split(':');
-        if (parts.length === 2) return parseInt(parts[0], 10) * 60 + parseFloat(parts[1]);
-        if (parts.length === 3) return parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseFloat(parts[2]);
-        return parseFloat(val) || 0;
+        const str = val.trim().replace(',', '.');
+        if (!str) return 0;
+        const parts = str.split(':');
+        if (parts.length === 2) {
+            const m = parseInt(parts[0], 10);
+            const s = parseFloat(parts[1]);
+            const validM = isNaN(m) ? 0 : m;
+            const validS = isNaN(s) ? 0 : s;
+            return Math.round((validM * 60 + validS) * 100) / 100;
+        }
+        if (parts.length === 3) {
+            const h = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10);
+            const s = parseFloat(parts[2]);
+            const validH = isNaN(h) ? 0 : h;
+            const validM = isNaN(m) ? 0 : m;
+            const validS = isNaN(s) ? 0 : s;
+            return Math.round((validH * 3600 + validM * 60 + validS) * 100) / 100;
+        }
+        const num = parseFloat(str);
+        return isNaN(num) ? 0 : Math.round(num * 100) / 100;
     }
     return 0;
 }
 
-// Helper para convertir segundos totales a formato "MM:SS" (o "HH:MM:SS")
-function formatTime(secs) {
-    if (isNaN(secs) || secs < 0) return "00:00";
-    const totalSecs = Math.round(secs);
-    const m = Math.floor(totalSecs / 60);
-    const s = Math.floor(totalSecs % 60);
+// Helper para convertir segundos totales a formato "MM:SS" o "MM:SS.cc" (con centésimas 00 a 99)
+function formatTime(secs, withCentis = false) {
+    if (isNaN(secs) || secs < 0) return withCentis ? "00:00.00" : "00:00";
+    const totalCentis = Math.round(secs * 100);
+    const centis = totalCentis % 100;
+    const totalSecsInt = Math.floor(totalCentis / 100);
+    const m = Math.floor(totalSecsInt / 60);
+    const s = totalSecsInt % 60;
+    const centisStr = centis.toString().padStart(2, '0');
     if (m >= 60) {
         const h = Math.floor(m / 60);
         const remM = m % 60;
-        return `${h}:${remM.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        const base = `${h}:${remM.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        return withCentis ? `${base}.${centisStr}` : base;
     }
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    const base = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return withCentis ? `${base}.${centisStr}` : base;
 }
 
 // Oraciones completas por idioma
@@ -1320,7 +1342,7 @@ function getRosaryStructureDefinition(lang = 'es', mysteryKey = 'Gozosos') {
         sec.items.forEach(item => {
             const effectiveSec = (customTimes[item.key] !== undefined) ? toSec(customTimes[item.key]) : item.defaultSec;
             item.sec = effectiveSec;
-            item.formatted = formatTime(effectiveSec);
+            item.formatted = formatTime(effectiveSec, true);
             item.isCustom = (customTimes[item.key] !== undefined);
             if (item.key === 'letanias') {
                 item.scrollSpeed = getEffectiveLitanyScrollSpeed(lang, mysteryKey);

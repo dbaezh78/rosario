@@ -183,7 +183,8 @@ function buildRosarySvg() {
     if (!rosarySvg) return;
 
     let svgHtml = `
-        <image href="src/img/rosario_virgen_gold.png" x="0" y="0" width="305" height="609" />
+        <image id="rosary-img-base" href="src/img/rosario_virgen_gold.png" xlink:href="src/img/rosario_virgen_gold.png" x="0" y="0" width="305" height="609" />
+        <image id="rosary-img-gloria" class="rosary-img-gloria" href="src/img/rosario_virgen_gold_gloria.png" xlink:href="src/img/rosario_virgen_gold_gloria.png" x="0" y="0" width="305" height="609" />
         <g id="beads-group">
     `;
 
@@ -499,6 +500,53 @@ function updateUIForStep(stepIndex) {
             }
         }
     }
+
+    // 7. Inclinación reverente de la cabeza de la Virgen durante el Gloria al Padre
+    const effectiveTime = (audioPlayer && !isNaN(audioPlayer.currentTime) && audioPlayer.currentTime > 0)
+        ? audioPlayer.currentTime
+        : (step.s || 0);
+    setVirginBow(isGloriaTime(effectiveTime));
+}
+
+// Determina si el segundo actual corresponde a la reverencia del Gloria al Padre:
+// Comienza exactamente 1 segundo antes de que empiece el Gloria y se mantiene abajo exactamente 3 segundos
+// a partir del inicio del Gloria, volviendo luego suavemente a su estado normal.
+function isGloriaTime(curTime) {
+    if (!currentSteps || currentSteps.length === 0 || isNaN(curTime)) return false;
+    for (let i = 0; i < currentSteps.length; i++) {
+        const step = currentSteps[i];
+        if (step.type === 'gloria' || (step.key && step.key.includes('gl'))) {
+            const gloriaStart = (typeof step.s === 'number' && !isNaN(step.s)) ? step.s : 0;
+            const start = Math.max(0, gloriaStart - 1.0); // 1 segundo antes del gloria
+            const end = gloriaStart + 3.0; // Se mantiene abajo 3 segundos completos a partir del inicio del Gloria
+            if (curTime >= start && curTime < end) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// Control de inclinación reverente de la Virgen (Gloria al Padre)
+// Oculta la imagen base para que solo quede visible la imagen inclinada sin superposiciones
+function setVirginBow(shouldBow) {
+    const baseImg = document.getElementById('rosary-img-base');
+    const gloriaImg = document.getElementById('rosary-img-gloria');
+    if (baseImg) {
+        baseImg.classList.toggle('is-bowing', !!shouldBow);
+    }
+    if (gloriaImg) {
+        gloriaImg.classList.toggle('active', !!shouldBow);
+    }
+    // Si el sincronizador de tiempos está abierto, destacar visualmente la fila de Gloria durante la reverencia
+    if (syncListContainer) {
+        syncListContainer.querySelectorAll('.sync-item-row').forEach(row => {
+            const key = row.getAttribute('data-key') || '';
+            if (key === 'intro_gloria' || key.includes('_gl')) {
+                row.classList.toggle('bowing-active', !!shouldBow);
+            }
+        });
+    }
 }
 
 // 8. RENDERIZADO DE LOS 10 MINI-PUNTOS DE LA DECENA
@@ -574,8 +622,8 @@ audioPlayer.addEventListener('timeupdate', () => {
         if (totalTimeDisplay) totalTimeDisplay.innerText = formattedDur;
         if (miniTimeDisplay) miniTimeDisplay.innerText = `${formattedCur} / ${formattedDur}`;
 
-        // Sincronizador de tiempos
-        if (syncTimeCur) syncTimeCur.innerText = formattedCur;
+        // Sincronizador de tiempos (con centésimas para precisión total)
+        if (syncTimeCur) syncTimeCur.innerText = formatTime(curTime, true);
         if (syncTimeDur) syncTimeDur.innerText = formattedDur;
         if (syncAudioSlider && !isSyncSeeking) syncAudioSlider.value = pct;
     }
@@ -595,6 +643,10 @@ audioPlayer.addEventListener('timeupdate', () => {
         updateUIForStep(currentStepIndex);
         updateBeadHighlights(currentSteps[currentStepIndex].beadId);
     }
+
+    // Inclinación reverente de la cabeza de la Virgen:
+    // Comienza exactamente 1 segundo antes del Gloria y se mantiene hasta 1 segundo después del Gloria
+    setVirginBow(isGloriaTime(curTime));
 });
 
 // 12. CONTROLADORES DE REPRODUCCIÓN (Sincronizados en ambos reproductores)
@@ -894,12 +946,23 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
-// Formateador de tiempo mm:ss
-function formatTime(secs) {
-    if (isNaN(secs)) return "00:00";
-    const m = Math.floor(secs / 60);
-    const s = Math.floor(secs % 60);
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+// Formateador de tiempo mm:ss o mm:ss.cc (con centésimas de segundo 00 a 99)
+function formatTime(secs, withCentis = false) {
+    if (isNaN(secs) || secs < 0) return withCentis ? "00:00.00" : "00:00";
+    const totalCentis = Math.round(secs * 100);
+    const centis = totalCentis % 100;
+    const totalSecsInt = Math.floor(totalCentis / 100);
+    const m = Math.floor(totalSecsInt / 60);
+    const s = totalSecsInt % 60;
+    const centisStr = centis.toString().padStart(2, '0');
+    if (m >= 60) {
+        const h = Math.floor(m / 60);
+        const remM = m % 60;
+        const base = `${h}:${remM.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        return withCentis ? `${base}.${centisStr}` : base;
+    }
+    const base = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return withCentis ? `${base}.${centisStr}` : base;
 }
 
 // =============================================================================
@@ -990,7 +1053,10 @@ function collectCurrentSyncTimes() {
         const key = input.getAttribute('data-key');
         const val = input.value.trim();
         if (key && val) {
-            times[key] = val;
+            const sec = toSec(val);
+            if (!isNaN(sec)) {
+                times[key] = formatTime(sec, true);
+            }
         }
     });
     const speedInput = syncListContainer.querySelector('#sync-letanias-speed');
@@ -1029,10 +1095,29 @@ function autoSaveSyncTimesImmediate(lang, mystery) {
         audioData[lang][mystery].customTimes = Object.assign({}, audioData[lang][mystery].customTimes || {}, times);
     }
 
-    // 4. Si coincide con el rezo activo, refrescar tiempos en vivo
-    if (langSelect && syncLangSelect && lang === langSelect.value && mystery === currentMystery) {
-        if (typeof window.refreshActiveTimeline === 'function') {
-            window.refreshActiveTimeline();
+    // 4. Actualizar línea de tiempo activa en tiempo real si coincide con el rezo activo o el misterio en sincronización
+    if (mystery === currentMystery || (syncMysterySelect && mystery === syncMysterySelect.value)) {
+        currentMystery = mystery;
+        if (langSelect && langSelect.value !== lang) {
+            langSelect.value = lang;
+        }
+        if (typeof generateDetailedTimeline === 'function' && audioData && audioData[lang] && audioData[lang][mystery]) {
+            currentSteps = generateDetailedTimeline(mystery, audioData[lang][mystery], lang);
+            const curTime = (audioPlayer && !isNaN(audioPlayer.currentTime)) ? audioPlayer.currentTime : 0;
+            let newStepIndex = 0;
+            for (let i = 0; i < currentSteps.length; i++) {
+                if (curTime >= currentSteps[i].s) {
+                    newStepIndex = i;
+                } else {
+                    break;
+                }
+            }
+            currentStepIndex = newStepIndex;
+            updateUIForStep(currentStepIndex);
+            if (currentSteps[currentStepIndex]) {
+                updateBeadHighlights(currentSteps[currentStepIndex].beadId);
+            }
+            setVirginBow(isGloriaTime(curTime));
         }
     }
 }
@@ -1098,9 +1183,11 @@ function renderSyncItems(lang, mystery) {
                             </div>
                         ` : ''}
                         <button type="button" class="btn-sync-adjust" data-delta="-1" title="Restar 1 segundo">-1s</button>
-                        <input type="text" class="sync-input-time" data-key="${item.key}" value="${item.formatted}" placeholder="MM:SS" spellcheck="false" autocomplete="off">
+                        <button type="button" class="btn-sync-adjust btn-sync-adjust-fine" data-delta="-0.1" title="Restar 0.10s (10 centésimas)">-0.1s</button>
+                        <input type="text" class="sync-input-time" data-key="${item.key}" value="${item.formatted}" placeholder="MM:SS.cc" spellcheck="false" autocomplete="off" title="Formato MM:SS.cc (ej. 08:02.99)">
+                        <button type="button" class="btn-sync-adjust btn-sync-adjust-fine" data-delta="0.1" title="Sumar 0.10s (10 centésimas)">+0.1s</button>
                         <button type="button" class="btn-sync-adjust" data-delta="1" title="Sumar 1 segundo">+1s</button>
-                        <button type="button" class="btn-sync-stamp" data-key="${item.key}" title="Fijar tiempo actual del audio en esta casilla">⏱️ Ahora</button>
+                        <button type="button" class="btn-sync-stamp" data-key="${item.key}" title="Fijar tiempo exacto del audio con centésimas">⏱️ Ahora</button>
                         <button type="button" class="btn-sync-test" data-key="${item.key}" title="Reproducir audio desde este tiempo">▶ Probar</button>
                         <button type="button" class="btn-sync-edit ${item.isCustomContent ? 'is-custom' : ''}" data-key="${item.key}" title="Editar contenido y texto de esta oración">✏️</button>
                     </div>
@@ -1135,10 +1222,18 @@ function renderSyncItems(lang, mystery) {
         const btnTest = row.querySelector('.btn-sync-test');
         const adjustBtns = row.querySelectorAll('.btn-sync-adjust');
         const itemTitle = row.querySelector('.sync-item-title') ? row.querySelector('.sync-item-title').innerText : '';
+        const rowKey = row.getAttribute('data-key') || '';
+        const isGloriaRow = (rowKey === 'intro_gloria' || rowKey.includes('_gl'));
 
         input.addEventListener('input', () => {
             row.classList.add('modified');
             autoSaveSyncTimesDebounced(lang, mystery);
+        });
+
+        input.addEventListener('blur', () => {
+            const sec = toSec(input.value);
+            input.value = formatTime(sec, true);
+            autoSaveSyncTimesImmediate(lang, mystery);
         });
 
         if (speedInput) {
@@ -1150,30 +1245,44 @@ function renderSyncItems(lang, mystery) {
 
         adjustBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                const delta = parseInt(btn.getAttribute('data-delta'), 10) || 0;
-                const curSec = Math.max(0, toSec(input.value) + delta);
-                input.value = formatTime(curSec);
+                const delta = parseFloat(btn.getAttribute('data-delta')) || 0;
+                const curSec = Math.max(0, Math.round((toSec(input.value) + delta) * 100) / 100);
+                input.value = formatTime(curSec, true);
                 row.classList.add('modified');
-                autoSaveSyncTimesDebounced(lang, mystery);
+                autoSaveSyncTimesImmediate(lang, mystery);
             });
         });
 
         btnStamp.addEventListener('click', () => {
-            const curSec = audioPlayer.currentTime;
-            input.value = formatTime(curSec);
+            const curSec = Math.round(audioPlayer.currentTime * 100) / 100;
+            input.value = formatTime(curSec, true);
             row.classList.add('modified');
             if (syncStatusMsg) {
-                syncStatusMsg.innerHTML = `⏱️ Fijado <strong>${input.value}</strong> para: ${itemTitle} <span style="color:#4ade80;font-size:0.75rem;">(Guardado)</span>`;
+                syncStatusMsg.innerHTML = `⏱️ Fijado exacto <strong>${input.value}</strong> para: ${itemTitle} <span style="color:#4ade80;font-size:0.75rem;">(Guardado)</span>`;
             }
-            autoSaveSyncTimesDebounced(lang, mystery);
+            autoSaveSyncTimesImmediate(lang, mystery);
         });
 
         btnTest.addEventListener('click', () => {
+            // Guardar de inmediato cualquier valor tipeado o ajustado
+            autoSaveSyncTimesImmediate(lang, mystery);
+
             const sec = toSec(input.value);
             audioPlayer.currentTime = sec;
+
+            // Actualizar inmediatamente el monitor superior con el segundo exacto
+            if (syncTimeCur) {
+                syncTimeCur.innerText = formatTime(sec, true);
+            }
+            const dur = audioPlayer.duration || 1800;
+            if (syncAudioSlider && dur > 0 && !isSyncSeeking) {
+                syncAudioSlider.value = (sec / dur) * 100;
+            }
+
             audioPlayer.play().then(() => updatePlayPauseButton(true)).catch(() => {});
+
             if (syncStatusMsg) {
-                syncStatusMsg.innerText = `▶ Probando en ${input.value}: ${itemTitle}`;
+                syncStatusMsg.innerHTML = `▶ Probando en el segundo exacto <strong>${input.value}</strong>: ${itemTitle}`;
             }
         });
 
@@ -1209,14 +1318,41 @@ function openSyncModal() {
     // Actualizar tiempos en el monitor del modal
     const curTime = audioPlayer.currentTime;
     const dur = audioPlayer.duration || 1800;
-    if (syncTimeCur) syncTimeCur.innerText = formatTime(curTime);
+    if (syncTimeCur) syncTimeCur.innerText = formatTime(curTime, true);
     if (syncTimeDur) syncTimeDur.innerText = formatTime(dur);
     if (syncAudioSlider && dur > 0) syncAudioSlider.value = (curTime / dur) * 100;
 }
 
 function closeSyncModal() {
     if (syncLangSelect && syncMysterySelect) {
-        autoSaveSyncTimesImmediate(syncLangSelect.value, syncMysterySelect.value);
+        const lang = syncLangSelect.value;
+        const mystery = syncMysterySelect.value;
+        autoSaveSyncTimesImmediate(lang, mystery);
+        currentMystery = mystery;
+        if (langSelect && langSelect.value !== lang) {
+            langSelect.value = lang;
+        }
+        mysteryPills.forEach(pill => {
+            pill.classList.toggle('active', pill.dataset.mystery === mystery);
+        });
+        if (audioData[lang] && audioData[lang][mystery]) {
+            currentSteps = generateDetailedTimeline(mystery, audioData[lang][mystery], lang);
+            const curTime = (audioPlayer && !isNaN(audioPlayer.currentTime)) ? audioPlayer.currentTime : 0;
+            let newStepIndex = 0;
+            for (let i = 0; i < currentSteps.length; i++) {
+                if (curTime >= currentSteps[i].s) {
+                    newStepIndex = i;
+                } else {
+                    break;
+                }
+            }
+            currentStepIndex = newStepIndex;
+            updateUIForStep(currentStepIndex);
+            if (currentSteps[currentStepIndex]) {
+                updateBeadHighlights(currentSteps[currentStepIndex].beadId);
+            }
+            setVirginBow(isGloriaTime(curTime));
+        }
     }
     if (syncModal) syncModal.classList.remove('open');
 }
@@ -1248,6 +1384,10 @@ function onSyncSelectionChange() {
     const mystery = syncMysterySelect.value;
     activeSyncLang = lang;
     activeSyncMystery = mystery;
+    currentMystery = mystery;
+    if (langSelect && langSelect.value !== lang) {
+        langSelect.value = lang;
+    }
 
     if (lang === 'es' && audioData.es && audioData.es[mystery]) {
         audioData.es[mystery].src = getActiveMysterySrc(mystery, lang);
@@ -1263,7 +1403,19 @@ function onSyncSelectionChange() {
                 audioPlayer.play().catch(() => {});
             }
         }
+        currentSteps = generateDetailedTimeline(mystery, audioData[lang][mystery], lang);
+        currentStepIndex = 0;
+        updateUIForStep(0);
+        if (currentSteps[0]) {
+            updateBeadHighlights(currentSteps[0].beadId);
+        }
+        setVirginBow(isGloriaTime(audioPlayer.currentTime || 0));
     }
+
+    // Actualizar píldoras de misterios del rezo
+    mysteryPills.forEach(pill => {
+        pill.classList.toggle('active', pill.dataset.mystery === mystery);
+    });
 
     renderSyncItems(lang, mystery);
     if (syncStatusMsg) {
@@ -1318,14 +1470,14 @@ syncNavPills.forEach(pill => {
                     audioPlayer.play().catch(() => {});
                 }
                 const dur = audioPlayer.duration || 1800;
-                if (syncTimeCur) syncTimeCur.innerText = formatTime(targetSec);
+                if (syncTimeCur) syncTimeCur.innerText = formatTime(targetSec, true);
                 if (currentTimeDisplay) currentTimeDisplay.innerText = formatTime(targetSec);
                 if (miniTimeDisplay) miniTimeDisplay.innerText = `${formatTime(targetSec)} / ${formatTime(dur)}`;
                 if (syncAudioSlider && dur > 0) syncAudioSlider.value = (targetSec / dur) * 100;
                 if (seekSlider && dur > 0) seekSlider.value = (targetSec / dur) * 100;
                 if (miniSeekSlider && dur > 0) miniSeekSlider.value = (targetSec / dur) * 100;
                 if (syncStatusMsg) {
-                    syncStatusMsg.innerText = `⏱️ Sincronizado en ${formatTime(targetSec)}: ${pill.innerText.trim()}`;
+                    syncStatusMsg.innerText = `⏱️ Sincronizado en ${formatTime(targetSec, true)}: ${pill.innerText.trim()}`;
                 }
             }
         }
@@ -1377,10 +1529,17 @@ if (btnSyncSave) {
             audioData[lang][mystery].customTimes = Object.assign({}, audioData[lang][mystery].customTimes || {}, times);
         }
 
-        // Si es el misterio e idioma que el usuario está rezando, aplicar en vivo
-        if (lang === langSelect.value && mystery === currentMystery) {
-            currentSteps = generateDetailedTimeline(currentMystery, audioData[lang][currentMystery], lang);
-            const curTime = audioPlayer.currentTime;
+        // Aplicar de inmediato en el rezo y en la línea de tiempo activa
+        currentMystery = mystery;
+        if (langSelect && langSelect.value !== lang) {
+            langSelect.value = lang;
+        }
+        mysteryPills.forEach(pill => {
+            pill.classList.toggle('active', pill.dataset.mystery === mystery);
+        });
+        if (audioData[lang] && audioData[lang][mystery]) {
+            currentSteps = generateDetailedTimeline(mystery, audioData[lang][mystery], lang);
+            const curTime = (audioPlayer && !isNaN(audioPlayer.currentTime)) ? audioPlayer.currentTime : 0;
             let newStepIndex = 0;
             for (let i = 0; i < currentSteps.length; i++) {
                 if (curTime >= currentSteps[i].s) {
@@ -1394,6 +1553,7 @@ if (btnSyncSave) {
             if (currentSteps[currentStepIndex]) {
                 updateBeadHighlights(currentSteps[currentStepIndex].beadId);
             }
+            setVirginBow(isGloriaTime(curTime));
         }
 
         syncListContainer.querySelectorAll('.sync-item-row.modified').forEach(r => r.classList.remove('modified'));
@@ -1548,10 +1708,21 @@ window.refreshActiveTimeline = function() {
     const lang = langSelect ? (langSelect.value || 'es') : 'es';
     if (typeof audioData !== 'undefined' && audioData[lang] && audioData[lang][currentMystery]) {
         currentSteps = generateDetailedTimeline(currentMystery, audioData[lang][currentMystery], lang);
+        const curTime = (audioPlayer && !isNaN(audioPlayer.currentTime)) ? audioPlayer.currentTime : 0;
+        let newStepIndex = 0;
+        for (let i = 0; i < currentSteps.length; i++) {
+            if (curTime >= currentSteps[i].s) {
+                newStepIndex = i;
+            } else {
+                break;
+            }
+        }
+        currentStepIndex = newStepIndex;
         updateUIForStep(currentStepIndex);
         if (currentSteps[currentStepIndex]) {
             updateBeadHighlights(currentSteps[currentStepIndex].beadId);
         }
+        setVirginBow(isGloriaTime(curTime));
     }
 };
 

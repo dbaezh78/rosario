@@ -593,6 +593,31 @@ body {
     transition: transform 0.3s ease;
 }
 
+/* ==========================================================================
+   CAMBIO DE IMAGEN DURANTE EL GLORIA AL PADRE
+   Transición suave entre la imagen normal y la imagen con la cabeza
+   inclinada, ocultando la original para que no se superpongan
+   ========================================================================== */
+#rosary-img-base {
+    opacity: 1;
+    transition: opacity 0.4s ease-in-out;
+    pointer-events: none;
+}
+
+#rosary-img-base.is-bowing {
+    opacity: 0;
+}
+
+.rosary-img-gloria {
+    opacity: 0;
+    transition: opacity 0.4s ease-in-out;
+    pointer-events: none;
+}
+
+.rosary-img-gloria.active {
+    opacity: 1;
+}
+
 /* Efectos visuales de cuentas en SVG */
 .bead-touch-target {
     fill: transparent;
@@ -1911,6 +1936,12 @@ body {
     border-left: 3px solid var(--gold-bright);
 }
 
+.sync-item-row.bowing-active {
+    background: rgba(212, 175, 55, 0.22) !important;
+    border-left: 4px solid var(--gold-bright) !important;
+    box-shadow: 0 0 16px rgba(212, 175, 55, 0.35);
+}
+
 .sync-item-left {
     display: flex;
     align-items: center;
@@ -2030,8 +2061,22 @@ body {
     color: var(--gold-light);
 }
 
+.btn-sync-adjust.btn-sync-adjust-fine {
+    font-size: 0.67rem;
+    padding: 4px 5px;
+    color: rgba(212, 175, 55, 0.9);
+    border-color: rgba(212, 175, 55, 0.35);
+    background: rgba(212, 175, 55, 0.08);
+}
+
+.btn-sync-adjust.btn-sync-adjust-fine:hover {
+    background: rgba(212, 175, 55, 0.3);
+    border-color: var(--gold-bright);
+    color: #fff;
+}
+
 .sync-input-time {
-    width: 66px;
+    width: 90px;
     padding: 5px 6px;
     background: #050811;
     border: 1px solid rgba(212, 175, 55, 0.4);
@@ -2043,6 +2088,7 @@ body {
     text-align: center;
     outline: none;
     transition: all 0.2s;
+    letter-spacing: 0.5px;
 }
 
 .sync-input-time:focus {
