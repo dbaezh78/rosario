@@ -12,6 +12,13 @@ import {
     getDocs, 
     onSnapshot 
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
+import { 
+    getAuth, 
+    signInWithPopup, 
+    GoogleAuthProvider, 
+    signOut, 
+    onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
 
 // Configuración de Firebase para el proyecto 'elsantorosario'
 const firebaseConfig = {
@@ -25,15 +32,56 @@ const firebaseConfig = {
 
 let app = null;
 let db = null;
+let auth = null;
 let isConnected = false;
+const ADMIN_EMAIL = "dbaezh78@gmail.com";
+let currentUser = null;
+let isAdmin = false;
 
 try {
     app = initializeApp(firebaseConfig);
     db = getFirestore(app);
+    auth = getAuth(app);
     isConnected = true;
     console.log("🔥 Firebase inicializado con éxito para ElSantoRosario");
 } catch (err) {
     console.warn("⚠️ No se pudo inicializar Firebase:", err);
+}
+
+// Escucha en tiempo real del estado de autenticación
+if (auth) {
+    onAuthStateChanged(auth, (user) => {
+        currentUser = user;
+        isAdmin = !!(user && user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+        console.log(`👤 Auth State: ${user ? user.email : 'Visitante (No autenticado)'} | Admin: ${isAdmin}`);
+        
+        if (typeof window.onRosaryAuthStateChanged === 'function') {
+            window.onRosaryAuthStateChanged(user, isAdmin);
+        }
+        window.dispatchEvent(new CustomEvent('rosary-auth-changed', { 
+            detail: { user, isAdmin, email: user ? user.email : null } 
+        }));
+    });
+}
+
+async function loginWithGoogle() {
+    if (!auth) throw new Error("Firebase Auth no disponible");
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    const result = await signInWithPopup(auth, provider);
+    currentUser = result.user;
+    isAdmin = !!(currentUser && currentUser.email && currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+    return { user: currentUser, isAdmin };
+}
+
+async function logout() {
+    if (!auth) return;
+    await signOut(auth);
+    currentUser = null;
+    isAdmin = false;
+    window.dispatchEvent(new CustomEvent('rosary-auth-changed', { 
+        detail: { user: null, isAdmin: false, email: null } 
+    }));
 }
 
 // Guarda los tiempos en Cloud Firestore
@@ -283,10 +331,11 @@ async function restoreTimesFromCloud(lang, mystery) {
     }
 }
 
-// Exponer la interfaz en window.RosaryCloud
+// Exponer la interfaz en window.RosaryCloud y window.RosaryAuth
 window.RosaryCloud = {
     app,
     db,
+    auth,
     isConnected,
     saveTimesToCloud,
     loadAllTimesFromCloud,
@@ -298,6 +347,15 @@ window.RosaryCloud = {
     saveItemContentToCloud,
     loadAllContentFromCloud,
     subscribeToCloudContent
+};
+
+window.RosaryAuth = {
+    auth,
+    ADMIN_EMAIL,
+    loginWithGoogle,
+    logout,
+    checkIsAdmin: () => isAdmin,
+    getCurrentUser: () => currentUser
 };
 
 // Auto-sincronización inicial al cargar el script

@@ -106,8 +106,33 @@
                     </select>
                 </div>
                 <button id="btn-fullscreen" class="btn-icon" title="Pantalla Completa" aria-label="Pantalla Completa">⛶</button>
+                <button id="btn-record-screen" class="btn-icon btn-record-icon" title="Grabar video de la pantalla para YouTube (sin reproductor)" aria-label="Grabar Pantalla">📹</button>
+                <button id="btn-auth-profile" class="btn-auth-profile" title="Perfil y Ajustes / Iniciar Sesión con Google" aria-label="Perfil y Autenticación">
+                    <span id="auth-avatar-icon" class="auth-avatar-icon">👤</span>
+                    <span id="auth-user-label" class="auth-user-label">Acceder</span>
+                </button>
             </div>
         </header>
+
+        <!-- Indicador de Grabación de Pantalla en Vivo para YouTube -->
+        <div id="recording-status-bar" class="recording-status-bar" style="display: none;">
+            <div class="recording-pulse"></div>
+            <span class="recording-label">🔴 Grabando pantalla para YouTube</span>
+            <span id="recording-timer" class="recording-timer">00:00</span>
+            <button id="btn-stop-recording" class="btn-stop-recording" title="Detener grabación y guardar video WebM">⏹ Detener y Descargar</button>
+        </div>
+
+        <!-- Reproductor Flotante cuando el panel inferior está oculto -->
+        <div id="floating-mini-player" class="floating-mini-player" style="display: none;">
+            <button id="floating-btn-play" class="floating-btn-play" title="Reproducir / Pausar">▶</button>
+            <div class="floating-time-info">
+                <span id="floating-cur-prayer" class="floating-cur-prayer">Señal de la Cruz</span>
+                <span id="floating-time-display" class="floating-time-display">00:00 / 33:06</span>
+            </div>
+            <button type="button" id="floating-btn-bg-music" class="floating-btn-bg-music" title="Música de fondo">🎵 Fondo</button>
+            <button id="floating-btn-expand" class="floating-btn-expand" title="Mostrar barra completa del reproductor">⤊ Mostrar Reproductor</button>
+        </div>
+
 
         <!-- Selector de pestañas para móviles -->
         <div class="mobile-view-tabs">
@@ -267,9 +292,21 @@
                             <button id="btn-play-pause" class="btn-ctrl btn-play-pause" title="Reproducir / Pausar (Espacio)" aria-label="Reproducir">▶</button>
                             <button id="btn-skip-forward" class="btn-ctrl btn-skip" title="Adelantar 10s (Flecha Der)" aria-label="Adelantar 10 segundos">10 ↻</button>
                             <button id="btn-next-bead" class="btn-ctrl btn-step" title="Siguiente cuenta (Flecha Abajo)" aria-label="Siguiente cuenta">⏭</button>
+                            <button id="btn-collapse-player" class="btn-ctrl btn-collapse" title="Ocultar reproductor (para vista limpia o grabar)">⌄ Ocultar</button>
                         </div>
 
                         <div class="volume-speed-controls">
+                            <div class="bg-music-control-wrap">
+                                <button type="button" id="btn-bg-music" class="btn-ctrl btn-bg-music" title="Configurar y seleccionar Música de Fondo">
+                                    <span class="bg-music-icon">🎵</span>
+                                    <span class="bg-music-text">Música de fondo</span>
+                                </button>
+                                <div class="bg-music-vol-slider-wrap" title="Volumen de la música de fondo">
+                                    <span class="bg-music-vol-icon">🔉</span>
+                                    <input type="range" id="bg-music-vol-slider" class="bg-music-slider" min="0" max="1" step="0.01" value="0.25" aria-label="Volumen música de fondo">
+                                    <span id="bg-music-vol-pct" class="bg-music-pct">25%</span>
+                                </div>
+                            </div>
                             <select id="speed-select" class="speed-select" title="Velocidad de reproducción" aria-label="Velocidad">
                                 <option value="0.70">0.70x</option>
                                 <option value="0.75">0.75x</option>
@@ -355,6 +392,38 @@
                             <option value="Gloriosos">Gloriosos</option>
                         </select>
                     </div>
+
+                    <div class="sync-field-group sync-version-group">
+                        <label for="sync-version-select">Versión:</label>
+                        <select id="sync-version-select" class="sync-select" aria-label="Versión de audio para sincronizar">
+                            <option value="original" selected>🔴 Versión 2 (Cruz Roja · Original)</option>
+                            <option value="v1">🟡 Versión 1 (Cruz Amarilla · V1)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Selector de Modo (Segmentado vs Tiempo Continuo) y Herramientas del Almacén -->
+                <div class="sync-mode-and-tools-row">
+                    <div class="sync-mode-switch" role="tablist" aria-label="Modo de Sincronización">
+                        <button type="button" id="sync-mode-segmented-btn" class="sync-mode-btn active" role="tab" aria-selected="true" title="Asignar audios segmentados por oración individual">
+                            🎵 Audios Segmentados
+                        </button>
+                        <button type="button" id="sync-mode-time-btn" class="sync-mode-btn" role="tab" aria-selected="false" title="Sincronizar por tiempos en un solo archivo de audio continuo">
+                            ⏱️ Tiempos Continuos
+                        </button>
+                    </div>
+
+                    <div class="sync-tools-actions">
+                        <button type="button" id="btn-open-audio-store" class="btn-sync-tool-store" title="Abrir Almacén de Audios para subir y organizar oraciones MP3/WAV">
+                            🗄️ Almacén de Audios <span id="sync-store-count-badge" class="sync-store-count-badge">0</span>
+                        </button>
+                        <button type="button" id="btn-sync-auto-assign" class="btn-sync-tool-auto" title="Asignar automáticamente audios a cada oración según sus nombres de archivo">
+                            ⚡ Auto-asignar
+                        </button>
+                        <button type="button" id="btn-sync-download-full" class="btn-sync-tool-download" title="Concatenar y descargar todo el Rosario en un solo archivo de audio (.wav) en orden litúrgico correcto">
+                            📥 Descargar Rosario (.wav)
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Mini-reproductor y monitor de audio para capturar timestamps al vuelo -->
@@ -408,6 +477,7 @@
                     <button id="btn-sync-export" class="btn-sync-sec" title="Descargar archivo JSON con todos los tiempos personalizados">📤 Exportar JSON</button>
                     <button id="btn-sync-import" class="btn-sync-sec" title="Importar archivo JSON de tiempos">📥 Importar JSON</button>
                     <input type="file" id="sync-file-input" accept=".json" style="display: none;">
+                    <button id="btn-sync-download-full-footer" class="btn-sync-sec" title="Descargar todo el Rosario en un solo archivo .wav en orden litúrgico">📥 Descargar Rosario (.wav)</button>
                     <button id="btn-sync-cloud-restore" class="btn-sync-sec" title="Recuperar la sincronización guardada en Cloud Firestore (Nube)">☁️ Restaurar Nube</button>
                     <button id="btn-sync-save" class="btn-sync-prim" title="Guardar cambios y actualizar la app inmediatamente">💾 Guardar y Aplicar</button>
                 </div>
@@ -553,15 +623,259 @@
         </div>
     </div>
 
+    
+    <!-- Modal Almacén de Audios Segmentados -->
+    <div id="audio-store-modal" class="sync-modal-overlay">
+        <div class="sync-modal-window audio-store-modal-window" role="dialog" aria-modal="true" aria-labelledby="audio-store-modal-title">
+            <div class="sync-modal-header">
+                <div class="sync-modal-title-wrap">
+                    <span class="sync-modal-icon">🗄️</span>
+                    <div>
+                        <h2 id="audio-store-modal-title" class="sync-modal-title">Almacén de Audios del Santo Rosario</h2>
+                        <p class="sync-modal-subtitle">Sube y organiza tus audios individuales (Padre Nuestro, Ave María, Gloria...) para asignarlos a las cuentas</p>
+                    </div>
+                </div>
+                <button id="audio-store-modal-close" class="sync-close-btn" title="Cerrar Almacén" aria-label="Cerrar">✕</button>
+            </div>
+
+            <div class="audio-store-body">
+                <!-- Zona Dropzone para arrastrar o subir audios -->
+                <div id="audio-store-dropzone" class="audio-store-dropzone">
+                    <div class="dropzone-icon">📤</div>
+                    <div class="dropzone-text">
+                        <strong>Arrastra aquí tus archivos de audio (.mp3, .wav, .m4a, .ogg)</strong>
+                        <span>o haz clic para explorar en tu equipo (puedes seleccionar múltiples archivos a la vez)</span>
+                    </div>
+                    <input type="file" id="audio-store-file-input" multiple accept="audio/*" style="display:none;">
+                </div>
+
+                <!-- Barra de acciones rápidas del almacén -->
+                <div class="audio-store-actions-bar">
+                    <div class="store-stats">
+                        <span id="store-stats-text">0 audios en el almacén</span>
+                    </div>
+                    <div class="store-buttons">
+                        <button type="button" id="btn-store-auto-assign" class="btn-sync-sec" title="Asigna automáticamente los audios a las oraciones del misterio actual">⚡ Auto-asignar a este Misterio</button>
+                        <button type="button" id="btn-store-clear-all" class="btn-sync-danger" title="Borrar todos los audios del almacén">🗑️ Vaciar Almacén</button>
+                    </div>
+                </div>
+
+                <!-- Lista de Audios Subidos -->
+                <div id="audio-store-list" class="audio-store-list">
+                    <!-- Se poblará dinámicamente -->
+                </div>
+            </div>
+
+            <div class="sync-modal-footer">
+                <div class="sync-footer-status">
+                    <span id="audio-store-status-msg">Almacén listo en IndexedDB (almacenamiento local persistente)</span>
+                </div>
+                <div class="sync-footer-actions">
+                    <button type="button" id="btn-audio-store-done" class="btn-sync-prim">Listo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Gestión y Selección de Música de Fondo -->
+    <div id="bg-music-modal" class="modal-overlay">
+        <div class="profile-modal-window bg-music-modal-window" role="dialog" aria-modal="true" aria-labelledby="bg-music-modal-title">
+            <div class="profile-modal-header">
+                <div class="profile-modal-title-wrap">
+                    <span class="profile-modal-icon">🎵</span>
+                    <div>
+                        <h2 id="bg-music-modal-title" class="profile-modal-title">Música de Fondo del Santo Rosario</h2>
+                        <p class="profile-modal-subtitle">Acompañamiento sacro con control de volumen independiente y tiempos litúrgicos</p>
+                    </div>
+                </div>
+                <button type="button" id="bg-music-modal-close" class="modal-close-btn" title="Cerrar modal">✕</button>
+            </div>
+
+            <div class="profile-modal-body">
+                <!-- Control Maestro y Volumen -->
+                <div class="profile-section-card">
+                    <div class="bg-music-master-toggle-row">
+                        <label class="bg-toggle-label">
+                            <input type="checkbox" id="bg-music-enable-toggle" checked>
+                            <span class="bg-toggle-switch"></span>
+                            <span class="bg-toggle-title">Activar Música de Fondo durante el rezo</span>
+                        </label>
+                    </div>
+                    <div class="bg-music-liturgical-rule-box">
+                        <span class="rule-icon">🕊️</span>
+                        <div class="rule-text">
+                            <strong>Regla de Acompañamiento Litúrgico:</strong>
+                            La música de fondo empezará a sonar suavemente <strong>2 segundos antes</strong> de la primera oración para invitar al recogimiento y oración, acompañará todo el Santo Rosario en segundo plano, y continuará sonando durante <strong>5 segundos después</strong> de concluida la oración final.
+                        </div>
+                    </div>
+                    <div class="bg-modal-vol-control-row">
+                        <label for="bg-music-modal-vol-slider" class="bg-modal-vol-label">
+                            <span>🔉 Volumen de fondo:</span>
+                            <span id="bg-music-modal-vol-val" class="bg-vol-val-pill">25%</span>
+                        </label>
+                        <input type="range" id="bg-music-modal-vol-slider" class="bg-music-modal-slider" min="0" max="1" step="0.01" value="0.25">
+                    </div>
+                </div>
+
+                <!-- Lista de Pistas: Selección Exclusiva (Solo 1 activa a la vez para evitar copyright) -->
+                <div class="profile-section-card">
+                    <div class="bg-tracks-header">
+                        <h3 class="profile-section-title">🎶 Pistas de Fondo Disponibles</h3>
+                        <span class="bg-single-track-badge">🛡️ Solo sonará la pista seleccionada (sin copyright)</span>
+                    </div>
+                    <p class="profile-setting-desc">Selecciona el acompañamiento que deseas escuchar. Puedes preescuchar cada pista antes de seleccionarla:</p>
+
+                    <div id="bg-music-tracks-list" class="bg-music-tracks-list">
+                        <!-- Se poblará dinámicamente con ReginaCealiAlleluia.mp3 y pistas subidas -->
+                    </div>
+                </div>
+
+                <!-- Subir Nuevas Pistas de Fondo -->
+                <div class="profile-section-card">
+                    <h3 class="profile-section-title">📤 Subir Nuevos Audios de Fondo</h3>
+                    <p class="profile-setting-desc">Agrega más cantos gregorianos, himnos o melodías sacras sin derechos de autor (.mp3, .wav):</p>
+                    <div class="bg-upload-dropzone" id="bg-music-dropzone">
+                        <span class="bg-upload-icon">🎼</span>
+                        <div class="bg-upload-info">
+                            <span class="bg-upload-main">Haz clic o arrastra un archivo de audio aquí</span>
+                            <span class="bg-upload-sub">Formatos soportados: MP3, WAV, OGG (Guardado local persistente)</span>
+                        </div>
+                        <input type="file" id="bg-music-file-input" accept="audio/*" style="display: none;">
+                        <button type="button" id="btn-browse-bg-music" class="btn-sync-sec">Explorar Archivo</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-modal-footer">
+                <button type="button" id="btn-bg-music-done" class="btn-sync-prim">Listo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Perfil de Usuario y Ajustes Visuales / Temas -->
+    <div id="user-profile-modal" class="modal-overlay">
+        <div class="profile-modal-window" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
+            <div class="profile-modal-header">
+                <div class="profile-modal-title-wrap">
+                    <span class="profile-modal-icon">⚙️</span>
+                    <div>
+                        <h2 id="profile-modal-title" class="profile-modal-title">Ajustes y Perfil de Usuario</h2>
+                        <p class="profile-modal-subtitle">Configuración de temas, tamaño de arte sacro y autenticación</p>
+                    </div>
+                </div>
+                <button id="profile-modal-close" class="modal-close-btn" title="Cerrar modal">✕</button>
+            </div>
+
+            <div class="profile-modal-body">
+                <!-- Sección de Autenticación de Google -->
+                <div class="profile-section-card auth-card">
+                    <h3 class="profile-section-title">🔑 Acceso y Administración</h3>
+                    <div id="auth-status-box" class="auth-status-box visitor-state">
+                        <div class="auth-status-info">
+                            <div id="auth-modal-avatar" class="auth-modal-avatar">👤</div>
+                            <div class="auth-modal-user-details">
+                                <div id="auth-modal-name" class="auth-modal-name">Visitante</div>
+                                <div id="auth-modal-email" class="auth-modal-email">Modo lectura (Puedes orar y escuchar libremente)</div>
+                                <div id="auth-modal-badge" class="auth-modal-badge visitor">👀 Solo Lectura</div>
+                            </div>
+                        </div>
+                        <div class="auth-actions-row">
+                            <button type="button" id="btn-google-signin" class="btn-google-signin">
+                                <svg class="google-svg" viewBox="0 0 24 24" width="18" height="18"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                                Iniciar sesión con Google
+                            </button>
+                            <button type="button" id="btn-google-signout" class="btn-google-signout" style="display: none;">Cerrar Sesión</button>
+                        </div>
+                    </div>
+                    <p class="auth-role-note">
+                        💡 <em>Nota:</em> Todos los fieles pueden rezar, escuchar y descargar libremente el Rosario. Solo el administrador con correo <strong>dbaezh78@gmail.com</strong> puede modificar, guardar o eliminar tiempos y configuraciones oficiales.
+                    </p>
+                </div>
+
+                <!-- Sección de Temas Visuales -->
+                <div class="profile-section-card">
+                    <h3 class="profile-section-title">🎨 Temas Visuales Sagrados</h3>
+                    <div class="theme-options-grid">
+                        <label class="theme-option-card">
+                            <input type="radio" name="rosary-theme" value="dark" checked>
+                            <div class="theme-preview dark-theme-preview">
+                                <span class="theme-dot gold"></span>
+                                <span class="theme-dot dark"></span>
+                            </div>
+                            <span class="theme-name">Modo Oscuro (Predeterminado)</span>
+                        </label>
+                        <label class="theme-option-card">
+                            <input type="radio" name="rosary-theme" value="light">
+                            <div class="theme-preview light-theme-preview">
+                                <span class="theme-dot gold"></span>
+                                <span class="theme-dot light"></span>
+                            </div>
+                            <span class="theme-name">Modo Claro</span>
+                        </label>
+                        <label class="theme-option-card">
+                            <input type="radio" name="rosary-theme" value="azul-cielo">
+                            <div class="theme-preview cielo-theme-preview">
+                                <span class="theme-dot gold"></span>
+                                <span class="theme-dot azul-cielo"></span>
+                            </div>
+                            <span class="theme-name">Modo Azul Cielo</span>
+                        </label>
+                        <label class="theme-option-card">
+                            <input type="radio" name="rosary-theme" value="azul-celeste">
+                            <div class="theme-preview celeste-theme-preview">
+                                <span class="theme-dot gold"></span>
+                                <span class="theme-dot azul-celeste"></span>
+                            </div>
+                            <span class="theme-name">Modo Azul Celeste</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Sección de Tamaño de Imagen de los Misterios -->
+                <div class="profile-section-card">
+                    <h3 class="profile-section-title">🖼️ Tamaño de Imagen de los Misterios</h3>
+                    <p class="profile-setting-desc">Elige qué tan grande deseas contemplar la pintura sacra del misterio en la pantalla principal:</p>
+                    <div class="image-size-options">
+                        <label class="size-pill">
+                            <input type="radio" name="mystery-image-size" value="100">
+                            <span>100px (Compacto)</span>
+                        </label>
+                        <label class="size-pill">
+                            <input type="radio" name="mystery-image-size" value="150">
+                            <span>150px (Mediano)</span>
+                        </label>
+                        <label class="size-pill">
+                            <input type="radio" name="mystery-image-size" value="200" checked>
+                            <span>200px (Grande - Recomendado)</span>
+                        </label>
+                        <label class="size-pill">
+                            <input type="radio" name="mystery-image-size" value="250">
+                            <span>250px (Extra Grande)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-modal-footer">
+                <button type="button" id="btn-profile-close" class="btn-sync-prim">Listo</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Elemento Audio Oculto -->
     <audio id="audio-player" preload="metadata"></audio>
+    <audio id="bg-music-player" loop preload="auto" src="src/mp3/Segm/ReginaCealiAlleluia.mp3"></audio>
 
     <!-- Toast Flotante de Notificaciones -->
     <div id="rosary-toast" class="rosary-toast" aria-live="polite"></div>
 
     <!-- Scripts de la Aplicación -->
     <script src="src/content.js"></script>
+    <script src="src/audio-store.js"></script>
+    <script src="src/bg-music.js"></script>
     <script src="src/script.js"></script>
     <script type="module" src="src/firebase.js"></script>
+
+    
 </body>
 </html>

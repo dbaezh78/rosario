@@ -162,12 +162,78 @@ const btnSyncImport = document.getElementById('btn-sync-import');
 const syncFileInput = document.getElementById('sync-file-input');
 const btnSyncSave = document.getElementById('btn-sync-save');
 const syncNavPills = document.querySelectorAll('.sync-nav-pill');
+// Elementos del Modo de Sincronización y Almacén de Audios
+const syncModeSegmentedBtn = document.getElementById('sync-mode-segmented-btn');
+const syncModeTimeBtn = document.getElementById('sync-mode-time-btn');
+const btnOpenAudioStore = document.getElementById('btn-open-audio-store');
+const btnSyncAutoAssign = document.getElementById('btn-sync-auto-assign');
+const btnSyncDownloadFull = document.getElementById('btn-sync-download-full');
+const btnSyncDownloadFullFooter = document.getElementById('btn-sync-download-full-footer');
+const syncStoreCountBadge = document.getElementById('sync-store-count-badge');
+const syncTipBox = document.getElementById('sync-tip-box');
+
+// Nuevos elementos: Grabación de pantalla, Perfil, Temas, Reproductor Flotante y Sincronizador de Versión
+const btnRecordScreen = document.getElementById('btn-record-screen');
+const btnStopRecording = document.getElementById('btn-stop-recording');
+const recordingStatusBar = document.getElementById('recording-status-bar');
+const recordingTimer = document.getElementById('recording-timer');
+const btnAuthProfile = document.getElementById('btn-auth-profile');
+const authAvatarIcon = document.getElementById('auth-avatar-icon');
+const authUserLabel = document.getElementById('auth-user-label');
+const userProfileModal = document.getElementById('user-profile-modal');
+const userProfileModalClose = document.getElementById('user-profile-modal-close');
+const btnProfileClose = document.getElementById('btn-profile-close');
+const btnGoogleSignin = document.getElementById('btn-google-signin');
+const btnGoogleSignout = document.getElementById('btn-google-signout');
+const authUserEmail = document.getElementById('auth-user-email');
+const authRoleBadge = document.getElementById('auth-role-badge');
+const syncVersionSelect = document.getElementById('sync-version-select');
+const btnCollapsePlayer = document.getElementById('btn-collapse-player');
+const floatingMiniPlayer = document.getElementById('floating-mini-player');
+const floatingBtnPlay = document.getElementById('floating-btn-play');
+const floatingCurPrayer = document.getElementById('floating-cur-prayer');
+const floatingTimeDisplay = document.getElementById('floating-time-display');
+const floatingBtnExpand = document.getElementById('floating-btn-expand');
+const audioControlsPanel = document.querySelector('.audio-controls-panel');
+
+// Modal Almacén de Audios
+const audioStoreModal = document.getElementById('audio-store-modal');
+const audioStoreModalClose = document.getElementById('audio-store-modal-close');
+const audioStoreDropzone = document.getElementById('audio-store-dropzone');
+const audioStoreFileInput = document.getElementById('audio-store-file-input');
+const audioStoreList = document.getElementById('audio-store-list');
+const storeStatsText = document.getElementById('store-stats-text');
+const btnStoreAutoAssign = document.getElementById('btn-store-auto-assign');
+const btnStoreClearAll = document.getElementById('btn-store-clear-all');
+const btnAudioStoreDone = document.getElementById('btn-audio-store-done');
+const audioStoreStatusMsg = document.getElementById('audio-store-status-msg');
+
+// Estado del Modo de Audio y Reproductor Segmentado (Segmentado como predeterminado oficial)
+let activeSyncAudioMode = 'segmented';
+try {
+    const savedMode = localStorage.getItem('rosary_sync_mode');
+    if (savedMode === 'time') {
+        activeSyncAudioMode = 'time';
+    } else {
+        localStorage.setItem('rosary_sync_mode', 'segmented');
+    }
+} catch (e) {
+    activeSyncAudioMode = 'segmented';
+}
+let isPlayingSegmentedRosary = false;
+let currentPreviewAudio = null;
+let previewingAudioKey = null;
+let previewingStoreAudioId = null;
+
 
 // 3. ESTADO GLOBAL
 let currentMystery = 'Gozosos';
 let currentSteps = [];
 let currentStepIndex = -1;
-let currentFontSize = 1.18;
+let currentFontSize = parseFloat(localStorage.getItem('rosary_prayer_font_size')) || 1.18;
+try {
+    document.documentElement.style.setProperty('--prayer-font-size', `${currentFontSize}rem`);
+} catch (e) {}
 let isSeeking = false;
 let isSyncSeeking = false;
 
@@ -289,6 +355,11 @@ function updateAudioVersionUI() {
             ? "Switch en V1 — Clic para alternar a V2"
             : "Switch en V2 — Clic para alternar a V1";
     }
+
+    // 3. Sincronizar selector de versión del modal de sincronizador
+    if (syncVersionSelect) {
+        syncVersionSelect.value = isV1 ? 'v1' : 'original';
+    }
 }
 
 function showVersionToast(msg) {
@@ -306,6 +377,7 @@ function showVersionToast(msg) {
         toast.classList.remove('show');
     }, 2800);
 }
+const showRosaryToast = showVersionToast;
 
 function toggleAudioVersion() {
     audioVersion = (audioVersion === 'v1') ? 'original' : 'v1';
@@ -383,8 +455,13 @@ function loadMystery(mysteryKey) {
         const mData = audioData[lang][mysteryKey];
         currentSteps = generateDetailedTimeline(mysteryKey, mData, lang);
 
-        audioPlayer.src = mData.src;
-        audioPlayer.load();
+        if (activeSyncAudioMode === 'segmented') {
+            audioPlayer.src = 'src/mp3/Segm/señaldelaCruz.mp3';
+            audioPlayer.load();
+        } else {
+            audioPlayer.src = mData.src;
+            audioPlayer.load();
+        }
         if (speedSelect) {
             audioPlayer.playbackRate = parseFloat(speedSelect.value) || 1.0;
         }
@@ -453,6 +530,8 @@ function updateUIForStep(stepIndex) {
             beadCounterText.innerText = `Padre Nuestro — Decena ${step.decade}`;
         } else if (step.type === 'gloria') {
             beadCounterText.innerText = `Gloria al Padre — Decena ${step.decade}`;
+        } else if (step.type === 'gracia') {
+            beadCounterText.innerText = `Petición de Gracia — Decena ${step.decade}`;
         } else {
             beadCounterText.innerText = `Misterio ${step.decade} de 5`;
         }
@@ -513,6 +592,16 @@ function updateUIForStep(stepIndex) {
 // a partir del inicio del Gloria, volviendo luego suavemente a su estado normal.
 function isGloriaTime(curTime) {
     if (!currentSteps || currentSteps.length === 0 || isNaN(curTime)) return false;
+
+    // Inclinación reverente en el segundo 9 (Gloria al Padre en la Señal de la Cruz inicial)
+    const introStep = currentSteps.find(s => s.key === 'crucifix_intro');
+    if (introStep) {
+        const introStart = (typeof introStep.s === 'number' && !isNaN(introStep.s)) ? introStep.s : 0;
+        if (curTime >= (introStart + 8.5) && curTime < (introStart + 12.0)) {
+            return true;
+        }
+    }
+
     for (let i = 0; i < currentSteps.length; i++) {
         const step = currentSteps[i];
         if (step.type === 'gloria' || (step.key && step.key.includes('gl'))) {
@@ -529,7 +618,7 @@ function isGloriaTime(curTime) {
 
 // Control de inclinación reverente de la Virgen (Gloria al Padre)
 // Oculta la imagen base para que solo quede visible la imagen inclinada sin superposiciones
-function setVirginBow(shouldBow) {
+function setVirginBow(shouldBow, targetKey = null) {
     const baseImg = document.getElementById('rosary-img-base');
     const gloriaImg = document.getElementById('rosary-img-gloria');
     if (baseImg) {
@@ -538,12 +627,14 @@ function setVirginBow(shouldBow) {
     if (gloriaImg) {
         gloriaImg.classList.toggle('active', !!shouldBow);
     }
-    // Si el sincronizador de tiempos está abierto, destacar visualmente la fila de Gloria durante la reverencia
+    // Si el sincronizador de tiempos está abierto, destacar visualmente la fila de Gloria activa durante la reverencia
     if (syncListContainer) {
+        const activeKey = targetKey || (currentSteps && currentSteps[currentStepIndex] ? currentSteps[currentStepIndex].key : null);
         syncListContainer.querySelectorAll('.sync-item-row').forEach(row => {
             const key = row.getAttribute('data-key') || '';
             if (key === 'intro_gloria' || key.includes('_gl')) {
-                row.classList.toggle('bowing-active', !!shouldBow);
+                const isThisGloria = activeKey ? (key === activeKey) : true;
+                row.classList.toggle('bowing-active', !!shouldBow && isThisGloria);
             }
         });
     }
@@ -597,9 +688,15 @@ function seekToBead(beadId) {
     }
 
     if (targetStep) {
-        audioPlayer.currentTime = targetStep.s;
-        audioPlayer.play().catch(() => {});
-        updatePlayPauseButton(true);
+        const lang = (langSelect && langSelect.value) ? langSelect.value : 'es';
+        const targetIdx = currentSteps.indexOf(targetStep);
+        if (activeSyncAudioMode === 'segmented' && hasSegmentedAudiosForMystery(lang, currentMystery) && targetIdx !== -1) {
+            playSegmentedRosary(targetIdx);
+        } else {
+            audioPlayer.currentTime = targetStep.s;
+            audioPlayer.play().catch(() => {});
+            updatePlayPauseButton(true);
+        }
     }
 }
 
@@ -607,12 +704,61 @@ function seekToBead(beadId) {
 audioPlayer.addEventListener('timeupdate', () => {
     if (!currentSteps || currentSteps.length === 0) return;
 
+    if (isPlayingSegmentedRosary) {
+        // En reproducción segmentada, cálculo de tiempo acumulado continuo para todo el Santo Rosario
+        const cur = audioPlayer.currentTime || 0;
+        const dur = (audioPlayer.duration && !isNaN(audioPlayer.duration) && audioPlayer.duration > 0) ? audioPlayer.duration : 1;
+        const stepProgress = Math.min(1, Math.max(0, cur / dur));
+
+        const lang = (langSelect && langSelect.value) ? langSelect.value : 'es';
+        const totalSec = (audioData && audioData[lang] && audioData[lang][currentMystery] && audioData[lang][currentMystery].duration)
+            ? audioData[lang][currentMystery].duration
+            : 1986;
+
+        const curStep = (currentSteps && currentSteps[currentStepIndex]) ? currentSteps[currentStepIndex] : null;
+        const stepStartSec = (curStep && typeof curStep.s === 'number') ? curStep.s : 0;
+        const nextStepSec = (currentSteps && currentStepIndex < currentSteps.length - 1 && typeof currentSteps[currentStepIndex + 1].s === 'number')
+            ? currentSteps[currentStepIndex + 1].s
+            : totalSec;
+        const stepDuration = Math.max(1, nextStepSec - stepStartSec);
+        const accumulatedSec = Math.min(totalSec, stepStartSec + (stepProgress * stepDuration));
+        const overallPct = Math.min(100, Math.max(0, (accumulatedSec / totalSec) * 100));
+
+        if (seekSlider && !isSeeking) seekSlider.value = overallPct;
+        if (miniSeekSlider && !isSeeking) miniSeekSlider.value = overallPct;
+        if (currentTimeDisplay) currentTimeDisplay.innerText = formatTime(accumulatedSec);
+        if (totalTimeDisplay) totalTimeDisplay.innerText = formatTime(totalSec);
+        if (miniTimeDisplay) miniTimeDisplay.innerText = `${formatTime(accumulatedSec)} / ${formatTime(totalSec)}`;
+        if (floatingTimeDisplay) floatingTimeDisplay.innerText = `${formatTime(accumulatedSec)} / ${formatTime(totalSec)}`;
+        if (miniPrayerTitle && curStep) {
+            miniPrayerTitle.innerText = curStep.title;
+        }
+        if (floatingCurPrayer && curStep) {
+            floatingCurPrayer.innerText = curStep.title;
+        }
+
+        // Si el sincronizador de tiempos está abierto, actualizar su monitor y slider
+        if (syncTimeCur) syncTimeCur.innerText = formatTime(cur, true);
+        if (syncTimeDur) syncTimeDur.innerText = formatTime(dur);
+        if (syncAudioSlider && !isSyncSeeking) syncAudioSlider.value = overallPct;
+
+        // Inclinación de la cabeza de la Virgen en el segundo 9 (Gloria en la Señal de la Cruz inicial)
+        if (curStep && (curStep.key === 'crucifix_intro' || curStep.type === 'intro_start')) {
+            const isSec9 = (cur >= 8.5 && cur < 12.0);
+            setVirginBow(isSec9, curStep.key);
+        } else if (curStep && audioPlayer.src && audioPlayer.src.toLowerCase().includes('avemaria-gloria')) {
+            const isGloriaEnd = (dur > 6 && cur >= (dur - 6.0) && cur < dur);
+            setVirginBow(isGloriaEnd, curStep.key);
+        }
+        return;
+    }
+
     const curTime = audioPlayer.currentTime;
     const dur = audioPlayer.duration || currentSteps[currentSteps.length - 1].s + 60;
     const formattedCur = formatTime(curTime);
     const formattedDur = formatTime(dur);
 
-    // Actualizar controles del reproductor principal
+    // Actualizar controles del reproductor principal en modo continuo
     if (!isSeeking && dur > 0) {
         const pct = (curTime / dur) * 100;
         if (seekSlider) seekSlider.value = pct;
@@ -666,15 +812,201 @@ function updatePlayPauseButton(isPlaying) {
         syncBtnPlayPause.innerHTML = symbol;
         syncBtnPlayPause.title = titleText;
     }
+    if (floatingBtnPlay) {
+        floatingBtnPlay.innerHTML = symbol;
+        floatingBtnPlay.title = titleText;
+    }
+}
+
+
+// =============================================================================
+// REPRODUCCIÓN SECUENCIAL Y GESTIÓN DE AUDIOS SEGMENTADOS
+// =============================================================================
+
+function hasSegmentedAudiosForMystery(lang = 'es', mystery = 'Gozosos') {
+    return true; // Siempre activo en modo segmentado con el catálogo oficial y predeterminados
+}
+
+async function playSegmentedRosary(stepIndex) {
+    if (!currentSteps || currentSteps.length === 0) return;
+
+    // Determinar misterio e idioma activos (sea en el sincronizador o en la vista principal)
+    const lang = (langSelect && langSelect.value) ? langSelect.value : 'es';
+    let mystery = currentMystery || 'Gozosos';
+    if (syncModal && syncModal.classList.contains('open') && syncMysterySelect) {
+        mystery = syncMysterySelect.value;
+    }
+
+    if (currentMystery !== mystery || !currentSteps || currentSteps.length === 0) {
+        currentMystery = mystery;
+        if (typeof generateDetailedTimeline === 'function' && audioData[lang] && audioData[lang][mystery]) {
+            currentSteps = generateDetailedTimeline(mystery, audioData[lang][mystery], lang);
+        }
+    }
+
+    if (stepIndex >= currentSteps.length) {
+        isPlayingSegmentedRosary = false;
+        showRosaryToast('🌹 ¡Santo Rosario completado con devoción! La música de fondo continuará 5 segundos más...');
+        if (window.RosaryBgMusic) {
+            window.RosaryBgMusic.finishRosaryWithPostRoll(() => {
+                updatePlayPauseButton(false);
+            });
+        } else {
+            updatePlayPauseButton(false);
+        }
+        if (syncListContainer) {
+            syncListContainer.querySelectorAll('.sync-item-row').forEach(r => r.classList.remove('playing-active'));
+        }
+        return;
+    }
+
+    if (stepIndex < 0) stepIndex = 0;
+    currentStepIndex = stepIndex;
+    isPlayingSegmentedRosary = true;
+
+    // Actualizar interfaz completa para este paso (cuentas SVG, tarjeta de rezo y banner)
+    updateUIForStep(currentStepIndex);
+    updateBeadHighlights(currentSteps[currentStepIndex].beadId);
+
+    const step = currentSteps[currentStepIndex];
+    const isGloria = (step.type === 'gloria' || (step.key && step.key.includes('_gl')) || step.key === 'intro_gloria');
+
+    // Inclinación reverente de la Virgen (Gloria al Padre: 3 segundos exactos)
+    if (isGloria) {
+        setVirginBow(true, step.key);
+        setTimeout(() => {
+            if (currentStepIndex === stepIndex) {
+                setVirginBow(false, step.key);
+            }
+        }, 3000);
+    } else {
+        setVirginBow(false, step.key);
+    }
+
+    // Si el sincronizador está abierto, destacar visualmente la fila activa y hacer scroll hacia ella
+    if (syncListContainer) {
+        syncListContainer.querySelectorAll('.sync-item-row').forEach(row => {
+            const isCur = (row.getAttribute('data-key') === step.key);
+            row.classList.toggle('playing-active', isCur);
+            const playBtn = row.querySelector('.btn-sync-play-segment');
+            if (playBtn) {
+                playBtn.innerText = isCur ? '⏸' : '▶';
+                playBtn.classList.toggle('is-playing', isCur);
+            }
+            if (isCur) {
+                row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        });
+    }
+
+    // Buscar audio asignado para este paso
+    const allAudios = window.RosaryAudioStore ? await window.RosaryAudioStore.getAllAudios() : [];
+    const assignments = window.RosaryAudioAssignments ? window.RosaryAudioAssignments.getAssignments(lang, mystery, allAudios) : {};
+    let audioId = assignments[step.key];
+
+    // Fallback directo por tipo de oración si no tuviera asignación
+    if (!audioId && typeof normAudioStr === 'function') {
+        if (step.key === 'intro_am_3' || step.key.endsWith('_am_10')) audioId = 'sys_avemaria_gloria';
+        else if (step.type === 'ave_maria' || step.key.includes('_am_')) audioId = 'sys_avemaria';
+        else if (step.type === 'padre_nuestro' || step.key.includes('_pn')) audioId = 'sys_padrenuestro';
+        else if (step.type === 'gloria' || step.key.includes('_gl')) audioId = 'sys_gloria';
+        else if (step.type === 'gracia' || step.key.includes('_gracia')) audioId = 'sys_pedirgracia';
+    }
+
+    if (audioId && window.RosaryAudioStore) {
+        try {
+            const url = await window.RosaryAudioStore.getAudioUrl(audioId);
+            if (url) {
+                audioPlayer.src = url;
+                audioPlayer.currentTime = 0;
+                await audioPlayer.play();
+                updatePlayPauseButton(true);
+                return;
+            }
+        } catch (e) {
+            console.warn('[SegmentedPlay] Error al reproducir audio de ' + step.title, e);
+        }
+    }
+
+    // Si no hay audio asignado en este paso (ej. meditaciones que falten), mostrar texto durante 3s y continuar
+    if (isPlayingSegmentedRosary) {
+        updatePlayPauseButton(true);
+        setTimeout(() => {
+            if (isPlayingSegmentedRosary && currentStepIndex === stepIndex) {
+                playSegmentedRosary(stepIndex + 1);
+            }
+        }, 3000);
+    }
 }
 
 function togglePlay() {
+    const lang = (langSelect && langSelect.value) ? langSelect.value : 'es';
+    let mystery = currentMystery;
+    if (syncModal && syncModal.classList.contains('open') && syncMysterySelect) {
+        mystery = syncMysterySelect.value;
+    }
+    const useSegmented = (activeSyncAudioMode === 'segmented');
+
+    if (useSegmented) {
+        if (audioPlayer.paused) {
+            // Si el rosario YA estaba en curso y solo se había pausado a mitad de una oración, reanudar de inmediato
+            if (isPlayingSegmentedRosary && audioPlayer.src && !audioPlayer.ended && audioPlayer.currentTime > 0) {
+                if (window.RosaryBgMusic) window.RosaryBgMusic.resumePlayback();
+                audioPlayer.play().then(() => updatePlayPauseButton(true)).catch(() => {
+                    playSegmentedRosary(currentStepIndex >= 0 ? currentStepIndex : 0);
+                });
+            } else {
+                // Iniciar nuevo rezo: pre-roll de 2 segundos de música de fondo antes de que entre la voz
+                if (window.RosaryBgMusic && window.RosaryBgMusic.isEnabled()) {
+                    updatePlayPauseButton(true);
+                    showRosaryToast('🎵 Música de fondo iniciada (la oración comenzará en 2 segundos)...');
+                    window.RosaryBgMusic.startPlaybackWithPreRoll(() => {
+                        playSegmentedRosary(currentStepIndex >= 0 ? currentStepIndex : 0);
+                    });
+                } else {
+                    playSegmentedRosary(currentStepIndex >= 0 ? currentStepIndex : 0);
+                }
+            }
+        } else {
+            audioPlayer.pause();
+            if (window.RosaryBgMusic) window.RosaryBgMusic.pausePlayback();
+            updatePlayPauseButton(false);
+            if (syncListContainer) {
+                syncListContainer.querySelectorAll('.btn-sync-play-segment').forEach(b => {
+                    b.innerText = '▶';
+                    b.classList.remove('is-playing');
+                });
+            }
+        }
+        return;
+    }
+
+    // Modo Continuo Estándar
     if (audioPlayer.paused) {
-        audioPlayer.play().then(() => updatePlayPauseButton(true)).catch(err => {
-            console.log("Error al reproducir audio:", err);
-        });
+        if (isPlayingSegmentedRosary && audioPlayer.currentTime > 0) {
+            if (window.RosaryBgMusic) window.RosaryBgMusic.resumePlayback();
+            audioPlayer.play().then(() => updatePlayPauseButton(true)).catch(err => {
+                console.log("Error al reproducir audio:", err);
+            });
+        } else {
+            isPlayingSegmentedRosary = false;
+            if (window.RosaryBgMusic && window.RosaryBgMusic.isEnabled()) {
+                updatePlayPauseButton(true);
+                showRosaryToast('🎵 Música de fondo iniciada (la oración comenzará en 2 segundos)...');
+                window.RosaryBgMusic.startPlaybackWithPreRoll(() => {
+                    audioPlayer.play().then(() => updatePlayPauseButton(true)).catch(err => {
+                        console.log("Error al reproducir audio:", err);
+                    });
+                });
+            } else {
+                audioPlayer.play().then(() => updatePlayPauseButton(true)).catch(err => {
+                    console.log("Error al reproducir audio:", err);
+                });
+            }
+        }
     } else {
         audioPlayer.pause();
+        if (window.RosaryBgMusic) window.RosaryBgMusic.pausePlayback();
         updatePlayPauseButton(false);
     }
 }
@@ -687,14 +1019,57 @@ audioPlayer.addEventListener('play', () => {
     if (speedSelect) {
         audioPlayer.playbackRate = parseFloat(speedSelect.value) || 1.0;
     }
+    if (syncListContainer && currentSteps && currentSteps[currentStepIndex]) {
+        const curKey = currentSteps[currentStepIndex].key;
+        syncListContainer.querySelectorAll('.sync-item-row').forEach(row => {
+            const isCur = (row.getAttribute('data-key') === curKey);
+            const playBtn = row.querySelector('.btn-sync-play-segment');
+            if (playBtn) {
+                playBtn.innerText = isCur ? '⏸' : '▶';
+                playBtn.classList.toggle('is-playing', isCur);
+            }
+        });
+    }
 });
-audioPlayer.addEventListener('pause', () => updatePlayPauseButton(false));
+audioPlayer.addEventListener('pause', () => {
+    updatePlayPauseButton(false);
+    if (syncListContainer) {
+        syncListContainer.querySelectorAll('.btn-sync-play-segment').forEach(b => {
+            b.innerText = '▶';
+            b.classList.remove('is-playing');
+        });
+    }
+});
+audioPlayer.addEventListener('ended', () => {
+    if (isPlayingSegmentedRosary) {
+        if (currentStepIndex < currentSteps.length - 1) {
+            playSegmentedRosary(currentStepIndex + 1);
+        } else {
+            isPlayingSegmentedRosary = false;
+            showRosaryToast('🌹 ¡Santo Rosario completado con devoción! La música de fondo continuará 5 segundos más...');
+            if (window.RosaryBgMusic) {
+                window.RosaryBgMusic.finishRosaryWithPostRoll(() => {
+                    updatePlayPauseButton(false);
+                });
+            } else {
+                updatePlayPauseButton(false);
+            }
+        }
+    }
+});
 
 // Deslizadores de tiempo
 function handleSeekInput() {
     isSeeking = true;
 }
 function handleSeekChange(sliderElem) {
+    if (activeSyncAudioMode === 'segmented' && currentSteps && currentSteps.length > 0) {
+        const totalSteps = currentSteps.length;
+        const targetStepIndex = Math.min(totalSteps - 1, Math.max(0, Math.floor((sliderElem.value / 100) * totalSteps)));
+        isSeeking = false;
+        playSegmentedRosary(targetStepIndex);
+        return;
+    }
     const dur = audioPlayer.duration || 1800;
     audioPlayer.currentTime = (sliderElem.value / 100) * dur;
     isSeeking = false;
@@ -712,25 +1087,48 @@ if (miniSeekSlider) {
 // Botones de salto
 if (btnSkipBack) {
     btnSkipBack.addEventListener('click', () => {
-        audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 10);
+        if (activeSyncAudioMode === 'segmented') {
+            if (audioPlayer.currentTime > 5) {
+                audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 10);
+            } else {
+                goPrevBead();
+            }
+        } else {
+            audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 10);
+        }
     });
 }
 if (btnSkipForward) {
     btnSkipForward.addEventListener('click', () => {
-        const dur = audioPlayer.duration || 2000;
-        audioPlayer.currentTime = Math.min(dur, audioPlayer.currentTime + 10);
+        if (activeSyncAudioMode === 'segmented') {
+            const dur = audioPlayer.duration || 0;
+            if (dur > 0 && audioPlayer.currentTime + 10 < dur) {
+                audioPlayer.currentTime += 10;
+            } else {
+                goNextBead();
+            }
+        } else {
+            const dur = audioPlayer.duration || 2000;
+            audioPlayer.currentTime = Math.min(dur, audioPlayer.currentTime + 10);
+        }
     });
 }
 
 // Cuentas anterior / siguiente
 function goPrevBead() {
-    if (currentStepIndex > 0) {
-        audioPlayer.currentTime = currentSteps[currentStepIndex - 1].s;
+    const lang = (langSelect && langSelect.value) ? langSelect.value : 'es';
+    if (activeSyncAudioMode === 'segmented' && hasSegmentedAudiosForMystery(lang, currentMystery)) {
+        if (currentStepIndex > 0) playSegmentedRosary(currentStepIndex - 1);
+    } else {
+        if (currentStepIndex > 0) audioPlayer.currentTime = currentSteps[currentStepIndex - 1].s;
     }
 }
 function goNextBead() {
-    if (currentStepIndex < currentSteps.length - 1) {
-        audioPlayer.currentTime = currentSteps[currentStepIndex + 1].s;
+    const lang = (langSelect && langSelect.value) ? langSelect.value : 'es';
+    if (activeSyncAudioMode === 'segmented' && hasSegmentedAudiosForMystery(lang, currentMystery)) {
+        if (currentStepIndex < currentSteps.length - 1) playSegmentedRosary(currentStepIndex + 1);
+    } else {
+        if (currentStepIndex < currentSteps.length - 1) audioPlayer.currentTime = currentSteps[currentStepIndex + 1].s;
     }
 }
 
@@ -781,32 +1179,49 @@ audioPlayer.addEventListener('loadedmetadata', () => {
     audioPlayer.playbackRate = parseFloat(curVal) || 1.0;
 });
 
-// Clic en los 7 puntos de las decenas
+// Clic en los 7 puntos de las decenas (Inicio, 1º, 2º, 3º, 4º, 5º, Letanías)
 decadeDots.forEach((dot, index) => {
     dot.addEventListener('click', () => {
-        if (!currentSteps) return;
-        let step;
-        if (index === 6) {
-            // El botón de Letanías debe ir directamente a las Letanías Lauretanas
-            step = currentSteps.find(s => s.key === 'letanias') || currentSteps.find(s => s.decade === 6);
+        if (!currentSteps || currentSteps.length === 0) return;
+        let targetIdx = -1;
+        if (index === 0) {
+            // Inicio: primera oración (Señal de la Cruz)
+            targetIdx = 0;
+        } else if (index === 6) {
+            // Letanías: ir directamente a las Letanías Lauretanas
+            targetIdx = currentSteps.findIndex(s => s.key === 'letanias' || s.decade === 6);
         } else {
-            step = currentSteps.find(s => s.decade === index);
+            // Decenas 1 a 5: ir al inicio de ese misterio (meditación/anuncio)
+            targetIdx = currentSteps.findIndex(s => s.decade === index);
         }
-        if (step) {
-            audioPlayer.currentTime = step.s;
-            audioPlayer.play().catch(() => {});
-            updatePlayPauseButton(true);
+
+        if (targetIdx !== -1) {
+            if (activeSyncAudioMode === 'segmented') {
+                playSegmentedRosary(targetIdx);
+            } else {
+                currentStepIndex = targetIdx;
+                updateUIForStep(currentStepIndex);
+                updateBeadHighlights(currentSteps[currentStepIndex].beadId);
+                audioPlayer.currentTime = currentSteps[targetIdx].s;
+                audioPlayer.play().catch(() => {});
+                updatePlayPauseButton(true);
+            }
         }
     });
 });
 
-// Clic en selector de misterio (píldoras desktop)
+// Clic en selector de misterio (píldoras desktop: Gozosos, Dolorosos, Luminosos, Gloriosos)
 mysteryPills.forEach(pill => {
     pill.addEventListener('click', () => {
         const mystery = pill.dataset.mystery;
         if (mystery) {
             loadMystery(mystery);
-            audioPlayer.play().catch(() => {});
+            if (activeSyncAudioMode === 'segmented') {
+                playSegmentedRosary(0);
+            } else {
+                audioPlayer.play().catch(() => {});
+                updatePlayPauseButton(true);
+            }
         }
     });
 });
@@ -872,14 +1287,16 @@ langSelect.addEventListener('change', () => {
 // Controles de tamaño de fuente
 if (btnFontPlus) {
     btnFontPlus.addEventListener('click', () => {
-        currentFontSize = Math.min(1.7, currentFontSize + 0.1);
+        currentFontSize = Math.min(3.2, currentFontSize + 0.15);
         document.documentElement.style.setProperty('--prayer-font-size', `${currentFontSize}rem`);
+        try { localStorage.setItem('rosary_prayer_font_size', currentFontSize.toFixed(2)); } catch (e) {}
     });
 }
 if (btnFontMinus) {
     btnFontMinus.addEventListener('click', () => {
-        currentFontSize = Math.max(0.9, currentFontSize - 0.1);
+        currentFontSize = Math.max(0.85, currentFontSize - 0.15);
         document.documentElement.style.setProperty('--prayer-font-size', `${currentFontSize}rem`);
+        try { localStorage.setItem('rosary_prayer_font_size', currentFontSize.toFixed(2)); } catch (e) {}
     });
 }
 
@@ -1004,14 +1421,25 @@ function updateLitanyAutoScroll() {
             if (now >= userScrollPausedUntil) {
                 const maxScroll = prayerScrollArea.scrollHeight - prayerScrollArea.clientHeight;
                 if (maxScroll > 5) {
-                    const startSec = curStep.s;
-                    const nextStep = currentSteps[currentStepIndex + 1];
-                    const endSec = nextStep ? nextStep.s : (audioPlayer.duration || (startSec + 300));
-                    const totalDur = Math.max(30, endSec - startSec);
-                    const speedMultiplier = parseLitanyScrollSpeed(curStep.scrollSpeed, totalDur);
+                    let elapsed = 0;
+                    let totalDur = 320;
 
-                    const curSec = audioPlayer.currentTime;
-                    const elapsed = Math.max(0, curSec - startSec);
+                    if (activeSyncAudioMode === 'segmented' || (audioPlayer.src && audioPlayer.src.includes('letanias'))) {
+                        // En modo segmentado, el audio actual es letanias.mp3 que inicia en t = 0
+                        elapsed = Math.max(0, audioPlayer.currentTime || 0);
+                        totalDur = (audioPlayer.duration && !isNaN(audioPlayer.duration) && audioPlayer.duration > 10) 
+                            ? audioPlayer.duration 
+                            : 321;
+                    } else {
+                        // En modo continuo, el tiempo es relativo al timestamp de inicio del paso
+                        const startSec = (typeof curStep.s === 'number' && !isNaN(curStep.s)) ? curStep.s : 0;
+                        const nextStep = currentSteps[currentStepIndex + 1];
+                        const endSec = nextStep ? nextStep.s : (audioPlayer.duration || (startSec + 300));
+                        totalDur = Math.max(30, endSec - startSec);
+                        elapsed = Math.max(0, (audioPlayer.currentTime || 0) - startSec);
+                    }
+
+                    const speedMultiplier = parseLitanyScrollSpeed(curStep.scrollSpeed, totalDur);
                     const effectiveDuration = totalDur / speedMultiplier;
                     const rawRatio = elapsed / effectiveDuration;
                     const clampedRatio = Math.max(0, Math.min(1.0, rawRatio));
@@ -1144,7 +1572,8 @@ function autoSaveSyncTimesDebounced(lang, mystery) {
     }, 1200);
 }
 
-function renderSyncItems(lang, mystery) {
+
+async function renderSyncItems(lang, mystery) {
     if (!syncListContainer) return;
     if (typeof getRosaryStructureDefinition !== 'function') return;
 
@@ -1152,6 +1581,24 @@ function renderSyncItems(lang, mystery) {
     activeSyncMystery = mystery;
 
     const sections = getRosaryStructureDefinition(lang, mystery);
+    let allAudios = [];
+    if (window.RosaryAudioStore) {
+        try {
+            allAudios = await window.RosaryAudioStore.getAllAudios();
+        } catch (e) {
+            allAudios = [];
+        }
+    }
+
+    if (syncStoreCountBadge) {
+        syncStoreCountBadge.innerText = allAudios.length;
+    }
+
+    const assignments = (window.RosaryAudioAssignments)
+        ? window.RosaryAudioAssignments.getAssignments(lang, mystery, allAudios)
+        : {};
+
+    const isSegmented = (activeSyncAudioMode === 'segmented');
     let html = '';
 
     sections.forEach(sec => {
@@ -1165,6 +1612,9 @@ function renderSyncItems(lang, mystery) {
         `;
 
         sec.items.forEach(item => {
+            const assignedAudioId = assignments[item.key] || '';
+            const normAssigned = (typeof normAudioStr === 'function') ? normAudioStr(assignedAudioId) : (assignedAudioId || '').toLowerCase();
+
             html += `
                 <div class="sync-item-row ${item.isCustomContent ? 'has-custom-content' : ''}" data-key="${item.key}">
                     <div class="sync-item-left">
@@ -1175,6 +1625,56 @@ function renderSyncItems(lang, mystery) {
                         </div>
                         ${item.isCustomContent ? `<span class="sync-custom-content-badge" title="Contenido personalizado y guardado">✏️ Editado</span>` : ''}
                     </div>
+            `;
+
+            if (isSegmented) {
+                // Modo Audios Segmentados: Selector de audio + Probar/Reproducir + Quitar + Editar
+                let selectOptions = `<option value="">-- Sin audio (o usar continuo) --</option>`;
+                let matchedOptionId = null;
+
+                // 1. Coincidencia exacta por ID o por nombre normalizado exacto (sin falsos positivos por substring)
+                if (assignedAudioId) {
+                    const exact = allAudios.find(a => a.id === assignedAudioId);
+                    if (exact) {
+                        matchedOptionId = exact.id;
+                    } else {
+                        const normMatch = allAudios.find(a =>
+                            normAudioStr(a.id) === normAssigned ||
+                            normAudioStr(a.name) === normAssigned ||
+                            normAudioStr(a.fileName) === normAssigned
+                        );
+                        if (normMatch) {
+                            matchedOptionId = normMatch.id;
+                        }
+                    }
+                }
+
+                allAudios.forEach(a => {
+                    const isSel = (matchedOptionId === a.id);
+                    selectOptions += `<option value="${a.id}" ${isSel ? 'selected' : ''}>🎵 ${escapeHtmlStr(a.name)} (${formatTime(a.duration)})</option>`;
+                });
+                selectOptions += `<option value="__upload__">➕ Subir nuevo audio...</option>`;
+                const hasMatched = !!matchedOptionId;
+
+                html += `
+                    <div class="sync-item-right sync-audio-select-wrap">
+                        ${item.key === 'letanias' ? `
+                            <div class="sync-scroll-speed-wrap" title="Velocidad con la que baja automáticamente el texto de las Letanías">
+                                <span class="sync-scroll-speed-label">Vel. Scroll:</span>
+                                <input type="text" class="sync-input-scroll-speed" id="sync-letanias-speed" data-key="letanias_scroll_speed" value="${item.scrollSpeed || '1.0x'}" placeholder="1.0x" spellcheck="false" autocomplete="off" title="Velocidad de desplazamiento automático">
+                            </div>
+                        ` : ''}
+                        <select class="sync-audio-select ${hasMatched ? 'has-audio' : ''}" data-key="${item.key}" title="Seleccionar audio para esta oración">
+                            ${selectOptions}
+                        </select>
+                        <button type="button" class="btn-sync-play-segment" data-key="${item.key}" title="Reproducir el Santo Rosario desde esta oración">▶</button>
+                        <button type="button" class="btn-sync-clear-segment" data-key="${item.key}" title="Quitar audio de esta oración">✕</button>
+                        <button type="button" class="btn-sync-edit ${item.isCustomContent ? 'is-custom' : ''}" data-key="${item.key}" title="Editar texto de esta oración">✏️</button>
+                    </div>
+                `;
+            } else {
+                // Modo Tiempo Continuo: Controles de segundos y centésimas
+                html += `
                     <div class="sync-item-right">
                         ${item.key === 'letanias' ? `
                             <div class="sync-scroll-speed-wrap" title="Velocidad con la que baja automáticamente el texto de las Letanías">
@@ -1191,8 +1691,10 @@ function renderSyncItems(lang, mystery) {
                         <button type="button" class="btn-sync-test" data-key="${item.key}" title="Reproducir audio desde este tiempo">▶ Probar</button>
                         <button type="button" class="btn-sync-edit ${item.isCustomContent ? 'is-custom' : ''}" data-key="${item.key}" title="Editar contenido y texto de esta oración">✏️</button>
                     </div>
-                </div>
-            `;
+                `;
+            }
+
+            html += `</div>`;
         });
 
         html += `
@@ -1216,25 +1718,9 @@ function renderSyncItems(lang, mystery) {
     // Asignar eventos a las filas
     const rows = syncListContainer.querySelectorAll('.sync-item-row');
     rows.forEach(row => {
-        const input = row.querySelector('.sync-input-time');
-        const speedInput = row.querySelector('#sync-letanias-speed');
-        const btnStamp = row.querySelector('.btn-sync-stamp');
-        const btnTest = row.querySelector('.btn-sync-test');
-        const adjustBtns = row.querySelectorAll('.btn-sync-adjust');
-        const itemTitle = row.querySelector('.sync-item-title') ? row.querySelector('.sync-item-title').innerText : '';
         const rowKey = row.getAttribute('data-key') || '';
-        const isGloriaRow = (rowKey === 'intro_gloria' || rowKey.includes('_gl'));
-
-        input.addEventListener('input', () => {
-            row.classList.add('modified');
-            autoSaveSyncTimesDebounced(lang, mystery);
-        });
-
-        input.addEventListener('blur', () => {
-            const sec = toSec(input.value);
-            input.value = formatTime(sec, true);
-            autoSaveSyncTimesImmediate(lang, mystery);
-        });
+        const itemTitle = row.querySelector('.sync-item-title') ? row.querySelector('.sync-item-title').innerText : '';
+        const speedInput = row.querySelector('#sync-letanias-speed');
 
         if (speedInput) {
             speedInput.addEventListener('input', () => {
@@ -1243,48 +1729,150 @@ function renderSyncItems(lang, mystery) {
             });
         }
 
-        adjustBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const delta = parseFloat(btn.getAttribute('data-delta')) || 0;
-                const curSec = Math.max(0, Math.round((toSec(input.value) + delta) * 100) / 100);
-                input.value = formatTime(curSec, true);
+        // EVENTOS EN MODO SEGMENTADO
+        const audioSelect = row.querySelector('.sync-audio-select');
+        const btnPlaySegment = row.querySelector('.btn-sync-play-segment');
+        const btnClearSegment = row.querySelector('.btn-sync-clear-segment');
+
+        if (audioSelect) {
+            audioSelect.addEventListener('change', async () => {
+                const val = audioSelect.value;
+                if (val === '__upload__') {
+                    const fileInput = document.createElement('input');
+                    fileInput.type = 'file';
+                    fileInput.accept = 'audio/*';
+                    fileInput.onchange = async () => {
+                        if (fileInput.files && fileInput.files[0]) {
+                            const f = fileInput.files[0];
+                            if (window.RosaryAudioStore) {
+                                const record = await window.RosaryAudioStore.saveAudio(f);
+                                window.RosaryAudioAssignments.setAssignment(lang, mystery, rowKey, record.id);
+                                await renderSyncItems(lang, mystery);
+                                showRosaryToast(`🎵 Audio "${record.name}" subido y asignado.`);
+                            }
+                        } else {
+                            audioSelect.value = '';
+                        }
+                    };
+                    fileInput.click();
+                    return;
+                }
+
+                if (window.RosaryAudioAssignments) {
+                    window.RosaryAudioAssignments.setAssignment(lang, mystery, rowKey, val);
+                }
+                audioSelect.classList.toggle('has-audio', !!val);
                 row.classList.add('modified');
+                if (syncStatusMsg) {
+                    syncStatusMsg.innerHTML = `🎵 Audio ${val ? 'asignado' : 'desasignado'} para: <strong>${itemTitle}</strong>`;
+                }
+            });
+        }
+
+        if (btnPlaySegment) {
+            btnPlaySegment.addEventListener('click', async () => {
+                const stepIdx = currentSteps.findIndex(s => s.key === rowKey);
+                // Si ya estamos en esta misma fila y hay un audio cargado
+                if (currentStepIndex === stepIdx && audioPlayer.src && !audioPlayer.ended) {
+                    if (!audioPlayer.paused) {
+                        audioPlayer.pause();
+                        updatePlayPauseButton(false);
+                        btnPlaySegment.innerText = '▶';
+                        btnPlaySegment.classList.remove('is-playing');
+                    } else {
+                        try {
+                            isPlayingSegmentedRosary = true;
+                            await audioPlayer.play();
+                            updatePlayPauseButton(true);
+                            btnPlaySegment.innerText = '⏸';
+                            btnPlaySegment.classList.add('is-playing');
+                        } catch (err) {
+                            playSegmentedRosary(stepIdx >= 0 ? stepIdx : 0);
+                        }
+                    }
+                } else {
+                    playSegmentedRosary(stepIdx >= 0 ? stepIdx : 0);
+                }
+            });
+        }
+
+        if (btnClearSegment) {
+            btnClearSegment.addEventListener('click', () => {
+                if (window.RosaryAudioAssignments) {
+                    window.RosaryAudioAssignments.setAssignment(lang, mystery, rowKey, null);
+                }
+                if (audioSelect) {
+                    audioSelect.value = '';
+                    audioSelect.classList.remove('has-audio');
+                }
+                row.classList.add('modified');
+                if (syncStatusMsg) {
+                    syncStatusMsg.innerHTML = `🗑️ Audio quitado de: <strong>${itemTitle}</strong>`;
+                }
+            });
+        }
+
+        // EVENTOS EN MODO TIEMPOS CONTINUOS
+        const input = row.querySelector('.sync-input-time');
+        const btnStamp = row.querySelector('.btn-sync-stamp');
+        const btnTest = row.querySelector('.btn-sync-test');
+        const adjustBtns = row.querySelectorAll('.btn-sync-adjust');
+
+        if (input) {
+            input.addEventListener('input', () => {
+                row.classList.add('modified');
+                autoSaveSyncTimesDebounced(lang, mystery);
+            });
+
+            input.addEventListener('blur', () => {
+                const sec = toSec(input.value);
+                input.value = formatTime(sec, true);
                 autoSaveSyncTimesImmediate(lang, mystery);
             });
-        });
+        }
 
-        btnStamp.addEventListener('click', () => {
-            const curSec = Math.round(audioPlayer.currentTime * 100) / 100;
-            input.value = formatTime(curSec, true);
-            row.classList.add('modified');
-            if (syncStatusMsg) {
-                syncStatusMsg.innerHTML = `⏱️ Fijado exacto <strong>${input.value}</strong> para: ${itemTitle} <span style="color:#4ade80;font-size:0.75rem;">(Guardado)</span>`;
-            }
-            autoSaveSyncTimesImmediate(lang, mystery);
-        });
+        if (adjustBtns.length > 0) {
+            adjustBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const delta = parseFloat(btn.getAttribute('data-delta')) || 0;
+                    const curSec = Math.max(0, Math.round((toSec(input.value) + delta) * 100) / 100);
+                    input.value = formatTime(curSec, true);
+                    row.classList.add('modified');
+                    autoSaveSyncTimesImmediate(lang, mystery);
+                });
+            });
+        }
 
-        btnTest.addEventListener('click', () => {
-            // Guardar de inmediato cualquier valor tipeado o ajustado
-            autoSaveSyncTimesImmediate(lang, mystery);
+        if (btnStamp) {
+            btnStamp.addEventListener('click', () => {
+                const curSec = Math.round(audioPlayer.currentTime * 100) / 100;
+                input.value = formatTime(curSec, true);
+                row.classList.add('modified');
+                if (syncStatusMsg) {
+                    syncStatusMsg.innerHTML = `⏱️ Fijado exacto <strong>${input.value}</strong> para: ${itemTitle} <span style="color:#4ade80;font-size:0.75rem;">(Guardado)</span>`;
+                }
+                autoSaveSyncTimesImmediate(lang, mystery);
+            });
+        }
 
-            const sec = toSec(input.value);
-            audioPlayer.currentTime = sec;
-
-            // Actualizar inmediatamente el monitor superior con el segundo exacto
-            if (syncTimeCur) {
-                syncTimeCur.innerText = formatTime(sec, true);
-            }
-            const dur = audioPlayer.duration || 1800;
-            if (syncAudioSlider && dur > 0 && !isSyncSeeking) {
-                syncAudioSlider.value = (sec / dur) * 100;
-            }
-
-            audioPlayer.play().then(() => updatePlayPauseButton(true)).catch(() => {});
-
-            if (syncStatusMsg) {
-                syncStatusMsg.innerHTML = `▶ Probando en el segundo exacto <strong>${input.value}</strong>: ${itemTitle}`;
-            }
-        });
+        if (btnTest) {
+            btnTest.addEventListener('click', () => {
+                autoSaveSyncTimesImmediate(lang, mystery);
+                const sec = toSec(input.value);
+                audioPlayer.currentTime = sec;
+                if (syncTimeCur) {
+                    syncTimeCur.innerText = formatTime(sec, true);
+                }
+                const dur = audioPlayer.duration || 1800;
+                if (syncAudioSlider && dur > 0 && !isSyncSeeking) {
+                    syncAudioSlider.value = (sec / dur) * 100;
+                }
+                audioPlayer.play().then(() => updatePlayPauseButton(true)).catch(() => {});
+                if (syncStatusMsg) {
+                    syncStatusMsg.innerHTML = `▶ Probando en el segundo exacto <strong>${input.value}</strong>: ${itemTitle}`;
+                }
+            });
+        }
 
         const btnEdit = row.querySelector('.btn-sync-edit');
         if (btnEdit) {
@@ -1310,6 +1898,19 @@ function openSyncModal() {
     
     activeSyncLang = syncLangSelect.value;
     activeSyncMystery = syncMysterySelect.value;
+
+    if (syncModeSegmentedBtn && syncModeTimeBtn) {
+        const isSegmented = (activeSyncAudioMode === 'segmented');
+        syncModeSegmentedBtn.classList.toggle('active', isSegmented);
+        syncModeTimeBtn.classList.toggle('active', !isSegmented);
+        if (syncTipBox) {
+            if (isSegmented) {
+                syncTipBox.innerHTML = '💡 <strong>Modo Audios Segmentados:</strong> Selecciona en el menú de cada fila el audio que le corresponde a esa oración (Padre Nuestro, Ave María, Gloria...). Se reproducirá de forma continua como un solo audio sin desajustes. También puedes pulsar <strong>«📥 Descargar Rosario (.wav)»</strong> para unificar todos los audios en un solo archivo descargable.';
+            } else {
+                syncTipBox.innerHTML = '💡 <strong>Modo Continuo por Tiempos:</strong> Da clic en <strong>«▶»</strong> para escuchar el audio. Cuando empiece la oración o cuenta deseada, pulsa <strong>«⏱️ Ahora»</strong> en su fila para fijar el tiempo exacto.';
+            }
+        }
+    }
 
     renderSyncItems(syncLangSelect.value, syncMysterySelect.value);
     syncModal.classList.add('open');
@@ -1337,21 +1938,28 @@ function closeSyncModal() {
         });
         if (audioData[lang] && audioData[lang][mystery]) {
             currentSteps = generateDetailedTimeline(mystery, audioData[lang][mystery], lang);
-            const curTime = (audioPlayer && !isNaN(audioPlayer.currentTime)) ? audioPlayer.currentTime : 0;
-            let newStepIndex = 0;
-            for (let i = 0; i < currentSteps.length; i++) {
-                if (curTime >= currentSteps[i].s) {
-                    newStepIndex = i;
-                } else {
-                    break;
+            if (!isPlayingSegmentedRosary) {
+                const curTime = (audioPlayer && !isNaN(audioPlayer.currentTime)) ? audioPlayer.currentTime : 0;
+                let newStepIndex = 0;
+                for (let i = 0; i < currentSteps.length; i++) {
+                    if (curTime >= currentSteps[i].s) {
+                        newStepIndex = i;
+                    } else {
+                        break;
+                    }
+                }
+                currentStepIndex = newStepIndex;
+                updateUIForStep(currentStepIndex);
+                if (currentSteps[currentStepIndex]) {
+                    updateBeadHighlights(currentSteps[currentStepIndex].beadId);
+                }
+                setVirginBow(isGloriaTime(curTime));
+            } else {
+                updateUIForStep(currentStepIndex);
+                if (currentSteps[currentStepIndex]) {
+                    updateBeadHighlights(currentSteps[currentStepIndex].beadId);
                 }
             }
-            currentStepIndex = newStepIndex;
-            updateUIForStep(currentStepIndex);
-            if (currentSteps[currentStepIndex]) {
-                updateBeadHighlights(currentSteps[currentStepIndex].beadId);
-            }
-            setVirginBow(isGloriaTime(curTime));
         }
     }
     if (syncModal) syncModal.classList.remove('open');
@@ -1487,6 +2095,14 @@ syncNavPills.forEach(pill => {
 // Guardar y Aplicar
 if (btnSyncSave) {
     btnSyncSave.addEventListener('click', () => {
+        if (document.body.classList.contains('user-readonly-mode')) {
+            const msg = '🔒 Modo Solo Lectura: Solo el administrador (dbaezh78@gmail.com) puede guardar cambios en la configuración oficial.';
+            showRosaryToast(msg);
+            if (syncStatusMsg) {
+                syncStatusMsg.innerHTML = '<span style="color: #f87171; font-weight: bold;">' + msg + '</span>';
+            }
+            return;
+        }
         const lang = syncLangSelect.value;
         const mystery = syncMysterySelect.value;
         const inputs = syncListContainer.querySelectorAll('.sync-input-time');
@@ -1515,6 +2131,18 @@ if (btnSyncSave) {
         // Guardar en almacenamiento permanente de navegador
         saveCustomTimesToStorage(lang, mystery, times);
 
+        // Guardar asignaciones de audios segmentados si hay selectores en pantalla
+        const audioSelects = syncListContainer.querySelectorAll('.sync-audio-select');
+        if (audioSelects && audioSelects.length > 0 && window.RosaryAudioAssignments) {
+            audioSelects.forEach(sel => {
+                const k = sel.getAttribute('data-key');
+                const v = sel.value;
+                if (k) {
+                    window.RosaryAudioAssignments.setAssignment(lang, mystery, k, (v && v !== '__upload__') ? v : null);
+                }
+            });
+        }
+
         // Guardar en la nube (Cloud Firestore) si está disponible
         if (window.RosaryCloud && typeof window.RosaryCloud.saveTimesToCloud === 'function') {
             window.RosaryCloud.saveTimesToCloud(lang, mystery, times).then(success => {
@@ -1539,21 +2167,28 @@ if (btnSyncSave) {
         });
         if (audioData[lang] && audioData[lang][mystery]) {
             currentSteps = generateDetailedTimeline(mystery, audioData[lang][mystery], lang);
-            const curTime = (audioPlayer && !isNaN(audioPlayer.currentTime)) ? audioPlayer.currentTime : 0;
-            let newStepIndex = 0;
-            for (let i = 0; i < currentSteps.length; i++) {
-                if (curTime >= currentSteps[i].s) {
-                    newStepIndex = i;
-                } else {
-                    break;
+            if (!isPlayingSegmentedRosary) {
+                const curTime = (audioPlayer && !isNaN(audioPlayer.currentTime)) ? audioPlayer.currentTime : 0;
+                let newStepIndex = 0;
+                for (let i = 0; i < currentSteps.length; i++) {
+                    if (curTime >= currentSteps[i].s) {
+                        newStepIndex = i;
+                    } else {
+                        break;
+                    }
+                }
+                currentStepIndex = newStepIndex;
+                updateUIForStep(currentStepIndex);
+                if (currentSteps[currentStepIndex]) {
+                    updateBeadHighlights(currentSteps[currentStepIndex].beadId);
+                }
+                setVirginBow(isGloriaTime(curTime));
+            } else {
+                updateUIForStep(currentStepIndex);
+                if (currentSteps[currentStepIndex]) {
+                    updateBeadHighlights(currentSteps[currentStepIndex].beadId);
                 }
             }
-            currentStepIndex = newStepIndex;
-            updateUIForStep(currentStepIndex);
-            if (currentSteps[currentStepIndex]) {
-                updateBeadHighlights(currentSteps[currentStepIndex].beadId);
-            }
-            setVirginBow(isGloriaTime(curTime));
         }
 
         syncListContainer.querySelectorAll('.sync-item-row.modified').forEach(r => r.classList.remove('modified'));
@@ -1648,6 +2283,10 @@ if (btnSyncImport && syncFileInput) {
 // Restablecer tiempos originales
 if (btnSyncReset) {
     btnSyncReset.addEventListener('click', () => {
+        if (document.body.classList.contains('user-readonly-mode')) {
+            showRosaryToast('🔒 Modo Solo Lectura: Solo el administrador (dbaezh78@gmail.com) puede restablecer los tiempos.');
+            return;
+        }
         const lang = syncLangSelect.value;
         const mystery = syncMysterySelect.value;
         if (confirm(`¿Deseas restablecer los tiempos de ${mystery} (${lang.toUpperCase()}) a sus valores calculados originales?`)) {
@@ -1679,6 +2318,10 @@ if (btnSyncReset) {
 const btnSyncCloudRestore = document.getElementById('btn-sync-cloud-restore');
 if (btnSyncCloudRestore) {
     btnSyncCloudRestore.addEventListener('click', async () => {
+        if (document.body.classList.contains('user-readonly-mode')) {
+            showRosaryToast('🔒 Modo Solo Lectura: Solo el administrador (dbaezh78@gmail.com) puede restaurar desde la nube.');
+            return;
+        }
         const lang = syncLangSelect.value;
         const mystery = syncMysterySelect.value;
         if (syncStatusMsg) {
@@ -1940,8 +2583,8 @@ const PRAYERS_CONFIG_LIST = [
     { key: "aveMaria", badge: "Ave María", label: "Ave María", cat: "aveMaria" },
     { key: "gloria", badge: "Gloria al Padre", label: "Gloria al Padre", cat: "gloria" },
     { key: "jaculatoria", badge: "Jaculatoria", label: "Jaculatoria y Oración de Fátima", cat: "gloria" },
-    { key: "salve", badge: "La Salve", label: "Dios te Salve, Reina y Madre", cat: "salve", isLarge: true },
     { key: "letanias", badge: "Letanías", label: "Letanías Lauretanas", cat: "letanias", isLarge: true },
+    { key: "salve", badge: "La Salve", label: "Dios te Salve, Reina y Madre", cat: "salve", isLarge: true },
     { key: "credo", badge: "Credo", label: "Credo de los Apóstoles", cat: "credo", isLarge: true },
     { key: "padreNuestroIntro", badge: "P. Nuestro (Papa)", label: "Padre Nuestro por las intenciones del Santo Padre", cat: "padreNuestro" },
     { key: "aveMariaFe", badge: "1ª Ave María (Fe)", label: "1ª Ave María por el aumento de la Fe", cat: "aveMaria" },
@@ -2209,3 +2852,713 @@ window.addEventListener('DOMContentLoaded', () => {
     const todayMystery = getMysteryByDay();
     loadMystery(todayMystery);
 });
+
+
+// =============================================================================
+// GESTOR DEL ALMACÉN DE AUDIOS Y EXPORTACIÓN UNIFICADA
+// =============================================================================
+
+async function openAudioStoreModal() {
+    if (!audioStoreModal) return;
+    audioStoreModal.classList.add('open');
+    await renderAudioStoreList();
+}
+
+function closeAudioStoreModal() {
+    if (!audioStoreModal) return;
+    audioStoreModal.classList.remove('open');
+    if (currentPreviewAudio) {
+        currentPreviewAudio.pause();
+        currentPreviewAudio = null;
+        previewingStoreAudioId = null;
+    }
+}
+
+async function renderAudioStoreList() {
+    if (!audioStoreList || !window.RosaryAudioStore) return;
+    const audios = await window.RosaryAudioStore.getAllAudios();
+
+    if (storeStatsText) {
+        storeStatsText.innerText = `${audios.length} audio(s) guardado(s) en el almacén`;
+    }
+    if (syncStoreCountBadge) {
+        syncStoreCountBadge.innerText = audios.length;
+    }
+
+    if (audios.length === 0) {
+        audioStoreList.innerHTML = `
+            <div class="audio-store-empty" style="text-align: center; padding: 30px 15px;">
+                <p style="margin-bottom: 12px; color: #94a3b8;">El almacén está vacío. Sube oraciones grabadas o restaura los audios oficiales del sistema.</p>
+                <button type="button" id="btn-restore-system-audios" style="background: #eab308; color: #000; font-weight: 600; padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer;">↺ Restaurar audios oficiales del sistema</button>
+            </div>
+        `;
+        const btnRestore = audioStoreList.querySelector('#btn-restore-system-audios');
+        if (btnRestore) {
+            btnRestore.addEventListener('click', async () => {
+                if (window.RosaryAudioStore && typeof window.RosaryAudioStore.restoreSystemAudios === 'function') {
+                    window.RosaryAudioStore.restoreSystemAudios();
+                    await renderAudioStoreList();
+                    await renderSyncItems(activeSyncLang, activeSyncMystery);
+                    showRosaryToast('↺ Audios oficiales del sistema restaurados.');
+                }
+            });
+        }
+        return;
+    }
+
+    let html = '';
+    audios.forEach(aud => {
+        const sizeMb = (aud.size / (1024 * 1024)).toFixed(2);
+        html += `
+            <div class="audio-item-card" data-id="${aud.id}">
+                <div class="audio-item-info">
+                    <span class="audio-item-icon">🎵</span>
+                    <div class="audio-item-details">
+                        <span class="audio-item-name" title="${escapeHtmlStr(aud.name)}">${escapeHtmlStr(aud.name)}</span>
+                        <div class="audio-item-meta">
+                            <span class="audio-item-meta-dur">⏱️ ${formatTime(aud.duration)}</span>
+                            <span>• ${sizeMb} MB</span>
+                            <span>• ${aud.fileName || 'audio'}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="audio-item-actions">
+                    <button type="button" class="btn-audio-action btn-audio-play" data-id="${aud.id}" title="Escuchar previsualización">▶ Escuchar</button>
+                    <button type="button" class="btn-audio-action btn-audio-rename" data-id="${aud.id}" title="Cambiar nombre">✏️</button>
+                    <button type="button" class="btn-audio-action btn-audio-del" data-id="${aud.id}" title="Eliminar este audio">🗑️</button>
+                </div>
+            </div>
+        `;
+    });
+
+    audioStoreList.innerHTML = html;
+
+    // Asignar eventos de previsualización, renombrado y borrado
+    audioStoreList.querySelectorAll('.btn-audio-play').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-id');
+            if (previewingStoreAudioId === id && currentPreviewAudio && !currentPreviewAudio.paused) {
+                currentPreviewAudio.pause();
+                btn.innerText = '▶ Escuchar';
+                btn.classList.remove('is-playing');
+                previewingStoreAudioId = null;
+                return;
+            }
+
+            if (currentPreviewAudio) currentPreviewAudio.pause();
+            audioStoreList.querySelectorAll('.btn-audio-play').forEach(b => {
+                b.innerText = '▶ Escuchar';
+                b.classList.remove('is-playing');
+            });
+
+            try {
+                const url = await window.RosaryAudioStore.getAudioUrl(id);
+                if (!url) return;
+                currentPreviewAudio = new Audio(url);
+                previewingStoreAudioId = id;
+                btn.innerText = '⏸ Pausar';
+                btn.classList.add('is-playing');
+
+                currentPreviewAudio.onended = () => {
+                    btn.innerText = '▶ Escuchar';
+                    btn.classList.remove('is-playing');
+                    previewingStoreAudioId = null;
+                };
+                currentPreviewAudio.onerror = () => {
+                    btn.innerText = '▶ Escuchar';
+                    btn.classList.remove('is-playing');
+                    previewingStoreAudioId = null;
+                };
+                await currentPreviewAudio.play();
+            } catch (err) {
+                console.warn('Error al reproducir audio de almacén:', err);
+            }
+        });
+    });
+
+    audioStoreList.querySelectorAll('.btn-audio-rename').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-id');
+            const card = btn.closest('.audio-item-card');
+            const nameEl = card.querySelector('.audio-item-name');
+            const currentName = nameEl ? nameEl.innerText : '';
+            const newName = prompt('Nuevo nombre para este audio:', currentName);
+            if (newName && newName.trim() && newName.trim() !== currentName) {
+                await window.RosaryAudioStore.renameAudio(id, newName.trim());
+                await renderAudioStoreList();
+                await renderSyncItems(activeSyncLang, activeSyncMystery);
+                showRosaryToast('✏️ Audio renombrado.');
+            }
+        });
+    });
+
+    audioStoreList.querySelectorAll('.btn-audio-del').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-id');
+            if (confirm('¿Eliminar este audio del almacén?')) {
+                await window.RosaryAudioStore.deleteAudio(id);
+                await renderAudioStoreList();
+                await renderSyncItems(activeSyncLang, activeSyncMystery);
+                showRosaryToast('🗑️ Audio eliminado del almacén.');
+            }
+        });
+    });
+}
+
+// Procesa archivos subidos (desde input o dropzone)
+async function processUploadedAudioFiles(fileList) {
+    if (!fileList || fileList.length === 0 || !window.RosaryAudioStore) return;
+    let savedCount = 0;
+
+    for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        if (file.type.startsWith('audio/') || /\.(mp3|wav|m4a|ogg|aac|flac)$/i.test(file.name)) {
+            try {
+                await window.RosaryAudioStore.saveAudio(file);
+                savedCount++;
+            } catch (e) {
+                console.warn('Error al guardar archivo:', file.name, e);
+            }
+        }
+    }
+
+    if (savedCount > 0) {
+        await renderAudioStoreList();
+        await renderSyncItems(activeSyncLang, activeSyncMystery);
+        showRosaryToast(`📥 ${savedCount} audio(s) guardado(s) exitosamente en el almacén.`);
+    } else {
+        showRosaryToast('⚠️ No se encontraron archivos de audio compatibles.');
+    }
+}
+
+// Auto-asignación inteligente de audios del almacén
+async function handleAutoAssign() {
+    if (!window.RosaryAudioStore || !window.RosaryAudioAssignments) return;
+    const allAudios = await window.RosaryAudioStore.getAllAudios();
+    if (allAudios.length === 0) {
+        showRosaryToast('⚠️ El almacén está vacío. Sube audios primero.');
+        return;
+    }
+
+    const structure = getRosaryStructureDefinition(activeSyncLang, activeSyncMystery);
+    const flatItems = [];
+    structure.forEach(s => s.items.forEach(it => flatItems.push(it)));
+
+    const res = window.RosaryAudioAssignments.autoAssign(activeSyncLang, activeSyncMystery, allAudios, flatItems);
+    await renderSyncItems(activeSyncLang, activeSyncMystery);
+    showRosaryToast(`⚡ ¡${res.assignedCount} oraciones auto-asignadas para ${activeSyncMystery}!`);
+}
+
+// Descarga y exportación concatenada del Rosario Completo en un solo archivo WAV
+async function handleExportRosaryAudio() {
+    if (!window.RosaryAudioExporter || !window.RosaryAudioAssignments) {
+        showRosaryToast('⚠️ Módulo exportador no disponible.');
+        return;
+    }
+
+    const structure = getRosaryStructureDefinition(activeSyncLang, activeSyncMystery);
+    const flatItems = [];
+    structure.forEach(s => s.items.forEach(it => flatItems.push(it)));
+
+    const assignments = window.RosaryAudioAssignments.getAssignments(activeSyncLang, activeSyncMystery);
+    const hasAny = flatItems.some(it => !!assignments[it.key]);
+
+    if (!hasAny) {
+        showRosaryToast('⚠️ Asigna al menos un audio a una oración antes de descargar.');
+        return;
+    }
+
+    const btns = [btnSyncDownloadFull, btnSyncDownloadFullFooter].filter(Boolean);
+    btns.forEach(b => {
+        b.disabled = true;
+        b.dataset.prevText = b.innerText;
+        b.innerText = '⏳ Exportando...';
+    });
+
+    try {
+        showRosaryToast('📥 Preparando y concatenando audios en orden litúrgico...');
+        const wavBlob = await window.RosaryAudioExporter.exportRosaryAudio(
+            flatItems,
+            assignments,
+            (curr, total, title) => {
+                if (syncStatusMsg) {
+                    syncStatusMsg.innerHTML = `📥 Concatenando (${curr}/${total}): <strong>${title}</strong>`;
+                }
+            }
+        );
+
+        const fileName = `Santo_Rosario_${activeSyncMystery}_${activeSyncLang.toUpperCase()}.wav`;
+        const downloadUrl = URL.createObjectURL(wavBlob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
+
+        showRosaryToast(`🎉 ¡Rosario completo descargado! Archivo: ${fileName}`);
+        if (syncStatusMsg) {
+            syncStatusMsg.innerHTML = `✅ <strong>${fileName}</strong> generado y descargado exitosamente.`;
+        }
+    } catch (err) {
+        console.error('Error al exportar Rosario:', err);
+        showRosaryToast('❌ ' + (err.message || 'Error al exportar el archivo'));
+    } finally {
+        btns.forEach(b => {
+            b.disabled = false;
+            b.innerText = b.dataset.prevText || '📥 Descargar Rosario (.wav)';
+        });
+    }
+}
+
+// Configuración de eventos de UI para Modo de Audio y Almacén
+function setupAudioStoreAndModeEvents() {
+    // 1. Selector de Modo: Segmentado vs Continuo
+    if (syncModeSegmentedBtn) {
+        syncModeSegmentedBtn.addEventListener('click', () => {
+            activeSyncAudioMode = 'segmented';
+            localStorage.setItem('rosary_sync_mode', 'segmented');
+            syncModeSegmentedBtn.classList.add('active');
+            if (syncModeTimeBtn) syncModeTimeBtn.classList.remove('active');
+            if (syncTipBox) {
+                syncTipBox.innerHTML = '💡 <strong>Modo Audios Segmentados:</strong> Selecciona en el menú de cada fila el audio que le corresponde a esa oración (Padre Nuestro, Ave María, Gloria...). Se reproducirá de forma continua como un solo audio sin desajustes. También puedes pulsar <strong>«📥 Descargar Rosario (.wav)»</strong> para unificar todos los audios en un solo archivo descargable.';
+            }
+            renderSyncItems(activeSyncLang, activeSyncMystery);
+        });
+    }
+
+    if (syncModeTimeBtn) {
+        syncModeTimeBtn.addEventListener('click', () => {
+            activeSyncAudioMode = 'time';
+            localStorage.setItem('rosary_sync_mode', 'time');
+            syncModeTimeBtn.classList.add('active');
+            if (syncModeSegmentedBtn) syncModeSegmentedBtn.classList.remove('active');
+            if (syncTipBox) {
+                syncTipBox.innerHTML = '💡 <strong>Modo Continuo por Tiempos:</strong> Da clic en <strong>«▶»</strong> para escuchar el audio. Cuando empiece la oración o cuenta deseada, pulsa <strong>«⏱️ Ahora»</strong> en su fila para fijar el tiempo exacto.';
+            }
+            renderSyncItems(activeSyncLang, activeSyncMystery);
+        });
+    }
+
+    // 2. Abrir / Cerrar Almacén de Audios
+    if (btnOpenAudioStore) btnOpenAudioStore.addEventListener('click', openAudioStoreModal);
+    if (audioStoreModalClose) audioStoreModalClose.addEventListener('click', closeAudioStoreModal);
+    if (btnAudioStoreDone) btnAudioStoreDone.addEventListener('click', closeAudioStoreModal);
+
+    // 3. Dropzone & File Input del Almacén
+    if (audioStoreDropzone && audioStoreFileInput) {
+        audioStoreDropzone.addEventListener('click', (e) => {
+            if (e.target !== audioStoreFileInput) audioStoreFileInput.click();
+        });
+
+        audioStoreFileInput.addEventListener('change', () => {
+            processUploadedAudioFiles(audioStoreFileInput.files);
+            audioStoreFileInput.value = '';
+        });
+
+        audioStoreDropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            audioStoreDropzone.classList.add('dragover');
+        });
+        audioStoreDropzone.addEventListener('dragleave', () => {
+            audioStoreDropzone.classList.remove('dragover');
+        });
+        audioStoreDropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            audioStoreDropzone.classList.remove('dragover');
+            if (e.dataTransfer && e.dataTransfer.files) {
+                processUploadedAudioFiles(e.dataTransfer.files);
+            }
+        });
+    }
+
+    // 4. Auto-asignar audios
+    if (btnSyncAutoAssign) btnSyncAutoAssign.addEventListener('click', handleAutoAssign);
+    if (btnStoreAutoAssign) btnStoreAutoAssign.addEventListener('click', handleAutoAssign);
+
+    // 5. Vaciar Almacén
+    if (btnStoreClearAll) {
+        btnStoreClearAll.addEventListener('click', async () => {
+            if (confirm('¿Estás seguro de que deseas vaciar todos los audios del almacén? Esta acción no se puede deshacer.')) {
+                const audios = await window.RosaryAudioStore.getAllAudios();
+                for (const a of audios) {
+                    await window.RosaryAudioStore.deleteAudio(a.id);
+                }
+                await renderAudioStoreList();
+                await renderSyncItems(activeSyncLang, activeSyncMystery);
+                showRosaryToast('🗑️ Almacén vaciado.');
+            }
+        });
+    }
+
+    // 6. Descargar Rosario completo
+    if (btnSyncDownloadFull) btnSyncDownloadFull.addEventListener('click', handleExportRosaryAudio);
+    if (btnSyncDownloadFullFooter) btnSyncDownloadFullFooter.addEventListener('click', handleExportRosaryAudio);
+}
+
+// Inicializar eventos de almacén al cargar
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupAudioStoreAndModeEvents);
+} else {
+    setupAudioStoreAndModeEvents();
+}
+
+
+// =============================================================================
+// 15. FUNCIONALIDADES AVANZADAS: REPRODUCTOR FLOTANTE, GRABACIÓN, PERFIL Y TEMAS
+// =============================================================================
+
+// A. REPRODUCTOR FLOTANTE Y BOTÓN OCULTAR / EXPANDIR
+function setupPlayerCollapseAndFloatingControls() {
+    if (btnCollapsePlayer) {
+        btnCollapsePlayer.addEventListener('click', () => {
+            if (audioControlsPanel) audioControlsPanel.classList.add('collapsed');
+            if (floatingMiniPlayer) floatingMiniPlayer.style.display = 'flex';
+            try { localStorage.setItem('rosary_player_collapsed', 'true'); } catch (e) {}
+            showRosaryToast('⌄ Reproductor inferior oculto. Puedes controlarlo desde la barra superior flotante.');
+        });
+    }
+
+    if (floatingBtnExpand) {
+        floatingBtnExpand.addEventListener('click', () => {
+            if (audioControlsPanel) audioControlsPanel.classList.remove('collapsed');
+            if (floatingMiniPlayer) floatingMiniPlayer.style.display = 'none';
+            try { localStorage.setItem('rosary_player_collapsed', 'false'); } catch (e) {}
+        });
+    }
+
+    if (floatingBtnPlay) {
+        floatingBtnPlay.addEventListener('click', togglePlay);
+    }
+
+    // Restaurar preferencia previa
+    try {
+        if (localStorage.getItem('rosary_player_collapsed') === 'true') {
+            if (audioControlsPanel) audioControlsPanel.classList.add('collapsed');
+            if (floatingMiniPlayer) floatingMiniPlayer.style.display = 'flex';
+        }
+    } catch (e) {}
+}
+
+// B. GRABACIÓN DE PANTALLA EN VIDEO PARA YOUTUBE (SIN REPRODUCTOR)
+let screenMediaRecorder = null;
+let screenRecordedChunks = [];
+let screenRecordingTimerInterval = null;
+let screenRecordingStartTimestamp = 0;
+
+function setupScreenRecording() {
+    if (!btnRecordScreen) return;
+
+    btnRecordScreen.addEventListener('click', async () => {
+        try {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                showRosaryToast('⚠️ La grabación de pantalla en vivo no está soportada en este navegador.');
+                return;
+            }
+
+            // Ocultar reproductor inferior para dejar la pantalla completamente limpia para YouTube
+            if (audioControlsPanel) audioControlsPanel.classList.add('collapsed');
+            if (floatingMiniPlayer) floatingMiniPlayer.style.display = 'none';
+
+            showRosaryToast('📹 Selecciona la pantalla o pestaña para iniciar la grabación en video para YouTube.');
+
+            const stream = await navigator.mediaDevices.getDisplayMedia({
+                video: { displaySurface: 'browser' },
+                audio: true
+            });
+
+            screenRecordedChunks = [];
+            const mimeType = (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus'))
+                ? 'video/webm;codecs=vp9,opus'
+                : 'video/webm';
+
+            screenMediaRecorder = new MediaRecorder(stream, { mimeType });
+
+            screenMediaRecorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) {
+                    screenRecordedChunks.push(e.data);
+                }
+            };
+
+            screenMediaRecorder.onstop = () => {
+                stopScreenRecordingUI(stream);
+            };
+
+            // Detectar si el usuario detiene la transmisión con el botón nativo del navegador
+            const videoTrack = stream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.onended = () => {
+                    if (screenMediaRecorder && screenMediaRecorder.state !== 'inactive') {
+                        screenMediaRecorder.stop();
+                    }
+                };
+            }
+
+            screenMediaRecorder.start(1000);
+
+            // Mostrar barra de estado flotante
+            if (recordingStatusBar) recordingStatusBar.style.display = 'flex';
+            screenRecordingStartTimestamp = Date.now();
+            if (recordingTimer) recordingTimer.innerText = '00:00';
+            clearInterval(screenRecordingTimerInterval);
+            screenRecordingTimerInterval = setInterval(() => {
+                const elapsedSec = Math.floor((Date.now() - screenRecordingStartTimestamp) / 1000);
+                const mm = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+                const ss = String(elapsedSec % 60).padStart(2, '0');
+                if (recordingTimer) recordingTimer.innerText = `${mm}:${ss}`;
+            }, 1000);
+
+            showRosaryToast('🔴 Grabando video para YouTube. El reproductor ha sido ocultado.');
+        } catch (err) {
+            console.warn('Error al iniciar grabación de pantalla:', err);
+            // Restaurar reproductor si el usuario canceló
+            try {
+                if (localStorage.getItem('rosary_player_collapsed') !== 'true') {
+                    if (audioControlsPanel) audioControlsPanel.classList.remove('collapsed');
+                } else {
+                    if (floatingMiniPlayer) floatingMiniPlayer.style.display = 'flex';
+                }
+            } catch (e) {}
+
+            if (err.name !== 'NotAllowedError') {
+                showRosaryToast('⚠️ ' + (err.message || 'No se pudo iniciar la grabación'));
+            }
+        }
+    });
+
+    if (btnStopRecording) {
+        btnStopRecording.addEventListener('click', () => {
+            if (screenMediaRecorder && screenMediaRecorder.state !== 'inactive') {
+                screenMediaRecorder.stop();
+            }
+        });
+    }
+}
+
+function stopScreenRecordingUI(stream) {
+    clearInterval(screenRecordingTimerInterval);
+    if (recordingStatusBar) recordingStatusBar.style.display = 'none';
+
+    if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+    }
+
+    try {
+        if (localStorage.getItem('rosary_player_collapsed') === 'true') {
+            if (floatingMiniPlayer) floatingMiniPlayer.style.display = 'flex';
+        } else {
+            if (audioControlsPanel) audioControlsPanel.classList.remove('collapsed');
+        }
+    } catch (e) {}
+
+    if (screenRecordedChunks.length > 0) {
+        const blob = new Blob(screenRecordedChunks, { type: 'video/webm' });
+        const fileName = `Santo_Rosario_${currentMystery}_Grabacion_YouTube.webm`;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        showRosaryToast(`🎉 ¡Grabación de video completada! Guardado como ${fileName}`);
+    }
+}
+
+// C. TEMAS SAGRADOS Y TAMAÑO DE IMAGEN DE LOS MISTERIOS
+function setupThemesAndAppearance() {
+    function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        try { localStorage.setItem('rosary_active_theme', theme); } catch (e) {}
+        const radio = document.querySelector(`input[name="rosary-theme"][value="${theme}"]`);
+        if (radio) radio.checked = true;
+    }
+
+    const savedTheme = localStorage.getItem('rosary_active_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    document.querySelectorAll('input[name="rosary-theme"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                applyTheme(e.target.value);
+                const themeName = e.target.parentElement.querySelector('.theme-name')?.innerText || e.target.value;
+                showRosaryToast(`🎨 Tema visual aplicado: ${themeName}`);
+            }
+        });
+    });
+
+    function applyMysteryImageSize(size) {
+        document.documentElement.style.setProperty('--mystery-thumb-size', `${size}px`);
+        try { localStorage.setItem('rosary_mystery_image_size', size); } catch (e) {}
+        const radio = document.querySelector(`input[name="mystery-image-size"][value="${size}"]`);
+        if (radio) radio.checked = true;
+    }
+
+    const savedSize = localStorage.getItem('rosary_mystery_image_size') || '200';
+    applyMysteryImageSize(savedSize);
+
+    document.querySelectorAll('input[name="mystery-image-size"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                applyMysteryImageSize(e.target.value);
+                showRosaryToast(`🖼️ Tamaño de imagen: ${e.target.value}px`);
+            }
+        });
+    });
+}
+
+// D. MODAL DE PERFIL, AUTENTICACIÓN GOOGLE Y PERMISOS
+function setupAuthAndPermissions() {
+    const getModal = () => document.getElementById('user-profile-modal');
+    const getBtnProfile = () => document.getElementById('btn-auth-profile');
+    const getCloseBtn = () => document.getElementById('profile-modal-close') || document.getElementById('user-profile-modal-close');
+    const getDoneBtn = () => document.getElementById('btn-profile-close');
+
+    const btn = getBtnProfile();
+    if (btn) {
+        btn.addEventListener('click', () => {
+            const m = getModal();
+            if (m) {
+                m.classList.add('open');
+            }
+        });
+    }
+
+    const closeProfileModal = () => {
+        const m = getModal();
+        if (m) m.classList.remove('open');
+    };
+
+    const cBtn = getCloseBtn();
+    if (cBtn) cBtn.addEventListener('click', closeProfileModal);
+    const dBtn = getDoneBtn();
+    if (dBtn) dBtn.addEventListener('click', closeProfileModal);
+
+    if (btnGoogleSignin) {
+        btnGoogleSignin.addEventListener('click', async () => {
+            try {
+                if (window.RosaryAuth && window.RosaryAuth.loginWithGoogle) {
+                    showRosaryToast('Iniciando sesión con Google...');
+                    await window.RosaryAuth.loginWithGoogle();
+                } else {
+                    showRosaryToast('⚠️ Servicio de autenticación no inicializado');
+                }
+            } catch (err) {
+                console.error('Error al iniciar sesión:', err);
+                showRosaryToast('❌ ' + (err.message || 'Error al iniciar sesión'));
+            }
+        });
+    }
+
+    if (btnGoogleSignout) {
+        btnGoogleSignout.addEventListener('click', async () => {
+            try {
+                if (window.RosaryAuth && window.RosaryAuth.logout) {
+                    await window.RosaryAuth.logout();
+                    showRosaryToast('Sesión cerrada.');
+                }
+            } catch (err) {
+                console.error('Error al cerrar sesión:', err);
+            }
+        });
+    }
+
+    if (window.RosaryAuth && window.RosaryAuth.onAuthStateChanged) {
+        window.RosaryAuth.onAuthStateChanged(user => {
+            handleAuthStateChange(user);
+        });
+    } else {
+        handleAuthStateChange(null);
+    }
+}
+
+function handleAuthStateChange(user) {
+    const isAdmin = window.RosaryAuth ? window.RosaryAuth.checkIsAdmin(user) : false;
+
+    const emailEl = document.getElementById('auth-modal-email') || document.getElementById('auth-user-email');
+    const badgeEl = document.getElementById('auth-modal-badge') || document.getElementById('auth-role-badge');
+    const nameEl = document.getElementById('auth-modal-name');
+    const signinBtn = document.getElementById('btn-google-signin');
+    const signoutBtn = document.getElementById('btn-google-signout');
+
+    if (user && isAdmin) {
+        document.body.classList.remove('user-readonly-mode');
+        if (authUserLabel) authUserLabel.innerText = 'Admin';
+        if (authAvatarIcon) authAvatarIcon.innerText = '👑';
+        if (nameEl) nameEl.innerText = user.displayName || 'dbaezh78@gmail.com';
+        if (emailEl) emailEl.innerText = user.email || 'dbaezh78@gmail.com';
+        if (badgeEl) {
+            badgeEl.innerText = '👑 Administrador (Control Total)';
+            badgeEl.className = 'auth-modal-badge admin';
+        }
+        if (signinBtn) signinBtn.style.display = 'none';
+        if (signoutBtn) signoutBtn.style.display = 'inline-block';
+        showRosaryToast('👑 Administrador verificado (' + (user.email || 'dbaezh78@gmail.com') + '). Control total activado.');
+    } else if (user) {
+        document.body.classList.add('user-readonly-mode');
+        if (authUserLabel) authUserLabel.innerText = 'Visitante';
+        if (authAvatarIcon) authAvatarIcon.innerText = '👤';
+        if (nameEl) nameEl.innerText = user.displayName || 'Visitante';
+        if (emailEl) emailEl.innerText = user.email;
+        if (badgeEl) {
+            badgeEl.innerText = '👁️ Visitante (Solo Lectura)';
+            badgeEl.className = 'auth-modal-badge visitor';
+        }
+        if (signinBtn) signinBtn.style.display = 'none';
+        if (signoutBtn) signoutBtn.style.display = 'inline-block';
+    } else {
+        document.body.classList.add('user-readonly-mode');
+        if (authUserLabel) authUserLabel.innerText = 'Acceder';
+        if (authAvatarIcon) authAvatarIcon.innerText = '👤';
+        if (nameEl) nameEl.innerText = 'Visitante';
+        if (emailEl) emailEl.innerText = 'Modo lectura (Puedes orar y escuchar libremente)';
+        if (badgeEl) {
+            badgeEl.innerText = '👁️ Solo Lectura';
+            badgeEl.className = 'auth-modal-badge visitor';
+        }
+        if (signinBtn) signinBtn.style.display = 'inline-flex';
+        if (signoutBtn) signoutBtn.style.display = 'none';
+    }
+}
+
+// E. SINCRONIZACIÓN DEL SELECTOR DE VERSIÓN (CRUZ AMARILLA V1 vs CRUZ ROJA V2) EN EL SINCRONIZADOR
+function setupSyncVersionSelector() {
+    if (syncVersionSelect) {
+        syncVersionSelect.value = (audioVersion === 'v1') ? 'v1' : 'original';
+        syncVersionSelect.addEventListener('change', () => {
+            audioVersion = syncVersionSelect.value;
+            try {
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.setItem(AUDIO_VERSION_KEY, audioVersion);
+                    localStorage.setItem(DOLOROSOS_VERSION_KEY, audioVersion);
+                }
+            } catch (e) {}
+            updateAudioVersionUI();
+
+            const lang = langSelect ? (langSelect.value || 'es') : 'es';
+            const newSrc = getActiveMysterySrc(currentMystery, lang);
+            if (typeof audioData !== 'undefined' && audioData[lang] && audioData[lang][currentMystery]) {
+                audioData[lang][currentMystery].src = newSrc;
+            }
+            renderSyncItems(activeSyncLang, activeSyncMystery);
+            showRosaryToast(`Versión cambiada a: ${audioVersion === 'v1' ? '🟡 Versión 1 (Cruz Amarilla)' : '🔴 Versión 2 (Cruz Roja · Original)'}`);
+        });
+    }
+}
+
+// Inicializar todas las nuevas funcionalidades
+function initNewFeatures() {
+    setupPlayerCollapseAndFloatingControls();
+    setupScreenRecording();
+    setupThemesAndAppearance();
+    setupAuthAndPermissions();
+    setupSyncVersionSelector();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initNewFeatures);
+} else {
+    initNewFeatures();
+}

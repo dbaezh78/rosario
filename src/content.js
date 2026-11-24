@@ -696,21 +696,21 @@ const audioData = {
                 d4_am_10: "23:13",
                 d4_gl: "23:35",
                 d5_meditacion: "24:26",
-                d5_pn: "20:53",
-                d5_am_1: "21:18",
-                d5_am_2: "21:39",
-                d5_am_3: "22:00",
-                d5_am_4: "22:20",
-                d5_am_5: "22:41",
-                d5_am_6: "23:02",
-                d5_am_7: "23:23",
-                d5_am_8: "23:43",
-                d5_am_9: "24:04",
-                d5_am_10: "24:25",
-                d5_gl: "24:27",
-                salve: "24:52",
-                letanias: "25:51",
-                oracion_final: "29:22",
+                d5_pn: "24:45",
+                d5_am_1: "25:05",
+                d5_am_2: "25:20",
+                d5_am_3: "25:35",
+                d5_am_4: "25:50",
+                d5_am_5: "26:05",
+                d5_am_6: "26:20",
+                d5_am_7: "26:35",
+                d5_am_8: "26:50",
+                d5_am_9: "27:05",
+                d5_am_10: "27:20",
+                d5_gl: "27:25",
+                letanias: "27:35",
+                salve: "32:00",
+                oracion_final: "32:35",
                 letanias_scroll_speed: "0.8"
             },
             timeline: [
@@ -1237,6 +1237,19 @@ function getRosaryStructureDefinition(lang = 'es', mysteryKey = 'Gozosos') {
                 defaultSec: start
             },
             {
+                key: `d${d}_gracia`,
+                badge: "🙏 Gracia",
+                title: `Pedir una Gracia — ${d}º Misterio`,
+                subtitle: info && info.offering ? info.offering : "Petición e intención particular del misterio",
+                beadId: pnBeadId,
+                type: "gracia",
+                decade: d,
+                beadNum: 0,
+                prayerText: (info && info.offering ? info.offering + "\n\n" : "") + "En este misterio pedimos a Dios por intercesión de Nuestra Señora la gracia y frutos de esta meditación.",
+                img: img,
+                defaultSec: Math.round(start + dur * 0.06)
+            },
+            {
                 key: `d${d}_pn`,
                 badge: "○ P. Nuestro",
                 title: `${pnTitle} — ${d}º Misterio`,
@@ -1296,19 +1309,6 @@ function getRosaryStructureDefinition(lang = 'es', mysteryKey = 'Gozosos') {
         title: "🌹 Letanías Lauretanas y Conclusión",
         items: [
             {
-                key: "salve",
-                badge: "👑 Salve",
-                title: prayers.salve ? prayers.salve.title : "La Salve",
-                subtitle: "Oración a Nuestra Señora",
-                beadId: "medal",
-                type: "salve",
-                decade: 6,
-                beadNum: 0,
-                prayerText: prayers.salve.text,
-                img: "src/img/letanias.png",
-                defaultSec: letStart
-            },
-            {
                 key: "letanias",
                 badge: "📜 Letanías",
                 title: prayers.letanias ? prayers.letanias.title : "Letanías Lauretanas",
@@ -1319,7 +1319,20 @@ function getRosaryStructureDefinition(lang = 'es', mysteryKey = 'Gozosos') {
                 beadNum: 0,
                 prayerText: prayers.letanias.text,
                 img: "src/img/letanias.png",
-                defaultSec: Math.round(letStart + Math.min(65, letDur * 0.16))
+                defaultSec: letStart
+            },
+            {
+                key: "salve",
+                badge: "👑 Salve",
+                title: prayers.salve ? prayers.salve.title : "La Salve (Dios te Salve, Reina y Madre)",
+                subtitle: "Oración a Nuestra Señora",
+                beadId: "medal",
+                type: "salve",
+                decade: 6,
+                beadNum: 0,
+                prayerText: prayers.salve.text,
+                img: "src/img/letanias.png",
+                defaultSec: Math.round(letStart + Math.min(270, letDur * 0.70))
             },
             {
                 key: "oracion_final",
@@ -1332,7 +1345,7 @@ function getRosaryStructureDefinition(lang = 'es', mysteryKey = 'Gozosos') {
                 beadNum: 0,
                 prayerText: prayers.oracionFinal.text,
                 img: "src/img/inicio.png",
-                defaultSec: Math.round(letStart + Math.min(270, letDur * 0.85))
+                defaultSec: Math.round(letStart + Math.min(300, letDur * 0.88))
             }
         ]
     });
@@ -1400,8 +1413,7 @@ function generateDetailedTimeline(mysteryKey, mysteryObj, lang = 'es') {
         });
     });
 
-    // Ordenar cronológicamente según el tiempo en segundos
-    steps.sort((a, b) => a.s - b.s);
-
+    // Las secciones de getRosaryStructureDefinition ya están estrictamente en orden litúrgico (75 pasos).
+    // Conservamos este orden sagrado sin alteraciones para la reproducción secuencial continua y la sincronización.
     return steps;
 }

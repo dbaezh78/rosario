@@ -2,9 +2,175 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permite lectura y escritura permanente sin fecha de vencimiento
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // This security rules file secures the Santo Rosario web application (project: elsantorosario).
+    //
+    // Collection: rosary_times
+    // Document ID: ${lang}_${mystery} (e.g. 'es_Gozosos', 'es_Dolorosos', 'la_Gloriosos')
+    // Fields:
+    //   - lang: string (required, 2-10 chars) - Language code (e.g., 'es', 'la', 'en')
+    //   - mystery: string (required, 3-30 chars) - Mystery category (e.g., 'Gozosos', 'Dolorosos', 'Gloriosos', 'Luminosos')
+    //   - times: map (required, max 200 items) - Key-value mapping of step identifiers to audio timestamp strings or numbers
+    //   - updatedAt: string or timestamp (optional, max 50 chars if string) - ISO 8601 update timestamp
+    //
+    // Collection: rosary_prayers
+    // Document ID: ${lang} (e.g. 'es', 'la', 'en')
+    // Fields:
+    //   - lang: string (required, 2-10 chars) - Language code matching the document ID
+    //   - prayers: map (required, max 100 items) - Map of prayer keys to prayer object { title, text } or prayer string
+    //   - updatedAt: string or timestamp (optional, max 50 chars if string) - ISO 8601 update timestamp
+    //
+    // Collection: rosary_content
+    // Document ID: ${lang}_${mystery} (e.g. 'es_Gozosos', 'es_Dolorosos')
+    // Fields:
+    //   - lang: string (required, 2-10 chars) - Language code
+    //   - mystery: string (required, 3-30 chars) - Mystery category
+    //   - items: map (required, max 150 items) - Map of bead/step keys to content { title, subtitle, prayerText, reset, updatedAt }
+    //   - updatedAt: string or timestamp (optional, max 50 chars if string) - ISO 8601 update timestamp
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Verify if caller is authenticated with Firebase Auth
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Verify if caller is the authenticated administrator (dbaezh78@gmail.com) via Google Sign-In
+    function isAdmin() {
+      return isAuthenticated() &&
+             request.auth.token.email == 'dbaezh78@gmail.com' &&
+             request.auth.token.email_verified == true;
+    }
+
+    // Validate that all required fields are present in data
+    function hasRequiredFields(data, fields) {
+      return data.keys().hasAll(fields);
+    }
+
+    // Validate that no unexpected/unauthorized fields exist (strict schema)
+    function hasOnlyAllowedFields(data, fields) {
+      return data.keys().hasOnly(fields);
+    }
+
+    // Validate string type and length constraints
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    // Validate optional updatedAt field
+    function isValidUpdatedAt(data) {
+      return !('updatedAt' in data) || 
+             (data.updatedAt is string && data.updatedAt.size() <= 50) || 
+             data.updatedAt is timestamp;
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    // Validator for rosary_times documents
+    function isValidRosaryTimes(data, docId) {
+      return hasRequiredFields(data, ['lang', 'mystery', 'times']) &&
+             hasOnlyAllowedFields(data, ['lang', 'mystery', 'times', 'updatedAt']) &&
+             isValidString(data.lang, 2, 10) &&
+             isValidString(data.mystery, 3, 30) &&
+             data.times is map &&
+             data.times.size() <= 200 &&
+             isValidUpdatedAt(data) &&
+             docId == (data.lang + '_' + data.mystery);
+    }
+
+    // Validator for rosary_prayers documents
+    function isValidRosaryPrayers(data, docId) {
+      return hasRequiredFields(data, ['lang', 'prayers']) &&
+             hasOnlyAllowedFields(data, ['lang', 'prayers', 'updatedAt']) &&
+             isValidString(data.lang, 2, 10) &&
+             data.prayers is map &&
+             data.prayers.size() <= 100 &&
+             isValidUpdatedAt(data) &&
+             docId == data.lang;
+    }
+
+    // Validator for rosary_content documents
+    function isValidRosaryContent(data, docId) {
+      return hasRequiredFields(data, ['lang', 'mystery', 'items']) &&
+             hasOnlyAllowedFields(data, ['lang', 'mystery', 'items', 'updatedAt']) &&
+             isValidString(data.lang, 2, 10) &&
+             isValidString(data.mystery, 3, 30) &&
+             data.items is map &&
+             data.items.size() <= 150 &&
+             isValidUpdatedAt(data) &&
+             docId == (data.lang + '_' + data.mystery);
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // 1. rosary_times: Audio synchronization timings per language and mystery
+    match /rosary_times/{timeDocId} {
+      // Public read: Anyone can read timings to pray and synchronize audio
+      allow read: if true;
+
+      // Admin create: Authenticated admin only, strictly validated
+      allow create: if isAdmin() && isValidRosaryTimes(request.resource.data, timeDocId);
+
+      // Admin update: Authenticated admin only, validated, immutable lang & mystery
+      allow update: if isAdmin() &&
+                       isValidRosaryTimes(request.resource.data, timeDocId) &&
+                       request.resource.data.lang == resource.data.lang &&
+                       request.resource.data.mystery == resource.data.mystery;
+
+      // Admin delete: Authenticated admin only
+      allow delete: if isAdmin();
+    }
+
+    // 2. rosary_prayers: Modified and customized liturgical prayer texts per language
+    match /rosary_prayers/{langDocId} {
+      // Public read: Anyone can read prayers freely
+      allow read: if true;
+
+      // Admin create: Authenticated admin only, strictly validated
+      allow create: if isAdmin() && isValidRosaryPrayers(request.resource.data, langDocId);
+
+      // Admin update: Authenticated admin only, validated, immutable lang
+      allow update: if isAdmin() &&
+                       isValidRosaryPrayers(request.resource.data, langDocId) &&
+                       request.resource.data.lang == resource.data.lang;
+
+      // Admin delete: Authenticated admin only
+      allow delete: if isAdmin();
+    }
+
+    // 3. rosary_content: Step titles, subtitles, and offerings per language and mystery
+    match /rosary_content/{contentDocId} {
+      // Public read: Anyone can read step titles and offerings freely
+      allow read: if true;
+
+      // Admin create: Authenticated admin only, strictly validated
+      allow create: if isAdmin() && isValidRosaryContent(request.resource.data, contentDocId);
+
+      // Admin update: Authenticated admin only, validated, immutable lang & mystery
+      allow update: if isAdmin() &&
+                       isValidRosaryContent(request.resource.data, contentDocId) &&
+                       request.resource.data.lang == resource.data.lang &&
+                       request.resource.data.mystery == resource.data.mystery;
+
+      // Admin delete: Authenticated admin only
+      allow delete: if isAdmin();
+    }
+
+    // 4. Default Deny: All other collections or root documents are strictly denied
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }
