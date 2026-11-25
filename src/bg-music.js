@@ -11,14 +11,40 @@ const RosaryBgMusic = (function() {
     const STORAGE_KEY_ENABLED = 'rosary_bg_music_enabled';
     const STORAGE_KEY_VOLUME = 'rosary_bg_music_volume';
 
-    // Pista Predeterminada Oficial: ReginaCealiAlleluia.mp3 en src/mp3/Segm
-    const SYSTEM_TRACK = {
-        id: 'sys_regina_caeli',
-        name: 'Regina Caeli / Alleluia (Predeterminada)',
-        fileName: 'ReginaCealiAlleluia.mp3',
-        src: 'src/mp3/Segm/ReginaCealiAlleluia.mp3',
-        isSystem: true
-    };
+    // Pistas Predeterminadas Oficiales en src/mp3/Segm
+    const SYSTEM_TRACKS = [
+        {
+            id: 'bg_sleep_music',
+            name: 'Sleep Music No. 1 - Chris Haugen',
+            fileName: 'Sleep Music No. 1 - Chris Haugen.mp3',
+            src: 'src/mp3/Segm/Sleep Music No. 1 - Chris Haugen.mp3',
+            isSystem: true
+        },
+        {
+            id: 'bg_spirit_of_fire',
+            name: 'Spirit of Fire',
+            fileName: 'Spirit of Fire.mp3',
+            src: 'src/mp3/Segm/Spirit of Fire.mp3',
+            isSystem: true
+        },
+        {
+            id: 'bg_violin_ave',
+            name: 'Violin-Ave',
+            fileName: 'Violin-Ave.mp3',
+            src: 'src/mp3/Segm/Violin-Ave.mp3',
+            isSystem: true
+        },
+        {
+            id: 'bg_regina_caeli',
+            name: 'ReginaCealiAlleluia',
+            fileName: 'ReginaCealiAlleluia.mp3',
+            src: 'src/mp3/Segm/ReginaCealiAlleluia.mp3',
+            isSystem: true
+        }
+    ];
+
+    const DEFAULT_SYSTEM_TRACK = SYSTEM_TRACKS[0]; // Sleep Music No. 1
+    const SYSTEM_TRACK = DEFAULT_SYSTEM_TRACK; // Compatibilidad regresiva
 
     let dbInstance = null;
     let bgAudioElem = null;
@@ -147,9 +173,14 @@ const RosaryBgMusic = (function() {
 
     function getActiveTrackId() {
         try {
-            return localStorage.getItem(STORAGE_KEY_ACTIVE_ID) || SYSTEM_TRACK.id;
+            const saved = localStorage.getItem(STORAGE_KEY_ACTIVE_ID);
+            if (saved) {
+                if (saved === 'sys_regina_caeli') return 'bg_regina_caeli';
+                return saved;
+            }
+            return DEFAULT_SYSTEM_TRACK.id;
         } catch (e) {
-            return SYSTEM_TRACK.id;
+            return DEFAULT_SYSTEM_TRACK.id;
         }
     }
 
@@ -176,15 +207,14 @@ const RosaryBgMusic = (function() {
 
     async function getAllAvailableTracks() {
         const userTracks = await getUserTracks();
-        return [SYSTEM_TRACK, ...userTracks];
+        return [...SYSTEM_TRACKS, ...userTracks];
     }
 
     async function getActiveTrackObject() {
         const activeId = getActiveTrackId();
-        if (activeId === SYSTEM_TRACK.id) return SYSTEM_TRACK;
         const all = await getAllAvailableTracks();
-        const found = all.find(t => t.id === activeId);
-        return found || SYSTEM_TRACK;
+        const found = all.find(t => t.id === activeId || (t.id === 'bg_regina_caeli' && activeId === 'sys_regina_caeli'));
+        return found || DEFAULT_SYSTEM_TRACK;
     }
 
     async function syncActiveTrackSource() {
@@ -398,7 +428,7 @@ const RosaryBgMusic = (function() {
                         }
                         await deleteUserTrack(track.id);
                         if (getActiveTrackId() === track.id) {
-                            setActiveTrackId(SYSTEM_TRACK.id);
+                            setActiveTrackId(DEFAULT_SYSTEM_TRACK.id);
                         }
                         await renderTracksList();
                         if (typeof showRosaryToast === 'function') {
@@ -456,7 +486,15 @@ const RosaryBgMusic = (function() {
     function setupDOMEvents() {
         bgAudioElem = document.getElementById('bg-music-player');
         if (bgAudioElem) {
+            bgAudioElem.loop = true;
             bgAudioElem.volume = getVolume();
+            // Asegurar que la pista se repita en bucle hasta que termine el último audio del rosario
+            bgAudioElem.addEventListener('ended', () => {
+                if (isEnabled() && !bgAudioElem.paused) {
+                    bgAudioElem.currentTime = 0;
+                    bgAudioElem.play().catch(e => console.warn('[BgMusic] Error en loop:', e));
+                }
+            });
             syncActiveTrackSource();
         }
 

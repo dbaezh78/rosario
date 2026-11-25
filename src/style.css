@@ -1575,13 +1575,18 @@ body {
         gap: 3px;
         width: 100%;
         box-sizing: border-box;
-        overflow: hidden;
+        overflow: visible !important;
         justify-content: space-between;
+        position: relative;
+        z-index: 100;
     }
 
     .brand-section {
         gap: 3px;
-        flex-shrink: 0;
+        flex-shrink: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
     }
 
     .version-toggle {
@@ -1592,8 +1597,9 @@ body {
 
     .header-actions {
         gap: 3px;
-        flex-shrink: 0;
+        flex-shrink: 0 !important;
         align-items: center;
+        display: flex !important;
     }
 
     .brand-title {
@@ -1662,6 +1668,8 @@ body {
         justify-content: center !important;
         flex-shrink: 0 !important;
         font-size: 0.95rem !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
 
     .btn-auth-profile * {
@@ -1673,8 +1681,11 @@ body {
     }
 
     .mystery-dropdown-menu {
-        left: -35px;
-        max-width: calc(100vw - 20px);
+        left: 0 !important;
+        top: calc(100% + 6px) !important;
+        min-width: 200px;
+        max-width: calc(100vw - 16px);
+        z-index: 999999 !important;
     }
 
     .main-stage {
@@ -5289,6 +5300,107 @@ body[data-theme="dark"] {
     }
     .sync-voice-field-group {
         min-width: 100%;
+    }
+}
+
+/* ==========================================================================
+   RESPONSIVIDAD: SMARTPHONES COMPACTOS (Oukitel WP56, pantallas <= 480px)
+   ========================================================================== */
+@media (max-width: 480px) {
+    .app-header {
+        padding: 4px 6px !important;
+        gap: 3px !important;
+        overflow: visible !important;
+    }
+
+    .brand-section {
+        gap: 2px !important;
+        min-width: 0 !important;
+        flex: 1 1 auto !important;
+    }
+
+    .brand-icon {
+        width: 22px !important;
+        height: 22px !important;
+        font-size: 0.78rem !important;
+        flex-shrink: 0 !important;
+    }
+
+    .version-switch-btn {
+        transform: scale(0.8) !important;
+        transform-origin: left center !important;
+        margin-right: -6px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .voice-select-wrapper {
+        padding: 1px 3px !important;
+        gap: 2px !important;
+        max-width: 78px !important;
+        flex-shrink: 1 !important;
+        min-width: 0 !important;
+    }
+
+    .voice-icon {
+        font-size: 0.7rem !important;
+    }
+
+    .header-voice-select {
+        max-width: 62px !important;
+        font-size: 0.67rem !important;
+    }
+
+    .mystery-dropdown-wrap {
+        flex-shrink: 0 !important;
+    }
+
+    .brand-day-tag {
+        font-size: 0.66rem !important;
+        padding: 2px 4px !important;
+    }
+
+    .header-actions {
+        gap: 2px !important;
+        flex-shrink: 0 !important;
+        margin-left: auto !important;
+    }
+
+    .btn-sync-trigger {
+        width: 28px !important;
+        height: 28px !important;
+        min-width: 28px !important;
+    }
+
+    .btn-sync-trigger .sync-btn-icon {
+        font-size: 0.82rem !important;
+    }
+
+    .lang-select-wrapper select {
+        max-width: 46px !important;
+        font-size: 0.65rem !important;
+        padding: 2px 8px 2px 2px !important;
+    }
+
+    .btn-auth-profile {
+        width: 28px !important;
+        height: 28px !important;
+        min-width: 28px !important;
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-shrink: 0 !important;
+    }
+
+    .btn-auth-profile .auth-avatar-icon {
+        font-size: 0.85rem !important;
+    }
+
+    .mystery-dropdown-menu {
+        left: 0 !important;
+        top: calc(100% + 4px) !important;
+        min-width: 195px !important;
+        max-width: calc(100vw - 12px) !important;
+        z-index: 999999 !important;
     }
 }
 

@@ -40,6 +40,14 @@ service cloud.firestore {
     //   - assignments: map (required, max 200 items) - Key-value mapping of step identifiers to audio IDs or string paths
     //   - updatedAt: string or timestamp (optional, max 50 chars if string) - ISO 8601 update timestamp
     //
+    // Collection: rosary_voices
+    // Document ID: ${voiceDocId} (e.g. 'global_config', 'config', or custom ID <= 50 chars)
+    // Fields:
+    //   - voices: list of maps (required, max 50 items) - List of voice profiles and template mappings
+    //   - defaultVoiceId: string (required, 2-50 chars) - ID of the fallback/default voice
+    //   - activeVoiceId: string (optional, 2-50 chars) - ID of the currently active voice profile
+    //   - updatedAt: string or timestamp (optional, max 50 chars if string) - ISO 8601 update timestamp
+    //
     // ===============================================================
 
     // ===============================================================
@@ -131,6 +139,18 @@ service cloud.firestore {
              docId == (data.lang + '_' + data.mystery);
     }
 
+    // Validator for rosary_voices documents
+    function isValidRosaryVoices(data, docId) {
+      return hasRequiredFields(data, ['voices', 'defaultVoiceId']) &&
+             hasOnlyAllowedFields(data, ['voices', 'defaultVoiceId', 'activeVoiceId', 'updatedAt']) &&
+             isValidString(docId, 1, 50) &&
+             data.voices is list &&
+             data.voices.size() <= 50 &&
+             isValidString(data.defaultVoiceId, 2, 50) &&
+             (!('activeVoiceId' in data) || isValidString(data.activeVoiceId, 2, 50)) &&
+             isValidUpdatedAt(data);
+    }
+
     // ===============================================================
     // Collection Rules
     // ===============================================================
@@ -206,7 +226,22 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // 5. Default Deny: All other collections or root documents are strictly denied
+    // 5. rosary_voices: Global voice profiles and audio template configurations
+    match /rosary_voices/{voiceDocId} {
+      // Public read: Anyone can read configured voices to pray with the selected voices
+      allow read: if true;
+
+      // Admin create: Authenticated admin only, strictly validated
+      allow create: if isAdmin() && isValidRosaryVoices(request.resource.data, voiceDocId);
+
+      // Admin update: Authenticated admin only, validated
+      allow update: if isAdmin() && isValidRosaryVoices(request.resource.data, voiceDocId);
+
+      // Admin delete: Authenticated admin only
+      allow delete: if isAdmin();
+    }
+
+    // 6. Default Deny: All other collections or root documents are strictly denied
     match /{document=**} {
       allow read, write: if false;
     }

@@ -56,7 +56,16 @@ const SYSTEM_AUDIO_CATALOG = [
 
     // Ave Maria y Ave Maria-GLORIA (Voz de Mujer)
     { id: 'sys_avemaria_m', name: 'Avemaria (Mujer)', fileName: 'AveMaria_m.mp3', path: 'src/mp3/Segm/AveMaria_m.mp3', duration: 21 },
-    { id: 'sys_avemaria_gloria_m', name: 'AveMaria-GLORIA (Mujer)', fileName: 'AveMariaGLORIA_m.mp3', path: 'src/mp3/Segm/AveMariaGLORIA_m.mp3', duration: 20 }
+    { id: 'sys_avemaria_gloria_m', name: 'AveMaria-GLORIA (Mujer)', fileName: 'AveMariaGLORIA_m.mp3', path: 'src/mp3/Segm/AveMariaGLORIA_m.mp3', duration: 20 },
+
+    // Coros y Voces litúrgicas
+    { id: 'sys_avemaria_voces', name: 'Avemaria (Voces Corales)', fileName: 'AveMaria-Voces.mp3', path: 'src/mp3/Segm/AveMaria-Voces.mp3', duration: 22 },
+
+    // Música de Fondo Sagrada y Cantos en Segm
+    { id: 'sys_regina_caeli', name: 'ReginaCealiAlleluia (Canto / Fondo)', fileName: 'ReginaCealiAlleluia.mp3', path: 'src/mp3/Segm/ReginaCealiAlleluia.mp3', duration: 159 },
+    { id: 'sys_violin_ave', name: 'Violin-Ave (Música de fondo)', fileName: 'Violin-Ave.mp3', path: 'src/mp3/Segm/Violin-Ave.mp3', duration: 249 },
+    { id: 'sys_sleep_music', name: 'Sleep Music No. 1 - Chris Haugen (Fondo)', fileName: 'Sleep Music No. 1 - Chris Haugen.mp3', path: 'src/mp3/Segm/Sleep Music No. 1 - Chris Haugen.mp3', duration: 485 },
+    { id: 'sys_spirit_of_fire', name: 'Spirit of Fire (Fondo)', fileName: 'Spirit of Fire.mp3', path: 'src/mp3/Segm/Spirit of Fire.mp3', duration: 1520 }
 ];
 
 const RosaryAudioStore = (function() {
@@ -407,12 +416,12 @@ const RosaryVoiceManager = (function() {
 
     const INITIAL_VOICES = [
         {
-            id: 'voice_default',
-            name: 'Voz Oficial (Sistema)',
+            id: 'voice_mujer',
+            name: 'Voz de Mujer',
             isDefault: true,
             templates: {
-                ave_maria: 'sys_avemaria',
-                ave_maria_gloria: 'sys_avemaria_gloria',
+                ave_maria: 'sys_avemaria_m',
+                ave_maria_gloria: 'sys_avemaria_gloria_m',
                 padre_nuestro: 'sys_padrenuestro',
                 intro_pn: 'sys_sumopontifice',
                 gloria: 'sys_gloria',
@@ -443,12 +452,12 @@ const RosaryVoiceManager = (function() {
             }
         },
         {
-            id: 'voice_mujer',
-            name: 'Voz de Mujer',
+            id: 'voice_default',
+            name: 'Voz General (Sistema)',
             isDefault: false,
             templates: {
-                ave_maria: 'sys_avemaria_m',
-                ave_maria_gloria: 'sys_avemaria_gloria_m',
+                ave_maria: 'sys_avemaria',
+                ave_maria_gloria: 'sys_avemaria_gloria',
                 padre_nuestro: 'sys_padrenuestro',
                 intro_pn: 'sys_sumopontifice',
                 gloria: 'sys_gloria',
@@ -469,7 +478,7 @@ const RosaryVoiceManager = (function() {
                 const list = JSON.parse(raw);
                 if (Array.isArray(list) && list.length > 0) {
                     let changed = false;
-                    // Asegurar que las voces del sistema tengan sus audios litúrgicos actualizados
+                    // Asegurar que Voz de Mujer sea la predeterminada por defecto litúrgico
                     const vMujer = list.find(v => v.id === 'voice_mujer');
                     if (vMujer) {
                         if (!vMujer.templates) vMujer.templates = {};
@@ -481,6 +490,13 @@ const RosaryVoiceManager = (function() {
                             vMujer.templates.ave_maria_gloria = 'sys_avemaria_gloria_m';
                             changed = true;
                         }
+                    }
+                    // Si no hay voz default o si quedó voice_default de versiones viejas, establecer mujer
+                    const currentDef = localStorage.getItem(DEFAULT_VOICE_KEY);
+                    if (!currentDef || currentDef === 'voice_default') {
+                        localStorage.setItem(DEFAULT_VOICE_KEY, 'voice_mujer');
+                        list.forEach(v => { v.isDefault = (v.id === 'voice_mujer'); });
+                        changed = true;
                     }
                     if (changed) saveVoices(list);
                     return list;
@@ -495,16 +511,20 @@ const RosaryVoiceManager = (function() {
         try {
             localStorage.setItem(VOICES_KEY, JSON.stringify(voices));
         } catch (e) {}
+        // Guardar automáticamente en Firestore si está conectado
+        if (typeof window !== 'undefined' && window.RosaryCloud && typeof window.RosaryCloud.saveVoicesToCloud === 'function') {
+            window.RosaryCloud.saveVoicesToCloud(voices, getActiveVoiceId(), getDefaultVoiceId());
+        }
     }
 
     function getDefaultVoiceId() {
         try {
             const def = localStorage.getItem(DEFAULT_VOICE_KEY);
-            if (def) return def;
+            if (def && def !== 'voice_default') return def;
         } catch (e) {}
         const voices = getVoices();
         const found = voices.find(v => v.isDefault);
-        return found ? found.id : 'voice_default';
+        return found ? found.id : 'voice_mujer';
     }
 
     function setDefaultVoiceId(voiceId) {
@@ -521,7 +541,7 @@ const RosaryVoiceManager = (function() {
     function getActiveVoiceId() {
         try {
             const active = localStorage.getItem(ACTIVE_VOICE_KEY);
-            if (active) {
+            if (active && active !== 'voice_default') {
                 const voices = getVoices();
                 if (voices.some(v => v.id === active)) return active;
             }
@@ -633,6 +653,30 @@ const RosaryVoiceManager = (function() {
         return count;
     }
 
+    function loadFromCloudData(cloudData) {
+        if (!cloudData) return false;
+        let updated = false;
+        if (Array.isArray(cloudData.voices) && cloudData.voices.length > 0) {
+            try {
+                localStorage.setItem(VOICES_KEY, JSON.stringify(cloudData.voices));
+                updated = true;
+            } catch (e) {}
+        }
+        if (cloudData.defaultVoiceId) {
+            try {
+                localStorage.setItem(DEFAULT_VOICE_KEY, cloudData.defaultVoiceId);
+                updated = true;
+            } catch (e) {}
+        }
+        if (cloudData.activeVoiceId) {
+            try {
+                localStorage.setItem(ACTIVE_VOICE_KEY, cloudData.activeVoiceId);
+                updated = true;
+            } catch (e) {}
+        }
+        return updated;
+    }
+
     return {
         getVoices,
         saveVoices,
@@ -644,7 +688,8 @@ const RosaryVoiceManager = (function() {
         createVoice,
         updateVoice,
         deleteVoice,
-        autoAssignToVoice
+        autoAssignToVoice,
+        loadFromCloudData
     };
 })();
 

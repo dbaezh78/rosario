@@ -437,6 +437,66 @@ function subscribeToCloudAssignments(onUpdateCallback) {
     }
 }
 
+// Guarda configuración de perfiles de voces en Cloud Firestore
+async function saveVoicesToCloud(voices, activeVoiceId, defaultVoiceId) {
+    if (!db) {
+        console.warn("Firestore no está disponible.");
+        return false;
+    }
+    try {
+        const docRef = doc(db, "rosary_voices", "global_config");
+        await setDoc(docRef, {
+            voices: voices || [],
+            activeVoiceId: activeVoiceId || 'voice_mujer',
+            defaultVoiceId: defaultVoiceId || 'voice_mujer',
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
+        console.log("☁️ Voces guardadas en la nube (Firestore):", voices ? voices.length : 0);
+        return true;
+    } catch (e) {
+        console.error("Error al guardar voces en Firestore:", e);
+        return false;
+    }
+}
+
+// Carga configuración de perfiles de voces desde Cloud Firestore
+async function loadVoicesFromCloud() {
+    if (!db) return null;
+    try {
+        const docRef = doc(db, "rosary_voices", "global_config");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return docSnap.data();
+        }
+        return null;
+    } catch (e) {
+        console.error("Error al cargar voces de Firestore:", e);
+        return null;
+    }
+}
+
+// Escucha en tiempo real cambios en las voces desde Cloud Firestore
+function subscribeToCloudVoices(onUpdateCallback) {
+    if (!db) return () => {};
+    try {
+        const docRef = doc(db, "rosary_voices", "global_config");
+        const unsubscribe = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (typeof onUpdateCallback === 'function') {
+                    onUpdateCallback(data);
+                }
+            }
+        }, (error) => {
+            console.warn("Error en suscripción Firestore voces:", error);
+        });
+        return unsubscribe;
+    } catch (e) {
+        console.warn("No se pudo iniciar suscripción a voces Firestore:", e);
+        return () => {};
+    }
+}
+
 // Exponer la interfaz en window.RosaryCloud y window.RosaryAuth
 window.RosaryCloud = {
     app,
@@ -455,7 +515,10 @@ window.RosaryCloud = {
     subscribeToCloudContent,
     saveAssignmentsToCloud,
     loadAllAssignmentsFromCloud,
-    subscribeToCloudAssignments
+    subscribeToCloudAssignments,
+    saveVoicesToCloud,
+    loadVoicesFromCloud,
+    subscribeToCloudVoices
 };
 
 window.RosaryAuth = {
@@ -600,6 +663,24 @@ async function initCloudSync() {
                 }
             }
             updateBadges();
+        });
+
+        // 5. Escuchar configuración de voces en tiempo real desde Cloud Firestore
+        subscribeToCloudVoices((cloudVoices) => {
+            console.log("☁️ Actualización de voces recibida desde Cloud Firestore:", cloudVoices);
+            if (cloudVoices && window.RosaryVoices && typeof window.RosaryVoices.loadFromCloudData === 'function') {
+                const changed = window.RosaryVoices.loadFromCloudData(cloudVoices);
+                if (changed) {
+                    if (typeof window.renderVoiceSelectors === 'function') {
+                        window.renderVoiceSelectors();
+                    }
+                    if (typeof window.renderSyncItems === 'function' && typeof syncLangSelect !== 'undefined' && typeof syncMysterySelect !== 'undefined') {
+                        const l = syncLangSelect ? syncLangSelect.value : 'es';
+                        const m = syncMysterySelect ? syncMysterySelect.value : 'Gozosos';
+                        window.renderSyncItems(l, m);
+                    }
+                }
+            }
         });
     } catch (e) {
         console.warn("Error en sincronización inicial Firestore:", e);
