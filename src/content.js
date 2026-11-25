@@ -1351,9 +1351,14 @@ function getRosaryStructureDefinition(lang = 'es', mysteryKey = 'Gozosos') {
     });
 
     // Calcular tiempo efectivo y formateado para cada elemento, y aplicar personalizaciones de contenido
+    let lastSequentialSec = 0;
     sections.forEach(sec => {
         sec.items.forEach(item => {
-            const effectiveSec = (customTimes[item.key] !== undefined) ? toSec(customTimes[item.key]) : item.defaultSec;
+            let effectiveSec = (customTimes[item.key] !== undefined) ? toSec(customTimes[item.key]) : item.defaultSec;
+            if (effectiveSec < lastSequentialSec && customTimes[item.key] === undefined) {
+                effectiveSec = lastSequentialSec;
+            }
+            lastSequentialSec = effectiveSec;
             item.sec = effectiveSec;
             item.formatted = formatTime(effectiveSec, true);
             item.isCustom = (customTimes[item.key] !== undefined);

@@ -399,21 +399,35 @@ function toggleAudioVersion() {
 
     // Aplicar cambio en vivo al reproductor
     const wasPlaying = !audioPlayer.paused;
-    audioPlayer.src = newSrc;
-    audioPlayer.load();
+    if (activeSyncAudioMode !== 'segmented') {
+        audioPlayer.src = newSrc;
+        audioPlayer.load();
+    }
 
     if (typeof audioData !== 'undefined' && audioData[lang] && audioData[lang][currentMystery]) {
         currentSteps = generateDetailedTimeline(currentMystery, audioData[lang][currentMystery], lang);
-        currentStepIndex = 0;
-        updateUIForStep(0);
-        if (currentSteps[0]) {
-            updateBeadHighlights(currentSteps[0].beadId);
+        if (activeSyncAudioMode !== 'segmented') {
+            currentStepIndex = 0;
+            updateUIForStep(0);
+            if (currentSteps[0]) {
+                updateBeadHighlights(currentSteps[0].beadId);
+            }
+        } else {
+            if (currentStepIndex >= currentSteps.length) currentStepIndex = 0;
+            updateUIForStep(currentStepIndex);
+            if (currentSteps[currentStepIndex]) {
+                updateBeadHighlights(currentSteps[currentStepIndex].beadId);
+            }
         }
     }
 
     if (wasPlaying) {
-        audioPlayer.play().catch(() => {});
-        updatePlayPauseButton(true);
+        if (activeSyncAudioMode === 'segmented') {
+            playSegmentedRosary(currentStepIndex >= 0 ? currentStepIndex : 0);
+        } else {
+            audioPlayer.play().catch(() => {});
+            updatePlayPauseButton(true);
+        }
     } else {
         updatePlayPauseButton(false);
     }
@@ -965,13 +979,32 @@ async function playSegmentedRosary(stepIndex) {
     const assignments = window.RosaryAudioAssignments ? window.RosaryAudioAssignments.getAssignments(lang, mystery, allAudios) : {};
     let audioId = assignments[step.key];
 
-    // Fallback directo por tipo de oración si no tuviera asignación
+    // Fallback directo completo por plantilla de voz o catálogo si no tuviera asignación
+    const activeVoice = window.RosaryVoices ? window.RosaryVoices.getVoice(window.RosaryVoices.getActiveVoiceId()) : null;
+    const vT = activeVoice ? (activeVoice.templates || {}) : {};
+
     if (!audioId && typeof normAudioStr === 'function') {
-        if (step.key === 'intro_am_3' || step.key.endsWith('_am_10')) audioId = 'sys_avemaria_gloria';
-        else if (step.type === 'ave_maria' || step.key.includes('_am_')) audioId = 'sys_avemaria';
-        else if (step.type === 'padre_nuestro' || step.key.includes('_pn')) audioId = 'sys_padrenuestro';
-        else if (step.type === 'gloria' || step.key.includes('_gl')) audioId = 'sys_gloria';
-        else if (step.type === 'gracia' || step.key.includes('_gracia')) audioId = 'sys_pedirgracia';
+        if (step.key === 'intro_am_3' || step.key.endsWith('_am_10')) audioId = vT.ave_maria_gloria || 'sys_avemaria_gloria';
+        else if (step.type === 'ave_maria' || step.key.includes('_am_')) audioId = vT.ave_maria || 'sys_avemaria';
+        else if (step.type === 'padre_nuestro' || step.key.includes('_pn')) {
+            if (step.key === 'intro_pn') audioId = vT.intro_pn || vT.padre_nuestro || 'sys_sumopontifice';
+            else audioId = vT.padre_nuestro || 'sys_padrenuestro';
+        }
+        else if (step.type === 'gloria' || step.key.includes('_gl')) audioId = vT.gloria || 'sys_gloria';
+        else if (step.type === 'gracia' || step.key.includes('_gracia')) audioId = vT.pedir_gracia || 'sys_pedirgracia';
+        else if (step.key === 'credo' || step.type === 'credo') audioId = vT.credo || 'sys_credo';
+        else if (step.key === 'crucifix_intro' || step.type === 'intro_start') audioId = vT.crucifix_intro || 'sys_senaldelacruz';
+        else if (step.key === 'letanias' || step.type === 'letanias') audioId = vT.letanias || 'sys_letanias';
+        else if (step.key === 'salve' || step.type === 'salve') audioId = vT.salve || 'sys_diostesalve';
+        else if (step.key === 'oracion_final' || step.type === 'oracion_final') audioId = vT.oracion_final || 'sys_oracion';
+        else if (step.type === 'meditacion') {
+            const dec = step.decade || 1;
+            const mystNorm = (mystery || 'gozosos').toLowerCase();
+            if (mystNorm.includes('gozoso')) audioId = `sys_${dec}gozoso`;
+            else if (mystNorm.includes('doloroso')) audioId = `sys_dolorosos${dec}`;
+            else if (mystNorm.includes('glorioso')) audioId = `sys_gloriosos${dec}`;
+            else if (mystNorm.includes('luminoso')) audioId = `sys_luminosos${dec}`;
+        }
     }
 
     if (audioId && window.RosaryAudioStore) {
@@ -1125,14 +1158,37 @@ audioPlayer.addEventListener('ended', () => {
     }
 });
 
+audioPlayer.addEventListener('error', (e) => {
+    console.warn('[audioPlayer] Error en reproducción de audio:', audioPlayer.error, audioPlayer.src);
+    if (isPlayingSegmentedRosary && currentSteps && currentStepIndex < currentSteps.length - 1) {
+        showRosaryToast('⚠️ Pasando a la siguiente oración del Rosario...');
+        setTimeout(() => {
+            if (isPlayingSegmentedRosary) {
+                playSegmentedRosary(currentStepIndex + 1);
+            }
+        }, 1500);
+    }
+});
+
 // Deslizadores de tiempo
 function handleSeekInput() {
     isSeeking = true;
 }
 function handleSeekChange(sliderElem) {
     if (activeSyncAudioMode === 'segmented' && currentSteps && currentSteps.length > 0) {
-        const totalSteps = currentSteps.length;
-        const targetStepIndex = Math.min(totalSteps - 1, Math.max(0, Math.floor((sliderElem.value / 100) * totalSteps)));
+        const lang = (langSelect && langSelect.value) ? langSelect.value : 'es';
+        const totalSec = (audioData && audioData[lang] && audioData[lang][currentMystery] && audioData[lang][currentMystery].duration)
+            ? audioData[lang][currentMystery].duration
+            : 1986;
+        const targetSec = ((sliderElem.value || 0) / 100) * totalSec;
+        let targetStepIndex = 0;
+        for (let i = 0; i < currentSteps.length; i++) {
+            if (targetSec >= currentSteps[i].s) {
+                targetStepIndex = i;
+            } else {
+                break;
+            }
+        }
         isSeeking = false;
         playSegmentedRosary(targetStepIndex);
         return;
@@ -1333,7 +1389,11 @@ document.querySelectorAll('.mystery-dropdown-item').forEach(item => {
         const mystery = item.getAttribute('data-mystery');
         if (mystery) {
             loadMystery(mystery);
-            audioPlayer.play().then(() => updatePlayPauseButton(true)).catch(() => {});
+            if (activeSyncAudioMode === 'segmented') {
+                playSegmentedRosary(0);
+            } else {
+                audioPlayer.play().then(() => updatePlayPauseButton(true)).catch(() => {});
+            }
             closeMysteryDropdown();
             showVersionToast(`📿 Misterios <strong>${mystery}</strong> activados`);
         }
@@ -1598,21 +1658,30 @@ function autoSaveSyncTimesImmediate(lang, mystery) {
         }
         if (typeof generateDetailedTimeline === 'function' && audioData && audioData[lang] && audioData[lang][mystery]) {
             currentSteps = generateDetailedTimeline(mystery, audioData[lang][mystery], lang);
-            const curTime = (audioPlayer && !isNaN(audioPlayer.currentTime)) ? audioPlayer.currentTime : 0;
-            let newStepIndex = 0;
-            for (let i = 0; i < currentSteps.length; i++) {
-                if (curTime >= currentSteps[i].s) {
-                    newStepIndex = i;
-                } else {
-                    break;
+            if (!isPlayingSegmentedRosary && activeSyncAudioMode !== 'segmented') {
+                const curTime = (audioPlayer && !isNaN(audioPlayer.currentTime)) ? audioPlayer.currentTime : 0;
+                let newStepIndex = 0;
+                for (let i = 0; i < currentSteps.length; i++) {
+                    if (curTime >= currentSteps[i].s) {
+                        newStepIndex = i;
+                    } else {
+                        break;
+                    }
+                }
+                currentStepIndex = newStepIndex;
+                updateUIForStep(currentStepIndex);
+                if (currentSteps[currentStepIndex]) {
+                    updateBeadHighlights(currentSteps[currentStepIndex].beadId);
+                }
+                setVirginBow(isGloriaTime(curTime));
+            } else {
+                // En modo segmentado, no resetear currentStepIndex por el tiempo relativo del clip
+                if (currentStepIndex >= currentSteps.length) currentStepIndex = 0;
+                updateUIForStep(currentStepIndex);
+                if (currentSteps[currentStepIndex]) {
+                    updateBeadHighlights(currentSteps[currentStepIndex].beadId);
                 }
             }
-            currentStepIndex = newStepIndex;
-            updateUIForStep(currentStepIndex);
-            if (currentSteps[currentStepIndex]) {
-                updateBeadHighlights(currentSteps[currentStepIndex].beadId);
-            }
-            setVirginBow(isGloriaTime(curTime));
         }
     }
 }
@@ -2019,7 +2088,7 @@ function closeSyncModal() {
         });
         if (audioData[lang] && audioData[lang][mystery]) {
             currentSteps = generateDetailedTimeline(mystery, audioData[lang][mystery], lang);
-            if (!isPlayingSegmentedRosary) {
+            if (!isPlayingSegmentedRosary && activeSyncAudioMode !== 'segmented') {
                 const curTime = (audioPlayer && !isNaN(audioPlayer.currentTime)) ? audioPlayer.currentTime : 0;
                 let newStepIndex = 0;
                 for (let i = 0; i < currentSteps.length; i++) {
@@ -2248,7 +2317,7 @@ if (btnSyncSave) {
         });
         if (audioData[lang] && audioData[lang][mystery]) {
             currentSteps = generateDetailedTimeline(mystery, audioData[lang][mystery], lang);
-            if (!isPlayingSegmentedRosary) {
+            if (!isPlayingSegmentedRosary && activeSyncAudioMode !== 'segmented') {
                 const curTime = (audioPlayer && !isNaN(audioPlayer.currentTime)) ? audioPlayer.currentTime : 0;
                 let newStepIndex = 0;
                 for (let i = 0; i < currentSteps.length; i++) {
@@ -2432,21 +2501,30 @@ window.refreshActiveTimeline = function() {
     const lang = langSelect ? (langSelect.value || 'es') : 'es';
     if (typeof audioData !== 'undefined' && audioData[lang] && audioData[lang][currentMystery]) {
         currentSteps = generateDetailedTimeline(currentMystery, audioData[lang][currentMystery], lang);
-        const curTime = (audioPlayer && !isNaN(audioPlayer.currentTime)) ? audioPlayer.currentTime : 0;
-        let newStepIndex = 0;
-        for (let i = 0; i < currentSteps.length; i++) {
-            if (curTime >= currentSteps[i].s) {
-                newStepIndex = i;
-            } else {
-                break;
+        if (!isPlayingSegmentedRosary && activeSyncAudioMode !== 'segmented') {
+            const curTime = (audioPlayer && !isNaN(audioPlayer.currentTime)) ? audioPlayer.currentTime : 0;
+            let newStepIndex = 0;
+            for (let i = 0; i < currentSteps.length; i++) {
+                if (curTime >= currentSteps[i].s) {
+                    newStepIndex = i;
+                } else {
+                    break;
+                }
+            }
+            currentStepIndex = newStepIndex;
+            updateUIForStep(currentStepIndex);
+            if (currentSteps[currentStepIndex]) {
+                updateBeadHighlights(currentSteps[currentStepIndex].beadId);
+            }
+            setVirginBow(isGloriaTime(curTime));
+        } else {
+            // En modo segmentado, NUNCA resetear currentStepIndex a 0 por el tiempo del fragmento
+            if (currentStepIndex >= currentSteps.length) currentStepIndex = 0;
+            updateUIForStep(currentStepIndex);
+            if (currentSteps[currentStepIndex]) {
+                updateBeadHighlights(currentSteps[currentStepIndex].beadId);
             }
         }
-        currentStepIndex = newStepIndex;
-        updateUIForStep(currentStepIndex);
-        if (currentSteps[currentStepIndex]) {
-            updateBeadHighlights(currentSteps[currentStepIndex].beadId);
-        }
-        setVirginBow(isGloriaTime(curTime));
     }
 };
 
@@ -3817,6 +3895,322 @@ function setupVirginBowModal() {
     }
 }
 
+// H. SISTEMA DE GESTIÓN Y ASIGNACIÓN DE VOCES LITÚRGICAS (VOICE PROFILES)
+function setupVoiceManagement() {
+    const headerVoiceSelect = document.getElementById('voice-select');
+    const syncVoiceSelect = document.getElementById('sync-voice-select');
+    const btnCreateVoice = document.getElementById('btn-create-voice');
+    const btnConfigVoice = document.getElementById('btn-config-voice');
+    const btnSetDefaultVoice = document.getElementById('btn-set-default-voice');
+    const btnDeleteVoice = document.getElementById('btn-delete-voice');
+
+    const voiceModal = document.getElementById('voice-config-modal');
+    const voiceModalClose = document.getElementById('voice-config-modal-close');
+    const voiceNameInput = document.getElementById('voice-config-name-input');
+    const voiceDefaultChk = document.getElementById('voice-config-is-default-chk');
+    const btnVoiceAutoAssign = document.getElementById('btn-voice-auto-assign');
+    const btnVoiceConfigSave = document.getElementById('btn-voice-config-save');
+    const voiceSubtitle = document.getElementById('voice-config-modal-subtitle');
+
+    const voicePreviewAudio = new Audio();
+    let currentEditingVoiceId = null;
+
+    function stopVoicePreview() {
+        try {
+            voicePreviewAudio.pause();
+            voicePreviewAudio.currentTime = 0;
+        } catch (e) {}
+        document.querySelectorAll('.btn-voice-test-play').forEach(b => {
+            b.classList.remove('is-playing');
+            b.innerText = '▶';
+        });
+    }
+
+    voicePreviewAudio.addEventListener('ended', stopVoicePreview);
+    voicePreviewAudio.addEventListener('error', stopVoicePreview);
+
+    function refreshVoiceSelects() {
+        if (!window.RosaryVoices) return;
+        const voices = window.RosaryVoices.getVoices();
+        const activeId = window.RosaryVoices.getActiveVoiceId();
+        const defaultId = window.RosaryVoices.getDefaultVoiceId();
+
+        if (headerVoiceSelect) {
+            headerVoiceSelect.innerHTML = '';
+            voices.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.id;
+                const isDef = (v.id === defaultId);
+                let label = v.name;
+                if (v.id === 'voice_default') label = 'Voz Oficial';
+                opt.textContent = isDef ? `${label} ⭐` : label;
+                headerVoiceSelect.appendChild(opt);
+            });
+            headerVoiceSelect.value = activeId;
+        }
+
+        if (syncVoiceSelect) {
+            syncVoiceSelect.innerHTML = '';
+            voices.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.id;
+                const isDef = (v.id === defaultId);
+                opt.textContent = `${v.name}${isDef ? ' (⭐ Por Defecto)' : ''}`;
+                syncVoiceSelect.appendChild(opt);
+            });
+            syncVoiceSelect.value = activeId;
+        }
+    }
+
+    async function handleVoiceChange(newId) {
+        if (!window.RosaryVoices) return;
+        window.RosaryVoices.setActiveVoiceId(newId);
+        refreshVoiceSelects();
+        const v = window.RosaryVoices.getVoice(newId);
+        if (typeof showRosaryToast === 'function') {
+            showRosaryToast(`🎙️ Voz seleccionada: ${v.name}`);
+        }
+        if (typeof renderSyncItems === 'function' && typeof activeSyncLang !== 'undefined' && typeof activeSyncMystery !== 'undefined') {
+            await renderSyncItems(activeSyncLang, activeSyncMystery);
+        }
+    }
+
+    if (headerVoiceSelect) {
+        headerVoiceSelect.addEventListener('change', (e) => handleVoiceChange(e.target.value));
+    }
+    if (syncVoiceSelect) {
+        syncVoiceSelect.addEventListener('change', (e) => handleVoiceChange(e.target.value));
+    }
+
+    async function populateTemplateSelects(templates = {}) {
+        const allAudios = window.RosaryAudioStore ? await window.RosaryAudioStore.getAllAudios() : [];
+        const templateKeys = [
+            'ave_maria', 'ave_maria_gloria', 'padre_nuestro', 'intro_pn',
+            'gloria', 'credo', 'crucifix_intro', 'pedir_gracia',
+            'salve', 'letanias', 'oracion_final'
+        ];
+
+        templateKeys.forEach(key => {
+            const sel = document.getElementById(`voice-template-${key}`);
+            if (!sel) return;
+            sel.innerHTML = '';
+
+            // Opción vacía o sin asignar
+            const optNone = document.createElement('option');
+            optNone.value = '';
+            optNone.textContent = '-- Seleccionar Audio --';
+            sel.appendChild(optNone);
+
+            allAudios.forEach(aud => {
+                const opt = document.createElement('option');
+                opt.value = aud.id;
+                const durStr = aud.duration ? ` (${Math.round(aud.duration)}s)` : '';
+                opt.textContent = `🎵 ${aud.name}${durStr}`;
+                sel.appendChild(opt);
+            });
+
+            const currentVal = templates[key] || '';
+            sel.value = currentVal;
+        });
+
+        // Configurar botones de reproducción de prueba
+        document.querySelectorAll('.btn-voice-test-play').forEach(btn => {
+            btn.onclick = async () => {
+                const targetId = btn.getAttribute('data-target');
+                const targetSel = document.getElementById(targetId);
+                const audioId = targetSel ? targetSel.value : null;
+
+                if (!audioId) {
+                    if (typeof showRosaryToast === 'function') {
+                        showRosaryToast('Selecciona primero un audio para reproducir');
+                    }
+                    return;
+                }
+
+                if (btn.classList.contains('is-playing')) {
+                    stopVoicePreview();
+                    return;
+                }
+
+                stopVoicePreview();
+                if (window.RosaryAudioStore) {
+                    try {
+                        const url = await window.RosaryAudioStore.getAudioUrl(audioId);
+                        if (url) {
+                            voicePreviewAudio.src = url;
+                            voicePreviewAudio.currentTime = 0;
+                            await voicePreviewAudio.play();
+                            btn.classList.add('is-playing');
+                            btn.innerText = '⏹';
+                        }
+                    } catch (e) {
+                        console.warn('[VoicePreview] Error al reproducir:', e);
+                        stopVoicePreview();
+                    }
+                }
+            };
+        });
+    }
+
+    async function openVoiceConfigModal(voiceId) {
+        if (!voiceModal || !window.RosaryVoices) return;
+        stopVoicePreview();
+        const v = window.RosaryVoices.getVoice(voiceId);
+        if (!v) return;
+
+        currentEditingVoiceId = voiceId;
+        if (voiceNameInput) voiceNameInput.value = v.name;
+        if (voiceDefaultChk) voiceDefaultChk.checked = (voiceId === window.RosaryVoices.getDefaultVoiceId());
+        if (voiceSubtitle) voiceSubtitle.innerText = `Configura qué audio corresponde a cada oración para "${v.name}"`;
+
+        await populateTemplateSelects(v.templates || {});
+        voiceModal.classList.add('open');
+        voiceModal.classList.add('is-visible');
+    }
+
+    function closeVoiceConfigModal() {
+        stopVoicePreview();
+        if (voiceModal) {
+            voiceModal.classList.remove('open');
+            voiceModal.classList.remove('is-visible');
+        }
+    }
+
+    if (voiceModalClose) {
+        voiceModalClose.addEventListener('click', closeVoiceConfigModal);
+    }
+    if (voiceModal) {
+        voiceModal.addEventListener('click', (e) => {
+            if (e.target === voiceModal) closeVoiceConfigModal();
+        });
+    }
+
+    // Auto-asignar audios para la voz en edición
+    if (btnVoiceAutoAssign) {
+        btnVoiceAutoAssign.addEventListener('click', async () => {
+            if (!currentEditingVoiceId || !window.RosaryVoices) return;
+            const allAudios = window.RosaryAudioStore ? await window.RosaryAudioStore.getAllAudios() : [];
+            const count = window.RosaryVoices.autoAssignToVoice(currentEditingVoiceId, allAudios);
+            const updatedVoice = window.RosaryVoices.getVoice(currentEditingVoiceId);
+            await populateTemplateSelects(updatedVoice.templates || {});
+            if (typeof showRosaryToast === 'function') {
+                showRosaryToast(`⚡ ¡${count} audios auto-asignados para esta voz!`);
+            }
+        });
+    }
+
+    // Guardar configuración de voz
+    if (btnVoiceConfigSave) {
+        btnVoiceConfigSave.addEventListener('click', async () => {
+            if (!currentEditingVoiceId || !window.RosaryVoices) return;
+            const templateKeys = [
+                'ave_maria', 'ave_maria_gloria', 'padre_nuestro', 'intro_pn',
+                'gloria', 'credo', 'crucifix_intro', 'pedir_gracia',
+                'salve', 'letanias', 'oracion_final'
+            ];
+            const updatedTemplates = {};
+            templateKeys.forEach(k => {
+                const sel = document.getElementById(`voice-template-${k}`);
+                if (sel && sel.value) updatedTemplates[k] = sel.value;
+            });
+
+            const newName = voiceNameInput ? voiceNameInput.value.trim() : '';
+            const isDef = voiceDefaultChk ? voiceDefaultChk.checked : false;
+
+            window.RosaryVoices.updateVoice(currentEditingVoiceId, {
+                name: newName,
+                templates: updatedTemplates,
+                isDefault: isDef
+            });
+
+            if (isDef) {
+                window.RosaryVoices.setDefaultVoiceId(currentEditingVoiceId);
+            }
+
+            if (window.RosaryAudioAssignments && typeof window.RosaryAudioAssignments.clearVoiceRowOverrides === 'function') {
+                window.RosaryAudioAssignments.clearVoiceRowOverrides(currentEditingVoiceId);
+            }
+
+            closeVoiceConfigModal();
+            refreshVoiceSelects();
+
+            if (typeof renderSyncItems === 'function' && typeof activeSyncLang !== 'undefined' && typeof activeSyncMystery !== 'undefined') {
+                await renderSyncItems(activeSyncLang, activeSyncMystery);
+            }
+            if (typeof showRosaryToast === 'function') {
+                showRosaryToast(`🎙️ Voz "${newName || 'Voz'}" guardada y aplicada con éxito.`);
+            }
+        });
+    }
+
+    // Crear nueva voz
+    if (btnCreateVoice) {
+        btnCreateVoice.addEventListener('click', () => {
+            if (!window.RosaryVoices) return;
+            const name = prompt('Nombre para el nuevo perfil de voz (ej: "Voz de David", "Voz de María"):', 'Voz Personalizada');
+            if (name && name.trim()) {
+                const newV = window.RosaryVoices.createVoice(name.trim());
+                window.RosaryVoices.setActiveVoiceId(newV.id);
+                refreshVoiceSelects();
+                openVoiceConfigModal(newV.id);
+                if (typeof showRosaryToast === 'function') {
+                    showRosaryToast(`🎙️ Perfil de voz "${newV.name}" creado.`);
+                }
+            }
+        });
+    }
+
+    // Configurar voz activa
+    if (btnConfigVoice) {
+        btnConfigVoice.addEventListener('click', () => {
+            if (!window.RosaryVoices) return;
+            openVoiceConfigModal(window.RosaryVoices.getActiveVoiceId());
+        });
+    }
+
+    // Establecer como voz por defecto
+    if (btnSetDefaultVoice) {
+        btnSetDefaultVoice.addEventListener('click', () => {
+            if (!window.RosaryVoices) return;
+            const activeId = window.RosaryVoices.getActiveVoiceId();
+            window.RosaryVoices.setDefaultVoiceId(activeId);
+            refreshVoiceSelects();
+            const v = window.RosaryVoices.getVoice(activeId);
+            if (typeof showRosaryToast === 'function') {
+                showRosaryToast(`⭐ "${v.name}" establecida como voz por defecto al iniciar.`);
+            }
+        });
+    }
+
+    // Eliminar perfil de voz
+    if (btnDeleteVoice) {
+        btnDeleteVoice.addEventListener('click', async () => {
+            if (!window.RosaryVoices) return;
+            const activeId = window.RosaryVoices.getActiveVoiceId();
+            if (activeId === 'voice_default') {
+                if (typeof showRosaryToast === 'function') {
+                    showRosaryToast('⚠️ La Voz Oficial no se puede eliminar.');
+                }
+                return;
+            }
+            const v = window.RosaryVoices.getVoice(activeId);
+            if (confirm(`¿Estás seguro de que deseas eliminar el perfil de voz "${v.name}"?`)) {
+                window.RosaryVoices.deleteVoice(activeId);
+                refreshVoiceSelects();
+                if (typeof renderSyncItems === 'function' && typeof activeSyncLang !== 'undefined' && typeof activeSyncMystery !== 'undefined') {
+                    await renderSyncItems(activeSyncLang, activeSyncMystery);
+                }
+                if (typeof showRosaryToast === 'function') {
+                    showRosaryToast(`🗑️ Perfil de voz "${v.name}" eliminado.`);
+                }
+            }
+        });
+    }
+
+    // Inicializar selectores de voz
+    refreshVoiceSelects();
+}
+
 // Inicializar todas las nuevas funcionalidades
 function initNewFeatures() {
     setupPlayerCollapseAndFloatingControls();
@@ -3826,6 +4220,7 @@ function initNewFeatures() {
     setupSyncVersionSelector();
     setupSyncToolbarCollapse();
     setupVirginBowModal();
+    setupVoiceManagement();
 }
 
 if (document.readyState === 'loading') {

@@ -1833,9 +1833,14 @@ body {
     transition: opacity 0.25s ease;
 }
 
-.sync-modal-overlay.open {
-    display: flex;
-    opacity: 1;
+.sync-modal-overlay.open,
+.sync-modal-overlay.is-visible {
+    display: flex !important;
+    opacity: 1 !important;
+}
+
+#voice-config-modal {
+    z-index: 2500 !important;
 }
 
 /* Ventana Principal del Modal */
@@ -4934,3 +4939,356 @@ body[data-theme="dark"] {
         align-self: center !important;
     }
 }
+
+/* =============================================================================
+   SISTEMA DE VOCES PERSONALIZADAS (VOICE PROFILES)
+   ============================================================================= */
+
+/* 1. Selector de Voz en la Cabecera Principal */
+.voice-select-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    background: rgba(14, 22, 40, 0.85);
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    border-radius: 14px;
+    padding: 2px 7px 2px 6px;
+    gap: 4px;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.voice-select-wrapper:hover {
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+}
+
+.voice-select-icon {
+    font-size: 0.88rem;
+    line-height: 1;
+    user-select: none;
+}
+
+.header-voice-select {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--gold-light);
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding-right: 14px;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: 11px;
+    appearance: none;
+    -webkit-appearance: none;
+    max-width: 110px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.header-voice-select option {
+    background: #0f172a;
+    color: #f1f5f9;
+    font-size: 0.85rem;
+    padding: 4px 8px;
+}
+
+/* 2. Controles de Voz en la Barra del Sincronizador */
+.sync-voice-field-group {
+    min-width: 260px;
+    flex: 1 1 auto;
+}
+
+.sync-voice-input-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+}
+
+.sync-voice-input-row select.sync-select {
+    flex: 1;
+    min-width: 120px;
+}
+
+.btn-voice-tool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(18, 26, 44, 0.9);
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    color: #f1f5f9;
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    padding: 0;
+}
+
+.btn-voice-tool:hover {
+    background: rgba(212, 175, 55, 0.2);
+    border-color: var(--gold-bright);
+    transform: translateY(-1px);
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.4);
+}
+
+.btn-voice-tool:active {
+    transform: translateY(0);
+}
+
+/* 3. Modal de Configuración Litúrgica de Voces */
+.voice-config-modal-window {
+    max-width: 920px !important;
+    width: 95vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.voice-config-body {
+    padding: 16px 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: #0a0f1d;
+}
+
+.voice-config-info-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 16px;
+    background: rgba(18, 26, 44, 0.7);
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    border-radius: 12px;
+}
+
+.voice-name-edit-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 260px;
+}
+
+.voice-name-edit-wrap label {
+    font-size: 0.82rem;
+    color: var(--gold-light);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.voice-name-input {
+    flex: 1;
+    background: #070c17;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    color: #f8fafc;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.86rem;
+    font-weight: 600;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.voice-name-input:focus {
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+}
+
+.voice-default-checkbox-wrap {
+    display: flex;
+    align-items: center;
+}
+
+.voice-default-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: #e2e8f0;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+}
+
+.voice-default-label input[type="checkbox"] {
+    accent-color: #d4af37;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.voice-config-auto-btn-wrap {
+    flex-shrink: 0;
+}
+
+/* Cuadrícula de Oraciones Base */
+.voice-config-prayers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 14px;
+}
+
+.voice-prayer-card {
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: all 0.25s ease;
+}
+
+.voice-prayer-card:hover {
+    border-color: rgba(212, 175, 55, 0.5);
+    background: rgba(18, 28, 52, 0.85);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+/* Destacados especiales para las dos variantes de Ave María */
+.voice-prayer-card.highlight-am {
+    border-color: rgba(59, 130, 246, 0.45);
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(30, 58, 138, 0.15));
+}
+
+.voice-prayer-card.highlight-am-gl {
+    border-color: rgba(245, 158, 11, 0.55);
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(180, 83, 9, 0.2));
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.12);
+}
+
+.voice-prayer-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.voice-prayer-card-header h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.voice-prayer-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    background: rgba(212, 175, 55, 0.18);
+    color: var(--gold-light);
+    border: 1px solid rgba(212, 175, 55, 0.35);
+}
+
+.voice-prayer-badge.special {
+    background: rgba(245, 158, 11, 0.25);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.6);
+}
+
+.voice-prayer-desc {
+    margin: 0;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    line-height: 1.35;
+}
+
+.voice-prayer-select-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.voice-template-select {
+    flex: 1;
+    background: #080d1a;
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    color: #f1f5f9;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.voice-template-select:focus {
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.35);
+}
+
+.voice-template-select option {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 4px;
+}
+
+.btn-voice-test-play {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(212, 175, 55, 0.2);
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    color: var(--gold-light);
+    font-size: 0.72rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.btn-voice-test-play:hover {
+    background: var(--gold);
+    color: #0b111e;
+    transform: scale(1.1);
+}
+
+.btn-voice-test-play.is-playing {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #f87171;
+    animation: pulsePlay 1s infinite alternate;
+}
+
+@keyframes pulsePlay {
+    from { transform: scale(1); box-shadow: 0 0 4px rgba(239, 68, 68, 0.4); }
+    to { transform: scale(1.1); box-shadow: 0 0 10px rgba(239, 68, 68, 0.8); }
+}
+
+/* Adaptación responsive para pantallas móviles */
+@media (max-width: 768px) {
+    .header-voice-select {
+        max-width: 95px;
+        font-size: 0.72rem;
+    }
+    .voice-select-wrapper {
+        padding: 2px 4px 2px 4px;
+    }
+    .voice-config-prayers-grid {
+        grid-template-columns: 1fr;
+    }
+    .voice-config-info-banner {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .sync-voice-field-group {
+        min-width: 100%;
+    }
+}
+

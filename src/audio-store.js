@@ -52,7 +52,11 @@ const SYSTEM_AUDIO_CATALOG = [
     { id: 'sys_luminosos5', name: 'Luminosos5', fileName: 'Luminosos5.mp3', path: 'src/mp3/Segm/Luminosos5.mp3', duration: 5 },
 
     // AveMaria-GLORIA
-    { id: 'sys_avemaria_gloria', name: 'AveMaria-GLORIA', fileName: 'AveMaria-GLORIA.mp3', path: 'src/mp3/Segm/AveMaria-GLORIA.mp3', duration: 20 }
+    { id: 'sys_avemaria_gloria', name: 'AveMaria-GLORIA', fileName: 'AveMaria-GLORIA.mp3', path: 'src/mp3/Segm/AveMaria-GLORIA.mp3', duration: 20 },
+
+    // Ave Maria y Ave Maria-GLORIA (Voz de Mujer)
+    { id: 'sys_avemaria_m', name: 'Avemaria (Mujer)', fileName: 'AveMaria_m.mp3', path: 'src/mp3/Segm/AveMaria_m.mp3', duration: 21 },
+    { id: 'sys_avemaria_gloria_m', name: 'AveMaria-GLORIA (Mujer)', fileName: 'AveMariaGLORIA_m.mp3', path: 'src/mp3/Segm/AveMariaGLORIA_m.mp3', duration: 20 }
 ];
 
 const RosaryAudioStore = (function() {
@@ -393,6 +397,258 @@ const RosaryAudioStore = (function() {
 })();
 
 // =============================================================================
+// GESTOR DE PERFILES DE VOCES DEL SANTO ROSARIO
+// =============================================================================
+
+const RosaryVoiceManager = (function() {
+    const VOICES_KEY = 'rosary_voices_v1';
+    const ACTIVE_VOICE_KEY = 'rosary_active_voice_id';
+    const DEFAULT_VOICE_KEY = 'rosary_default_voice_id';
+
+    const INITIAL_VOICES = [
+        {
+            id: 'voice_default',
+            name: 'Voz Oficial (Sistema)',
+            isDefault: true,
+            templates: {
+                ave_maria: 'sys_avemaria',
+                ave_maria_gloria: 'sys_avemaria_gloria',
+                padre_nuestro: 'sys_padrenuestro',
+                intro_pn: 'sys_sumopontifice',
+                gloria: 'sys_gloria',
+                credo: 'sys_credo',
+                crucifix_intro: 'sys_senaldelacruz',
+                pedir_gracia: 'sys_pedirgracia',
+                salve: 'sys_diostesalve',
+                letanias: 'sys_letanias',
+                oracion_final: 'sys_oracion'
+            }
+        },
+        {
+            id: 'voice_david',
+            name: 'Voz de David',
+            isDefault: false,
+            templates: {
+                ave_maria: 'sys_avemaria',
+                ave_maria_gloria: 'sys_avemaria_gloria',
+                padre_nuestro: 'sys_padrenuestro',
+                intro_pn: 'sys_sumopontifice',
+                gloria: 'sys_gloria',
+                credo: 'sys_credo',
+                crucifix_intro: 'sys_senaldelacruz',
+                pedir_gracia: 'sys_pedirgracia',
+                salve: 'sys_diostesalve',
+                letanias: 'sys_letanias',
+                oracion_final: 'sys_oracion'
+            }
+        },
+        {
+            id: 'voice_mujer',
+            name: 'Voz de Mujer',
+            isDefault: false,
+            templates: {
+                ave_maria: 'sys_avemaria_m',
+                ave_maria_gloria: 'sys_avemaria_gloria_m',
+                padre_nuestro: 'sys_padrenuestro',
+                intro_pn: 'sys_sumopontifice',
+                gloria: 'sys_gloria',
+                credo: 'sys_credo',
+                crucifix_intro: 'sys_senaldelacruz',
+                pedir_gracia: 'sys_pedirgracia',
+                salve: 'sys_diostesalve',
+                letanias: 'sys_letanias',
+                oracion_final: 'sys_oracion'
+            }
+        }
+    ];
+
+    function getVoices() {
+        try {
+            const raw = localStorage.getItem(VOICES_KEY);
+            if (raw) {
+                const list = JSON.parse(raw);
+                if (Array.isArray(list) && list.length > 0) {
+                    let changed = false;
+                    // Asegurar que las voces del sistema tengan sus audios litúrgicos actualizados
+                    const vMujer = list.find(v => v.id === 'voice_mujer');
+                    if (vMujer) {
+                        if (!vMujer.templates) vMujer.templates = {};
+                        if (vMujer.templates.ave_maria === 'sys_avemaria' || !vMujer.templates.ave_maria) {
+                            vMujer.templates.ave_maria = 'sys_avemaria_m';
+                            changed = true;
+                        }
+                        if (vMujer.templates.ave_maria_gloria === 'sys_avemaria_gloria' || !vMujer.templates.ave_maria_gloria) {
+                            vMujer.templates.ave_maria_gloria = 'sys_avemaria_gloria_m';
+                            changed = true;
+                        }
+                    }
+                    if (changed) saveVoices(list);
+                    return list;
+                }
+            }
+        } catch (e) {}
+        saveVoices(INITIAL_VOICES);
+        return INITIAL_VOICES;
+    }
+
+    function saveVoices(voices) {
+        try {
+            localStorage.setItem(VOICES_KEY, JSON.stringify(voices));
+        } catch (e) {}
+    }
+
+    function getDefaultVoiceId() {
+        try {
+            const def = localStorage.getItem(DEFAULT_VOICE_KEY);
+            if (def) return def;
+        } catch (e) {}
+        const voices = getVoices();
+        const found = voices.find(v => v.isDefault);
+        return found ? found.id : 'voice_default';
+    }
+
+    function setDefaultVoiceId(voiceId) {
+        try {
+            localStorage.setItem(DEFAULT_VOICE_KEY, voiceId);
+        } catch (e) {}
+        const voices = getVoices();
+        voices.forEach(v => {
+            v.isDefault = (v.id === voiceId);
+        });
+        saveVoices(voices);
+    }
+
+    function getActiveVoiceId() {
+        try {
+            const active = localStorage.getItem(ACTIVE_VOICE_KEY);
+            if (active) {
+                const voices = getVoices();
+                if (voices.some(v => v.id === active)) return active;
+            }
+        } catch (e) {}
+        return getDefaultVoiceId();
+    }
+
+    function setActiveVoiceId(voiceId) {
+        try {
+            localStorage.setItem(ACTIVE_VOICE_KEY, voiceId);
+        } catch (e) {}
+    }
+
+    function getVoice(voiceId) {
+        const voices = getVoices();
+        return voices.find(v => v.id === voiceId) || voices[0];
+    }
+
+    function createVoice(name) {
+        const voices = getVoices();
+        const cleanName = (name && name.trim()) ? name.trim() : `Voz ${voices.length + 1}`;
+        const newId = 'voice_' + Date.now();
+        const newVoice = {
+            id: newId,
+            name: cleanName,
+            isDefault: false,
+            templates: Object.assign({}, voices[0].templates)
+        };
+        voices.push(newVoice);
+        saveVoices(voices);
+        return newVoice;
+    }
+
+    function updateVoice(voiceId, updates = {}) {
+        const voices = getVoices();
+        const v = voices.find(item => item.id === voiceId);
+        if (!v) return null;
+        if (updates.name && updates.name.trim()) v.name = updates.name.trim();
+        if (updates.templates) v.templates = Object.assign({}, v.templates || {}, updates.templates);
+        if (updates.isDefault !== undefined) {
+            if (updates.isDefault) setDefaultVoiceId(voiceId);
+            else v.isDefault = false;
+        }
+        saveVoices(voices);
+        return v;
+    }
+
+    function deleteVoice(voiceId) {
+        if (voiceId === 'voice_default') return false;
+        let voices = getVoices();
+        voices = voices.filter(v => v.id !== voiceId);
+        saveVoices(voices);
+        if (getActiveVoiceId() === voiceId) {
+            setActiveVoiceId(getDefaultVoiceId());
+        }
+        return true;
+    }
+
+    function autoAssignToVoice(voiceId, availableAudios = []) {
+        const v = getVoice(voiceId);
+        if (!v) return 0;
+        const vNorm = normAudioStr(v.name).replace('vozde', '').replace('voz', '').trim();
+        const t = Object.assign({}, v.templates);
+        let count = 0;
+
+        availableAudios.forEach(aud => {
+            const aNorm = normAudioStr(aud.name);
+            const fNorm = normAudioStr(aud.fileName);
+            const combined = `${aNorm} ${fNorm}`;
+            const matchesVoice = vNorm ? combined.includes(vNorm) : true;
+
+            if ((combined.includes('avemariagloria') || (combined.includes('avemaria') && combined.includes('gloria'))) && matchesVoice) {
+                t.ave_maria_gloria = aud.id;
+                count++;
+            } else if ((combined.includes('avemaria') || combined.includes('hailmary')) && !combined.includes('gloria') && matchesVoice) {
+                t.ave_maria = aud.id;
+                count++;
+            } else if ((combined.includes('padrenuestro') || combined.includes('ourfather')) && matchesVoice) {
+                t.padre_nuestro = aud.id;
+                count++;
+            } else if ((combined.includes('sumopontifice') || combined.includes('papa')) && matchesVoice) {
+                t.intro_pn = aud.id;
+                count++;
+            } else if ((combined.includes('gloria') || combined.includes('glory')) && !combined.includes('avemaria') && matchesVoice) {
+                t.gloria = aud.id;
+                count++;
+            } else if ((combined.includes('credo') || combined.includes('creed')) && matchesVoice) {
+                t.credo = aud.id;
+                count++;
+            } else if ((combined.includes('senaldelacruz') || combined.includes('cruz')) && matchesVoice) {
+                t.crucifix_intro = aud.id;
+                count++;
+            } else if ((combined.includes('pedirgracia') || combined.includes('gracia')) && matchesVoice) {
+                t.pedir_gracia = aud.id;
+                count++;
+            } else if ((combined.includes('diostesalve') || combined.includes('salve')) && matchesVoice) {
+                t.salve = aud.id;
+                count++;
+            } else if ((combined.includes('letania') || combined.includes('litany')) && matchesVoice) {
+                t.letanias = aud.id;
+                count++;
+            } else if ((combined.includes('oracion') || combined.includes('conclusion')) && matchesVoice) {
+                t.oracion_final = aud.id;
+                count++;
+            }
+        });
+
+        updateVoice(voiceId, { templates: t });
+        return count;
+    }
+
+    return {
+        getVoices,
+        saveVoices,
+        getDefaultVoiceId,
+        setDefaultVoiceId,
+        getActiveVoiceId,
+        setActiveVoiceId,
+        getVoice,
+        createVoice,
+        updateVoice,
+        deleteVoice,
+        autoAssignToVoice
+    };
+})();
+
+// =============================================================================
 // GESTOR DE ASIGNACIONES DE AUDIOS POR ORACIÓN Y MISTERIO
 // =============================================================================
 
@@ -415,7 +671,7 @@ const RosaryAudioAssignments = (function() {
     }
 
     // Calcula asignaciones predeterminadas para que todo esté completo sin requerir configuración manual
-    function calculateDefaultAssignments(mystery = 'Gozosos', availableAudios = []) {
+    function calculateDefaultAssignments(mystery = 'Gozosos', availableAudios = [], voice = null) {
         function resolveId(keyWord, fallbackId) {
             const normKey = normAudioStr(keyWord);
             if (availableAudios && availableAudios.length > 0) {
@@ -447,17 +703,20 @@ const RosaryAudioAssignments = (function() {
             return fallbackId;
         }
 
-        const aveMariaId = resolveId('avemaria', 'sys_avemaria');
-        const aveMariaGloriaId = resolveId('avemariagloria', 'sys_avemaria_gloria');
-        const padreNuestroId = resolveId('padrenuestro', 'sys_padrenuestro');
-        const gloriaId = resolveId('gloria', 'sys_gloria');
-        const credoId = resolveId('credo', 'sys_credo');
-        const senalCruzId = resolveId('senaldelacruz', 'sys_senaldelacruz');
-        const sumoPontificeId = resolveId('sumopontifice', padreNuestroId);
-        const letaniasId = resolveId('letanias', 'sys_letanias');
-        const salveId = resolveId('diostesalve', 'sys_diostesalve');
-        const oracionId = resolveId('oracion', 'sys_oracion');
-        const pedirGraciaId = resolveId('pedirgracia', 'sys_pedirgracia');
+        const effectiveVoice = voice || (window.RosaryVoices ? window.RosaryVoices.getVoice(window.RosaryVoices.getActiveVoiceId()) : null);
+        const vTemplates = (effectiveVoice && effectiveVoice.templates) ? effectiveVoice.templates : {};
+
+        const aveMariaId = vTemplates.ave_maria || resolveId('avemaria', 'sys_avemaria');
+        const aveMariaGloriaId = vTemplates.ave_maria_gloria || resolveId('avemariagloria', 'sys_avemaria_gloria');
+        const padreNuestroId = vTemplates.padre_nuestro || resolveId('padrenuestro', 'sys_padrenuestro');
+        const gloriaId = vTemplates.gloria || resolveId('gloria', 'sys_gloria');
+        const credoId = vTemplates.credo || resolveId('credo', 'sys_credo');
+        const senalCruzId = vTemplates.crucifix_intro || resolveId('senaldelacruz', 'sys_senaldelacruz');
+        const sumoPontificeId = vTemplates.intro_pn || resolveId('sumopontifice', padreNuestroId);
+        const letaniasId = vTemplates.letanias || resolveId('letanias', 'sys_letanias');
+        const salveId = vTemplates.salve || resolveId('diostesalve', 'sys_diostesalve');
+        const oracionId = vTemplates.oracion_final || resolveId('oracion', 'sys_oracion');
+        const pedirGraciaId = vTemplates.pedir_gracia || resolveId('pedirgracia', 'sys_pedirgracia');
 
         const def = {};
 
@@ -518,61 +777,106 @@ const RosaryAudioAssignments = (function() {
 
     return {
         // Obtener asignaciones para un misterio e idioma (incluye predeterminados automáticos)
-        getAssignments(lang = 'es', mystery = 'Gozosos', availableAudios = []) {
-            const defaults = calculateDefaultAssignments(mystery, availableAudios);
+        getAssignments(lang = 'es', mystery = 'Gozosos', availableAudios = [], voiceId = null) {
+            const activeVoiceId = voiceId || (window.RosaryVoices ? window.RosaryVoices.getActiveVoiceId() : 'voice_default');
+            const voice = window.RosaryVoices ? window.RosaryVoices.getVoice(activeVoiceId) : null;
+            const defaults = calculateDefaultAssignments(mystery, availableAudios, voice);
             const store = getStore();
-            const userCustom = (store[lang] && store[lang][mystery]) ? store[lang][mystery] : {};
 
-            // Sanear cualquier asignación errónea previa donde un Ave María quedó con 'sys_gloria' por coincidencia parcial
-            const aveMariaGloriaId = defaults['intro_am_3'] || 'sys_avemaria_gloria';
-            const aveMariaId = defaults['intro_am_1'] || 'sys_avemaria';
+            // Solo personalizaciones que pertenecen estrictamente a esta voz activa
+            const userCustom = (store[activeVoiceId] && store[activeVoiceId][lang] && store[activeVoiceId][lang][mystery])
+                ? store[activeVoiceId][lang][mystery]
+                : ((activeVoiceId === 'voice_default' && store[lang] && store[lang][mystery]) ? store[lang][mystery] : {});
+
+            // La plantilla de la voz seleccionada es la base litúrgica para todas las cuentas
+            const merged = Object.assign({}, defaults);
+
+            // Sanear y superponer solo personalizaciones explícitas guardadas para esta voz
             for (const k in userCustom) {
-                if (k.includes('_am_') && (userCustom[k] === 'sys_gloria' || userCustom[k] === 'gloria')) {
-                    if (k === 'intro_am_3' || k.endsWith('_am_10')) {
-                        userCustom[k] = aveMariaGloriaId;
-                    } else {
-                        userCustom[k] = aveMariaId;
+                if (userCustom[k] && userCustom[k] !== '__upload__') {
+                    // Evitar que asignaciones erróneas de gloria o credo sobrescriban cuentas que no corresponden
+                    if (k.includes('_am_') && (userCustom[k] === 'sys_gloria' || userCustom[k] === 'gloria')) {
+                        continue;
                     }
+                    if ((k.includes('_gl') || k === 'intro_gloria') && (userCustom[k] === 'sys_credo' || userCustom[k] === 'credo')) {
+                        continue;
+                    }
+                    merged[k] = userCustom[k];
                 }
             }
 
-            // Fusionar: los predeterminados se llenan si el usuario no los ha modificado o anulado
-            const merged = Object.assign({}, defaults, userCustom);
             return merged;
         },
 
-        // Asignar un audio a una oración específica
-        setAssignment(lang, mystery, itemKey, audioId) {
+        // Limpiar sobreescrituras individuales de filas para una voz específica,
+        // asegurando que todas las oraciones adopten de inmediato la configuración de la voz
+        clearVoiceRowOverrides(voiceId) {
             const store = getStore();
-            if (!store[lang]) store[lang] = {};
-            if (!store[lang][mystery]) store[lang][mystery] = {};
-            if (audioId) {
-                store[lang][mystery][itemKey] = audioId;
-            } else {
-                delete store[lang][mystery][itemKey];
+            if (store[voiceId]) {
+                delete store[voiceId];
             }
+            if (voiceId === 'voice_default' || voiceId === window.RosaryVoices?.getDefaultVoiceId()) {
+                for (const l in store) {
+                    if (l !== 'voice_default' && !l.startsWith('voice_')) {
+                        delete store[l];
+                    }
+                }
+            }
+            saveStore(store);
+        },
+
+        // Asignar un audio a una oración específica
+        setAssignment(lang, mystery, itemKey, audioId, voiceId = null) {
+            const activeVoiceId = voiceId || (window.RosaryVoices ? window.RosaryVoices.getActiveVoiceId() : 'voice_default');
+            const store = getStore();
+            if (!store[activeVoiceId]) store[activeVoiceId] = {};
+            if (!store[activeVoiceId][lang]) store[activeVoiceId][lang] = {};
+            if (!store[activeVoiceId][lang][mystery]) store[activeVoiceId][lang][mystery] = {};
+
+            if (audioId) {
+                store[activeVoiceId][lang][mystery][itemKey] = audioId;
+            } else {
+                delete store[activeVoiceId][lang][mystery][itemKey];
+            }
+
+            // Retrocompatibilidad con store plano para la voz por defecto
+            if (activeVoiceId === 'voice_default' || activeVoiceId === window.RosaryVoices?.getDefaultVoiceId()) {
+                if (!store[lang]) store[lang] = {};
+                if (!store[lang][mystery]) store[lang][mystery] = {};
+                if (audioId) store[lang][mystery][itemKey] = audioId;
+                else delete store[lang][mystery][itemKey];
+            }
+
             saveStore(store);
 
             if (window.RosaryCloud && typeof window.RosaryCloud.saveAssignmentsToCloud === 'function') {
-                window.RosaryCloud.saveAssignmentsToCloud(lang, mystery, store[lang][mystery]).catch(() => {});
+                window.RosaryCloud.saveAssignmentsToCloud(lang, mystery, store[activeVoiceId][lang][mystery]).catch(() => {});
             }
         },
 
         // Guardar lote completo de asignaciones
-        setAllAssignments(lang, mystery, assignmentsMap) {
+        setAllAssignments(lang, mystery, assignmentsMap, voiceId = null) {
+            const activeVoiceId = voiceId || (window.RosaryVoices ? window.RosaryVoices.getActiveVoiceId() : 'voice_default');
             const store = getStore();
-            if (!store[lang]) store[lang] = {};
-            store[lang][mystery] = Object.assign({}, assignmentsMap);
+            if (!store[activeVoiceId]) store[activeVoiceId] = {};
+            if (!store[activeVoiceId][lang]) store[activeVoiceId][lang] = {};
+            store[activeVoiceId][lang][mystery] = Object.assign({}, assignmentsMap);
+
+            if (activeVoiceId === 'voice_default' || activeVoiceId === window.RosaryVoices?.getDefaultVoiceId()) {
+                if (!store[lang]) store[lang] = {};
+                store[lang][mystery] = Object.assign({}, assignmentsMap);
+            }
+
             saveStore(store);
 
             if (window.RosaryCloud && typeof window.RosaryCloud.saveAssignmentsToCloud === 'function') {
-                window.RosaryCloud.saveAssignmentsToCloud(lang, mystery, store[lang][mystery]).catch(() => {});
+                window.RosaryCloud.saveAssignmentsToCloud(lang, mystery, store[activeVoiceId][lang][mystery]).catch(() => {});
             }
         },
 
         // Auto-asignación inteligente por similitud de nombres (robusto a mayúsculas, acentos y sin espacios)
-        autoAssign(lang, mystery, availableAudios, structureItems) {
-            const assignments = Object.assign({}, this.getAssignments(lang, mystery, availableAudios));
+        autoAssign(lang, mystery, availableAudios, structureItems, voiceId = null) {
+            const assignments = Object.assign({}, this.getAssignments(lang, mystery, availableAudios, voiceId));
             let assignedCount = 0;
 
             structureItems.forEach(item => {
@@ -679,7 +983,7 @@ const RosaryAudioAssignments = (function() {
                 }
             });
 
-            this.setAllAssignments(lang, mystery, assignments);
+            this.setAllAssignments(lang, mystery, assignments, voiceId);
             return { assignments, assignedCount };
         }
     };
@@ -840,5 +1144,6 @@ const RosaryAudioExporter = (function() {
 window.normAudioStr = normAudioStr;
 window.SYSTEM_AUDIO_CATALOG = SYSTEM_AUDIO_CATALOG;
 window.RosaryAudioStore = RosaryAudioStore;
+window.RosaryVoices = RosaryVoiceManager;
 window.RosaryAudioAssignments = RosaryAudioAssignments;
 window.RosaryAudioExporter = RosaryAudioExporter;

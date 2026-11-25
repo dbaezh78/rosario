@@ -29,6 +29,13 @@
                         <span class="v-sw-opt v2">V2</span>
                     </button>
                 </div>
+                <!-- Selector de Voz Litúrgica en la Cabecera -->
+                <div class="voice-select-wrapper" id="header-voice-select-wrap" title="Seleccionar Voz del Rosario">
+                    <span class="voice-select-icon">🎙️</span>
+                    <select id="voice-select" class="header-voice-select" aria-label="Seleccionar Voz del Rosario">
+                        <!-- Opciones de voz pobladas dinámicamente -->
+                    </select>
+                </div>
                 <div class="brand-title">Santo Rosario</div>
                 <div class="mystery-dropdown-wrap" id="mystery-dropdown-wrap">
                     <button type="button" id="today-badge" class="brand-day-tag brand-day-btn" title="Clic para cambiar de misterio" aria-haspopup="true" aria-expanded="false">
@@ -415,6 +422,19 @@
                                 <option value="v1">🟡 Versión 1 (Cruz Amarilla · V1)</option>
                             </select>
                         </div>
+
+                        <div class="sync-field-group sync-voice-field-group">
+                            <label for="sync-voice-select">Voz activa:</label>
+                            <div class="sync-voice-input-row">
+                                <select id="sync-voice-select" class="sync-select" aria-label="Voz para sincronizar y asignar oraciones">
+                                    <!-- Opciones de voz -->
+                                </select>
+                                <button type="button" id="btn-create-voice" class="btn-voice-tool" title="Crear un nuevo perfil de voz">➕</button>
+                                <button type="button" id="btn-config-voice" class="btn-voice-tool" title="Configurar audios litúrgicos de esta voz (Ave Marías, Padre Nuestro, Gloria...)">⚙️</button>
+                                <button type="button" id="btn-set-default-voice" class="btn-voice-tool" title="Establecer esta voz como la predeterminada por defecto">⭐</button>
+                                <button type="button" id="btn-delete-voice" class="btn-voice-tool" title="Eliminar este perfil de voz">🗑️</button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Selector de Modo (Segmentado vs Tiempo Continuo) y Herramientas del Almacén -->
@@ -742,6 +762,196 @@
                 <button type="button" id="btn-reset-virgin-bow" class="btn-sync-sec" title="Restablecer valores litúrgicos recomendados">↺ Valores Predeterminados</button>
                 <div class="sync-footer-actions">
                     <button type="button" id="btn-save-virgin-bow" class="btn-sync-prim" title="Guardar tiempos">💾 Guardar Tiempos</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Configuración Litúrgica de Voces -->
+    <div id="voice-config-modal" class="sync-modal-overlay">
+        <div class="sync-modal-window voice-config-modal-window" role="dialog" aria-modal="true" aria-labelledby="voice-config-modal-title">
+            <div class="sync-modal-header">
+                <div class="sync-modal-title-wrap">
+                    <span class="sync-modal-icon">🎙️</span>
+                    <div>
+                        <h2 id="voice-config-modal-title" class="sync-modal-title">Configurar Audios de la Voz</h2>
+                        <p class="sync-modal-subtitle" id="voice-config-modal-subtitle">Asigna qué audio corresponde a cada oración para este perfil de voz</p>
+                    </div>
+                </div>
+                <button id="voice-config-modal-close" class="sync-close-btn" title="Cerrar Configuración" aria-label="Cerrar">✕</button>
+            </div>
+
+            <div class="voice-config-body">
+                <div class="voice-config-info-banner">
+                    <div class="voice-name-edit-wrap">
+                        <label for="voice-config-name-input">Nombre del Perfil de Voz:</label>
+                        <input type="text" id="voice-config-name-input" class="voice-name-input" placeholder="Ej: Voz de David">
+                    </div>
+                    <div class="voice-default-checkbox-wrap">
+                        <label class="voice-default-label">
+                            <input type="checkbox" id="voice-config-is-default-chk">
+                            <span>⭐ Establecer como voz por defecto al iniciar</span>
+                        </label>
+                    </div>
+                    <div class="voice-config-auto-btn-wrap">
+                        <button type="button" id="btn-voice-auto-assign" class="btn-sync-sec" title="Buscar y asignar audios del almacén que coincidan con esta voz">
+                            ⚡ Auto-asignar audios para esta voz
+                        </button>
+                    </div>
+                </div>
+
+                <div class="voice-config-prayers-grid">
+                    <!-- 1. Ave María Ordinaria (1 a 9) -->
+                    <div class="voice-prayer-card highlight-am">
+                        <div class="voice-prayer-card-header">
+                            <span class="voice-prayer-badge">Cuentas 1 a 9 y 1ª-2ª</span>
+                            <h4>Ave María Ordinaria (sin Gloria)</h4>
+                        </div>
+                        <p class="voice-prayer-desc">Se reza en las 9 primeras cuentas de cada decena y en las dos primeras cuentas del principio.</p>
+                        <div class="voice-prayer-select-wrap">
+                            <select id="voice-template-ave_maria" class="voice-template-select" data-template-key="ave_maria"></select>
+                            <button type="button" class="btn-voice-test-play" data-target="voice-template-ave_maria" title="Escuchar audio">▶</button>
+                        </div>
+                    </div>
+
+                    <!-- 2. Ave María con Gloria (10ª y 3ª) -->
+                    <div class="voice-prayer-card highlight-am-gl">
+                        <div class="voice-prayer-card-header">
+                            <span class="voice-prayer-badge special">10ª Cuenta y 3ª Inicial</span>
+                            <h4>Ave María con aviso de Gloria</h4>
+                        </div>
+                        <p class="voice-prayer-desc">Avisa al orante a mitad de la oración que viene el Gloria. Se reza en la 10ª cuenta de cada misterio y en la 3ª del Sumo Pontífice.</p>
+                        <div class="voice-prayer-select-wrap">
+                            <select id="voice-template-ave_maria_gloria" class="voice-template-select" data-template-key="ave_maria_gloria"></select>
+                            <button type="button" class="btn-voice-test-play" data-target="voice-template-ave_maria_gloria" title="Escuchar audio">▶</button>
+                        </div>
+                    </div>
+
+                    <!-- 3. Padre Nuestro Decenas -->
+                    <div class="voice-prayer-card">
+                        <div class="voice-prayer-card-header">
+                            <span class="voice-prayer-badge">5 Decenas</span>
+                            <h4>Padre Nuestro (Misterios)</h4>
+                        </div>
+                        <p class="voice-prayer-desc">Se reza al inicio de cada uno de los 5 misterios.</p>
+                        <div class="voice-prayer-select-wrap">
+                            <select id="voice-template-padre_nuestro" class="voice-template-select" data-template-key="padre_nuestro"></select>
+                            <button type="button" class="btn-voice-test-play" data-target="voice-template-padre_nuestro" title="Escuchar audio">▶</button>
+                        </div>
+                    </div>
+
+                    <!-- 4. Padre Nuestro Sumo Pontífice -->
+                    <div class="voice-prayer-card">
+                        <div class="voice-prayer-card-header">
+                            <span class="voice-prayer-badge">Inicio</span>
+                            <h4>Padre Nuestro (Sumo Pontífice)</h4>
+                        </div>
+                        <p class="voice-prayer-desc">Por las intenciones del Santo Padre en el colgante inicial.</p>
+                        <div class="voice-prayer-select-wrap">
+                            <select id="voice-template-intro_pn" class="voice-template-select" data-template-key="intro_pn"></select>
+                            <button type="button" class="btn-voice-test-play" data-target="voice-template-intro_pn" title="Escuchar audio">▶</button>
+                        </div>
+                    </div>
+
+                    <!-- 5. Gloria al Padre -->
+                    <div class="voice-prayer-card">
+                        <div class="voice-prayer-card-header">
+                            <span class="voice-prayer-badge">Doxología</span>
+                            <h4>Gloria al Padre</h4>
+                        </div>
+                        <p class="voice-prayer-desc">Al terminar cada decena y tras las 3 Ave Marías iniciales.</p>
+                        <div class="voice-prayer-select-wrap">
+                            <select id="voice-template-gloria" class="voice-template-select" data-template-key="gloria"></select>
+                            <button type="button" class="btn-voice-test-play" data-target="voice-template-gloria" title="Escuchar audio">▶</button>
+                        </div>
+                    </div>
+
+                    <!-- 6. Credo -->
+                    <div class="voice-prayer-card">
+                        <div class="voice-prayer-card-header">
+                            <span class="voice-prayer-badge">Crucifijo</span>
+                            <h4>Credo de los Apóstoles</h4>
+                        </div>
+                        <p class="voice-prayer-desc">Profesión de fe en la cruz al iniciar el Rosario.</p>
+                        <div class="voice-prayer-select-wrap">
+                            <select id="voice-template-credo" class="voice-template-select" data-template-key="credo"></select>
+                            <button type="button" class="btn-voice-test-play" data-target="voice-template-credo" title="Escuchar audio">▶</button>
+                        </div>
+                    </div>
+
+                    <!-- 7. Señal de la Cruz -->
+                    <div class="voice-prayer-card">
+                        <div class="voice-prayer-card-header">
+                            <span class="voice-prayer-badge">Apertura</span>
+                            <h4>Señal de la Cruz</h4>
+                        </div>
+                        <p class="voice-prayer-desc">Por la señal de la Santa Cruz... Invocación inicial.</p>
+                        <div class="voice-prayer-select-wrap">
+                            <select id="voice-template-crucifix_intro" class="voice-template-select" data-template-key="crucifix_intro"></select>
+                            <button type="button" class="btn-voice-test-play" data-target="voice-template-crucifix_intro" title="Escuchar audio">▶</button>
+                        </div>
+                    </div>
+
+                    <!-- 8. Pedir una Gracia -->
+                    <div class="voice-prayer-card">
+                        <div class="voice-prayer-card-header">
+                            <span class="voice-prayer-badge">Ofrecimiento</span>
+                            <h4>Pedir una Gracia</h4>
+                        </div>
+                        <p class="voice-prayer-desc">Ofrecimiento breve antes de cada misterio.</p>
+                        <div class="voice-prayer-select-wrap">
+                            <select id="voice-template-pedir_gracia" class="voice-template-select" data-template-key="pedir_gracia"></select>
+                            <button type="button" class="btn-voice-test-play" data-target="voice-template-pedir_gracia" title="Escuchar audio">▶</button>
+                        </div>
+                    </div>
+
+                    <!-- 9. La Salve -->
+                    <div class="voice-prayer-card">
+                        <div class="voice-prayer-card-header">
+                            <span class="voice-prayer-badge">Conclusión</span>
+                            <h4>Dios te Salve, Reina y Madre</h4>
+                        </div>
+                        <p class="voice-prayer-desc">Oración a la Santísima Virgen al culminar los 5 misterios.</p>
+                        <div class="voice-prayer-select-wrap">
+                            <select id="voice-template-salve" class="voice-template-select" data-template-key="salve"></select>
+                            <button type="button" class="btn-voice-test-play" data-target="voice-template-salve" title="Escuchar audio">▶</button>
+                        </div>
+                    </div>
+
+                    <!-- 10. Letanías Lauretanas -->
+                    <div class="voice-prayer-card">
+                        <div class="voice-prayer-card-header">
+                            <span class="voice-prayer-badge">Conclusión</span>
+                            <h4>Letanías Lauretanas</h4>
+                        </div>
+                        <p class="voice-prayer-desc">Súplicas y alabanzas a la Virgen María.</p>
+                        <div class="voice-prayer-select-wrap">
+                            <select id="voice-template-letanias" class="voice-template-select" data-template-key="letanias"></select>
+                            <button type="button" class="btn-voice-test-play" data-target="voice-template-letanias" title="Escuchar audio">▶</button>
+                        </div>
+                    </div>
+
+                    <!-- 11. Oración Final -->
+                    <div class="voice-prayer-card">
+                        <div class="voice-prayer-card-header">
+                            <span class="voice-prayer-badge">Conclusión</span>
+                            <h4>Oración Final</h4>
+                        </div>
+                        <p class="voice-prayer-desc">Oración conclusiva del Santo Rosario.</p>
+                        <div class="voice-prayer-select-wrap">
+                            <select id="voice-template-oracion_final" class="voice-template-select" data-template-key="oracion_final"></select>
+                            <button type="button" class="btn-voice-test-play" data-target="voice-template-oracion_final" title="Escuchar audio">▶</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sync-modal-footer">
+                <div class="sync-footer-status">
+                    <span id="voice-config-status-msg">Selecciona los audios para esta voz y pulsa Guardar</span>
+                </div>
+                <div class="sync-footer-actions">
+                    <button type="button" id="btn-voice-config-save" class="btn-sync-prim">💾 Guardar y Aplicar Voz</button>
                 </div>
             </div>
         </div>
