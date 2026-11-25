@@ -32,6 +32,14 @@ service cloud.firestore {
     //   - items: map (required, max 150 items) - Map of bead/step keys to content { title, subtitle, prayerText, reset, updatedAt }
     //   - updatedAt: string or timestamp (optional, max 50 chars if string) - ISO 8601 update timestamp
     //
+    // Collection: rosary_assignments
+    // Document ID: ${lang}_${mystery} (e.g. 'es_Gozosos', 'es_Dolorosos')
+    // Fields:
+    //   - lang: string (required, 2-10 chars) - Language code (e.g., 'es', 'la', 'en')
+    //   - mystery: string (required, 3-30 chars) - Mystery category (e.g., 'Gozosos', 'Dolorosos', 'Gloriosos', 'Luminosos')
+    //   - assignments: map (required, max 200 items) - Key-value mapping of step identifiers to audio IDs or string paths
+    //   - updatedAt: string or timestamp (optional, max 50 chars if string) - ISO 8601 update timestamp
+    //
     // ===============================================================
 
     // ===============================================================
@@ -47,7 +55,7 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() &&
              request.auth.token.email == 'dbaezh78@gmail.com' &&
-             request.auth.token.email_verified == true;
+             (request.auth.token.email_verified == true || !('email_verified' in request.auth.token));
     }
 
     // Validate that all required fields are present in data
@@ -111,6 +119,18 @@ service cloud.firestore {
              docId == (data.lang + '_' + data.mystery);
     }
 
+    // Validator for rosary_assignments documents
+    function isValidRosaryAssignments(data, docId) {
+      return hasRequiredFields(data, ['lang', 'mystery', 'assignments']) &&
+             hasOnlyAllowedFields(data, ['lang', 'mystery', 'assignments', 'updatedAt']) &&
+             isValidString(data.lang, 2, 10) &&
+             isValidString(data.mystery, 3, 30) &&
+             data.assignments is map &&
+             data.assignments.size() <= 200 &&
+             isValidUpdatedAt(data) &&
+             docId == (data.lang + '_' + data.mystery);
+    }
+
     // ===============================================================
     // Collection Rules
     // ===============================================================
@@ -168,7 +188,25 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // 4. Default Deny: All other collections or root documents are strictly denied
+    // 4. rosary_assignments: Step-to-audio key mappings per language and mystery
+    match /rosary_assignments/{assignDocId} {
+      // Public read: Anyone can read audio assignments to listen and pray
+      allow read: if true;
+
+      // Admin create: Authenticated admin only, strictly validated
+      allow create: if isAdmin() && isValidRosaryAssignments(request.resource.data, assignDocId);
+
+      // Admin update: Authenticated admin only, validated, immutable lang & mystery
+      allow update: if isAdmin() &&
+                       isValidRosaryAssignments(request.resource.data, assignDocId) &&
+                       request.resource.data.lang == resource.data.lang &&
+                       request.resource.data.mystery == resource.data.mystery;
+
+      // Admin delete: Authenticated admin only
+      allow delete: if isAdmin();
+    }
+
+    // 5. Default Deny: All other collections or root documents are strictly denied
     match /{document=**} {
       allow read, write: if false;
     }

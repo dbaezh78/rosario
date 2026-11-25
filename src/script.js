@@ -581,33 +581,39 @@ function updateUIForStep(stepIndex) {
     }
 
     // 7. Inclinación reverente de la cabeza de la Virgen durante el Gloria al Padre
-    const effectiveTime = (audioPlayer && !isNaN(audioPlayer.currentTime) && audioPlayer.currentTime > 0)
-        ? audioPlayer.currentTime
-        : (step.s || 0);
-    setVirginBow(isGloriaTime(effectiveTime));
+    if (isPlayingSegmentedRosary) {
+        const isGloria = (step.type === 'gloria' || step.key === 'intro_gloria' || (step.key && step.key.includes('_gl')));
+        setVirginBow(isGloria, step.key);
+    } else {
+        const effectiveTime = (audioPlayer && !isNaN(audioPlayer.currentTime) && audioPlayer.currentTime > 0)
+            ? audioPlayer.currentTime
+            : (step.s || 0);
+        setVirginBow(isGloriaTime(effectiveTime));
+    }
 }
 
 // Determina si el segundo actual corresponde a la reverencia del Gloria al Padre:
-// Comienza exactamente 1 segundo antes de que empiece el Gloria y se mantiene abajo exactamente 3 segundos
-// a partir del inicio del Gloria, volviendo luego suavemente a su estado normal.
+// Comienza exactamente 1 segundo antes de que empiece el Gloria y se mantiene hasta 1 segundo después de haberlo dicho
+// ("Gloria al Padre, y al Hijo, y al Espíritu Santo" dura aprox 4s + 1s después = 5s).
 function isGloriaTime(curTime) {
     if (!currentSteps || currentSteps.length === 0 || isNaN(curTime)) return false;
 
-    // Inclinación reverente en el segundo 9 (Gloria al Padre en la Señal de la Cruz inicial)
+    // Inclinación reverente en la Señal de la Cruz inicial (Gloria al Padre va de ~12.5s a ~16.5s)
+    // 1 segundo antes (11.5s) y 1 segundo después (17.5s):
     const introStep = currentSteps.find(s => s.key === 'crucifix_intro');
     if (introStep) {
         const introStart = (typeof introStep.s === 'number' && !isNaN(introStep.s)) ? introStep.s : 0;
-        if (curTime >= (introStart + 8.5) && curTime < (introStart + 12.0)) {
+        if (curTime >= (introStart + 11.5) && curTime < (introStart + 17.5)) {
             return true;
         }
     }
 
     for (let i = 0; i < currentSteps.length; i++) {
         const step = currentSteps[i];
-        if (step.type === 'gloria' || (step.key && step.key.includes('gl'))) {
+        if (step.type === 'gloria' || step.key === 'intro_gloria' || (step.key && step.key.includes('gl'))) {
             const gloriaStart = (typeof step.s === 'number' && !isNaN(step.s)) ? step.s : 0;
-            const start = Math.max(0, gloriaStart - 1.0); // 1 segundo antes del gloria
-            const end = gloriaStart + 3.0; // Se mantiene abajo 3 segundos completos a partir del inicio del Gloria
+            const start = Math.max(0, gloriaStart - 1.0); // 1 segundo antes del Gloria al Padre
+            const end = gloriaStart + 5.0; // 1 segundo después de decir "y al Espíritu Santo" (~4s + 1s = 5s)
             if (curTime >= start && curTime < end) {
                 return true;
             }
@@ -742,13 +748,28 @@ audioPlayer.addEventListener('timeupdate', () => {
         if (syncTimeDur) syncTimeDur.innerText = formatTime(dur);
         if (syncAudioSlider && !isSyncSeeking) syncAudioSlider.value = overallPct;
 
-        // Inclinación de la cabeza de la Virgen en el segundo 9 (Gloria en la Señal de la Cruz inicial)
-        if (curStep && (curStep.key === 'crucifix_intro' || curStep.type === 'intro_start')) {
-            const isSec9 = (cur >= 8.5 && cur < 12.0);
-            setVirginBow(isSec9, curStep.key);
-        } else if (curStep && audioPlayer.src && audioPlayer.src.toLowerCase().includes('avemaria-gloria')) {
-            const isGloriaEnd = (dur > 6 && cur >= (dur - 6.0) && cur < dur);
-            setVirginBow(isGloriaEnd, curStep.key);
+        // Inclinación reverente de la cabeza de la Virgen:
+        // EXCLUSIVAMENTE 1 segundo antes de decir Gloria al Padre, durante la alabanza ("Gloria al Padre, y al Hijo, y al Espíritu Santo"),
+        // y hasta 1 segundo después de haberlo dicho.
+        // NUNCA se inclina durante el Ave María (en la 10ª Ave María el audio de aviso "Gloria" NO inclina la cabeza).
+        if (curStep && (curStep.type === 'gloria' || curStep.key === 'intro_gloria' || (curStep.key && curStep.key.includes('_gl')))) {
+            // Durante la oración del Gloria al Padre:
+            // "Gloria al Padre, y al Hijo, y al Espíritu Santo" dura aprox 4 segundos.
+            // Con 1 segundo después de haberlo dicho, se mantiene inclinada los primeros 5.0 segundos:
+            const isBowing = (cur < 5.0);
+            setVirginBow(isBowing, curStep.key);
+        } else if (curStep && (curStep.key === 'intro_am_3' || (curStep.key && curStep.key.endsWith('_am_10')))) {
+            // Exactamente 1 segundo antes de que comience el Gloria al Padre (en el último segundo del paso previo):
+            const is1SecBeforeGloria = (dur > 2 && cur >= (dur - 1.0));
+            setVirginBow(is1SecBeforeGloria, curStep.key);
+        } else if (curStep && (curStep.key === 'crucifix_intro' || curStep.type === 'intro_start')) {
+            // Señal de la Cruz: Gloria al Padre de la invocación va de ~12.5s a ~16.5s.
+            // 1 segundo antes (11.5s) y 1 segundo después (17.5s):
+            const isGloriaCross = (cur >= 11.5 && cur < 17.5);
+            setVirginBow(isGloriaCross, curStep.key);
+        } else {
+            // En cualquier otro paso (Ave Marías 1-9, Padre Nuestro, meditaciones, etc.), la cabeza permanece erguida
+            setVirginBow(false, curStep ? curStep.key : null);
         }
         return;
     }
@@ -871,15 +892,16 @@ async function playSegmentedRosary(stepIndex) {
     const step = currentSteps[currentStepIndex];
     const isGloria = (step.type === 'gloria' || (step.key && step.key.includes('_gl')) || step.key === 'intro_gloria');
 
-    // Inclinación reverente de la Virgen (Gloria al Padre: 3 segundos exactos)
+    // Inclinación reverente de la Virgen (Gloria al Padre: 5.0 segundos exactos, hasta 1s después de decir "y al Espíritu Santo")
     if (isGloria) {
         setVirginBow(true, step.key);
         setTimeout(() => {
             if (currentStepIndex === stepIndex) {
                 setVirginBow(false, step.key);
             }
-        }, 3000);
+        }, 5000);
     } else {
+        // En cualquier otro paso (incluidas todas las Ave Marías), la Virgen mantiene su cabeza erguida
         setVirginBow(false, step.key);
     }
 
@@ -925,6 +947,12 @@ async function playSegmentedRosary(stepIndex) {
             }
         } catch (e) {
             console.warn('[SegmentedPlay] Error al reproducir audio de ' + step.title, e);
+            if (e.name === 'NotAllowedError') {
+                isPlayingSegmentedRosary = false;
+                updatePlayPauseButton(false);
+                showRosaryToast('👆 Toca Reproducir para activar el audio en tu dispositivo');
+                return;
+            }
         }
     }
 
@@ -3371,6 +3399,7 @@ function stopScreenRecordingUI(stream) {
 function setupThemesAndAppearance() {
     function applyTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
+        if (document.body) document.body.setAttribute('data-theme', theme);
         try { localStorage.setItem('rosary_active_theme', theme); } catch (e) {}
         const radio = document.querySelector(`input[name="rosary-theme"][value="${theme}"]`);
         if (radio) radio.checked = true;
@@ -3441,7 +3470,10 @@ function setupAuthAndPermissions() {
             try {
                 if (window.RosaryAuth && window.RosaryAuth.loginWithGoogle) {
                     showRosaryToast('Iniciando sesión con Google...');
-                    await window.RosaryAuth.loginWithGoogle();
+                    const res = await window.RosaryAuth.loginWithGoogle();
+                    if (res && res.user) {
+                        handleAuthStateChange(res.user);
+                    }
                 } else {
                     showRosaryToast('⚠️ Servicio de autenticación no inicializado');
                 }
@@ -3457,6 +3489,7 @@ function setupAuthAndPermissions() {
             try {
                 if (window.RosaryAuth && window.RosaryAuth.logout) {
                     await window.RosaryAuth.logout();
+                    handleAuthStateChange(null);
                     showRosaryToast('Sesión cerrada.');
                 }
             } catch (err) {
@@ -3465,12 +3498,19 @@ function setupAuthAndPermissions() {
         });
     }
 
+    // Escuchar evento personalizado global de autenticación
+    window.addEventListener('rosary-auth-changed', (e) => {
+        const u = e.detail ? e.detail.user : null;
+        handleAuthStateChange(u);
+    });
+
     if (window.RosaryAuth && window.RosaryAuth.onAuthStateChanged) {
         window.RosaryAuth.onAuthStateChanged(user => {
             handleAuthStateChange(user);
         });
     } else {
-        handleAuthStateChange(null);
+        const curUser = window.RosaryAuth ? window.RosaryAuth.getCurrentUser() : null;
+        handleAuthStateChange(curUser);
     }
 }
 
@@ -3548,6 +3588,36 @@ function setupSyncVersionSelector() {
     }
 }
 
+// F. CONTROLES DE COLAPSO Y EXPANSIÓN DE LA BARRA DE HERRAMIENTAS DEL SINCRONIZADOR
+function setupSyncToolbarCollapse() {
+    const btnToggleSyncToolbar = document.getElementById('btn-toggle-sync-toolbar');
+    const syncToolbarCollapsible = document.getElementById('sync-toolbar-collapsible');
+    const syncToolbarToggleIcon = document.getElementById('sync-toolbar-toggle-icon');
+    const syncToolbarToggleText = document.getElementById('sync-toolbar-toggle-text');
+
+    if (btnToggleSyncToolbar && syncToolbarCollapsible) {
+        btnToggleSyncToolbar.addEventListener('click', () => {
+            const isCollapsed = syncToolbarCollapsible.classList.toggle('collapsed');
+            if (syncToolbarToggleIcon) syncToolbarToggleIcon.innerText = isCollapsed ? '▾' : '▴';
+            if (syncToolbarToggleText) syncToolbarToggleText.innerText = isCollapsed ? 'Mostrar Opciones y Controles' : 'Ocultar Opciones y Controles';
+            try {
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.setItem('rosary_sync_toolbar_collapsed', isCollapsed ? '1' : '0');
+                }
+            } catch (e) {}
+        });
+
+        // Recordar preferencia del usuario o colapsar automáticamente en pantallas móviles
+        try {
+            if (typeof localStorage !== 'undefined' && localStorage.getItem('rosary_sync_toolbar_collapsed') === '1') {
+                syncToolbarCollapsible.classList.add('collapsed');
+                if (syncToolbarToggleIcon) syncToolbarToggleIcon.innerText = '▾';
+                if (syncToolbarToggleText) syncToolbarToggleText.innerText = 'Mostrar Opciones y Controles';
+            }
+        } catch (e) {}
+    }
+}
+
 // Inicializar todas las nuevas funcionalidades
 function initNewFeatures() {
     setupPlayerCollapseAndFloatingControls();
@@ -3555,6 +3625,7 @@ function initNewFeatures() {
     setupThemesAndAppearance();
     setupAuthAndPermissions();
     setupSyncVersionSelector();
+    setupSyncToolbarCollapse();
 }
 
 if (document.readyState === 'loading') {

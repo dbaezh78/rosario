@@ -466,6 +466,7 @@ const RosaryBgMusic = (function() {
         const btnClose = document.getElementById('bg-music-modal-close');
         const btnDone = document.getElementById('btn-bg-music-done');
         const btnFloatingBg = document.getElementById('floating-btn-bg-music');
+        const btnMiniBg = document.getElementById('mini-btn-bg-music');
 
         const openModal = async () => {
             if (modal) {
@@ -481,6 +482,7 @@ const RosaryBgMusic = (function() {
 
         if (btnMainBg) btnMainBg.addEventListener('click', openModal);
         if (btnFloatingBg) btnFloatingBg.addEventListener('click', openModal);
+        if (btnMiniBg) btnMiniBg.addEventListener('click', openModal);
         if (btnClose) btnClose.addEventListener('click', closeModal);
         if (btnDone) btnDone.addEventListener('click', closeModal);
 

@@ -15,6 +15,8 @@ import {
 import { 
     getAuth, 
     signInWithPopup, 
+    signInWithRedirect,
+    getRedirectResult,
     GoogleAuthProvider, 
     signOut, 
     onAuthStateChanged 
@@ -50,9 +52,26 @@ try {
 
 // Escucha en tiempo real del estado de autenticación
 if (auth) {
+    // Recuperar usuario si vuelve de redirección en navegadores móviles (Chrome Android/Safari)
+    getRedirectResult(auth).then((result) => {
+        if (result && result.user) {
+            currentUser = result.user;
+            isAdmin = !!(currentUser && currentUser.email && currentUser.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase());
+            console.log(`👤 Sesión Google recuperada tras redirección: ${currentUser.email} | Admin: ${isAdmin}`);
+            if (typeof window.onRosaryAuthStateChanged === 'function') {
+                window.onRosaryAuthStateChanged(currentUser, isAdmin);
+            }
+            window.dispatchEvent(new CustomEvent('rosary-auth-changed', { 
+                detail: { user: currentUser, isAdmin, email: currentUser.email } 
+            }));
+        }
+    }).catch((err) => {
+        console.warn("⚠️ Advertencia al verificar resultado de redirección Auth:", err);
+    });
+
     onAuthStateChanged(auth, (user) => {
         currentUser = user;
-        isAdmin = !!(user && user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+        isAdmin = !!(user && user.email && user.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase());
         console.log(`👤 Auth State: ${user ? user.email : 'Visitante (No autenticado)'} | Admin: ${isAdmin}`);
         
         if (typeof window.onRosaryAuthStateChanged === 'function') {
@@ -68,10 +87,29 @@ async function loginWithGoogle() {
     if (!auth) throw new Error("Firebase Auth no disponible");
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    const result = await signInWithPopup(auth, provider);
-    currentUser = result.user;
-    isAdmin = !!(currentUser && currentUser.email && currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
-    return { user: currentUser, isAdmin };
+
+    // Detección de dispositivos móviles para usar redirección si los popups son bloqueados
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    try {
+        if (isMobile) {
+            console.log("📱 Navegador móvil detectado: intentando signInWithPopup con fallback a signInWithRedirect...");
+        }
+        const result = await signInWithPopup(auth, provider);
+        currentUser = result.user;
+        isAdmin = !!(currentUser && currentUser.email && currentUser.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase());
+        window.dispatchEvent(new CustomEvent('rosary-auth-changed', { 
+            detail: { user: currentUser, isAdmin, email: currentUser.email } 
+        }));
+        return { user: currentUser, isAdmin };
+    } catch (popupErr) {
+        console.warn("Popup bloqueado o no soportado, activando redirección:", popupErr);
+        if (popupErr.code === 'auth/popup-blocked' || popupErr.code === 'auth/cancelled-popup-request' || popupErr.code === 'auth/popup-closed-by-user' || isMobile) {
+            await signInWithRedirect(auth, provider);
+            return null;
+        }
+        throw popupErr;
+    }
 }
 
 async function logout() {
@@ -331,6 +369,74 @@ async function restoreTimesFromCloud(lang, mystery) {
     }
 }
 
+// Guarda asignaciones de audios en Cloud Firestore
+async function saveAssignmentsToCloud(lang, mystery, assignments) {
+    if (!db) {
+        console.warn("Firestore no está disponible.");
+        return false;
+    }
+    try {
+        const docRef = doc(db, "rosary_assignments", `${lang}_${mystery}`);
+        await setDoc(docRef, {
+            lang: lang,
+            mystery: mystery,
+            assignments: assignments,
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
+        console.log(`☁️ Asignaciones guardadas en la nube: ${mystery} (${lang})`);
+        return true;
+    } catch (e) {
+        console.error("Error al guardar asignaciones en Firestore:", e);
+        return false;
+    }
+}
+
+// Carga todas las asignaciones desde Cloud Firestore
+async function loadAllAssignmentsFromCloud() {
+    if (!db) return null;
+    try {
+        const querySnapshot = await getDocs(collection(db, "rosary_assignments"));
+        const cloudData = {};
+        querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (data.lang && data.mystery && data.assignments) {
+                if (!cloudData[data.lang]) cloudData[data.lang] = {};
+                cloudData[data.lang][data.mystery] = data.assignments;
+            }
+        });
+        return cloudData;
+    } catch (e) {
+        console.error("Error al cargar asignaciones de Firestore:", e);
+        return null;
+    }
+}
+
+// Escucha en tiempo real cambios de asignaciones desde Cloud Firestore
+function subscribeToCloudAssignments(onUpdateCallback) {
+    if (!db) return () => {};
+    try {
+        const unsubscribe = onSnapshot(collection(db, "rosary_assignments"), (snapshot) => {
+            const cloudData = {};
+            snapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                if (data.lang && data.mystery && data.assignments) {
+                    if (!cloudData[data.lang]) cloudData[data.lang] = {};
+                    cloudData[data.lang][data.mystery] = data.assignments;
+                }
+            });
+            if (typeof onUpdateCallback === 'function') {
+                onUpdateCallback(cloudData);
+            }
+        }, (error) => {
+            console.warn("Error en suscripción Firestore asignaciones:", error);
+        });
+        return unsubscribe;
+    } catch (e) {
+        console.warn("No se pudo iniciar suscripción a asignaciones Firestore:", e);
+        return () => {};
+    }
+}
+
 // Exponer la interfaz en window.RosaryCloud y window.RosaryAuth
 window.RosaryCloud = {
     app,
@@ -346,7 +452,10 @@ window.RosaryCloud = {
     subscribeToCloudPrayers,
     saveItemContentToCloud,
     loadAllContentFromCloud,
-    subscribeToCloudContent
+    subscribeToCloudContent,
+    saveAssignmentsToCloud,
+    loadAllAssignmentsFromCloud,
+    subscribeToCloudAssignments
 };
 
 window.RosaryAuth = {
@@ -354,8 +463,24 @@ window.RosaryAuth = {
     ADMIN_EMAIL,
     loginWithGoogle,
     logout,
-    checkIsAdmin: () => isAdmin,
-    getCurrentUser: () => currentUser
+    checkIsAdmin: (u) => {
+        const target = u || currentUser;
+        return !!(target && target.email && target.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase());
+    },
+    getCurrentUser: () => currentUser,
+    onAuthStateChanged: (callback) => {
+        if (!auth) {
+            if (typeof callback === 'function') callback(null, false);
+            return () => {};
+        }
+        return onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            isAdmin = !!(user && user.email && user.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase());
+            if (typeof callback === 'function') {
+                callback(user, isAdmin);
+            }
+        });
+    }
 };
 
 // Auto-sincronización inicial al cargar el script
@@ -448,6 +573,30 @@ async function initCloudSync() {
                 }
                 if (typeof window.refreshSyncModalContentUI === 'function') {
                     window.refreshSyncModalContentUI();
+                }
+            }
+            updateBadges();
+        });
+
+        // 4. Escuchar asignaciones de audios en tiempo real desde Cloud Firestore
+        subscribeToCloudAssignments((cloudAssignments) => {
+            console.log("☁️ Actualización de asignaciones recibida desde Cloud Firestore:", cloudAssignments);
+            if (typeof localStorage !== 'undefined' && cloudAssignments) {
+                const STORAGE_KEY = 'rosary_segmented_audio_assignments_v1';
+                const raw = localStorage.getItem(STORAGE_KEY);
+                const local = raw ? JSON.parse(raw) : {};
+                for (const l in cloudAssignments) {
+                    if (!local[l]) local[l] = {};
+                    for (const m in cloudAssignments[l]) {
+                        local[l][m] = Object.assign({}, local[l][m] || {}, cloudAssignments[l][m]);
+                    }
+                }
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(local));
+
+                if (typeof window.renderSyncItems === 'function' && typeof syncLangSelect !== 'undefined' && typeof syncMysterySelect !== 'undefined') {
+                    const l = syncLangSelect ? syncLangSelect.value : 'es';
+                    const m = syncMysterySelect ? syncMysterySelect.value : 'Gozosos';
+                    window.renderSyncItems(l, m);
                 }
             }
             updateBadges();

@@ -342,6 +342,28 @@ const RosaryAudioStore = (function() {
                 console.warn('[AudioStore] Error eliminando de IndexedDB:', err);
             }
 
+            // 4. Limpiar cualquier asignación en el Sincronizador que apunte a este audio
+            try {
+                const rawAssign = localStorage.getItem('rosary_segmented_audio_assignments_v1');
+                if (rawAssign) {
+                    const assignStore = JSON.parse(rawAssign);
+                    let changed = false;
+                    for (const lang in assignStore) {
+                        for (const mystery in assignStore[lang]) {
+                            for (const k in assignStore[lang][mystery]) {
+                                if (assignStore[lang][mystery][k] === id) {
+                                    delete assignStore[lang][mystery][k];
+                                    changed = true;
+                                }
+                            }
+                        }
+                    }
+                    if (changed) {
+                        localStorage.setItem('rosary_segmented_audio_assignments_v1', JSON.stringify(assignStore));
+                    }
+                }
+            } catch (e) {}
+
             return true;
         },
 
@@ -397,8 +419,30 @@ const RosaryAudioAssignments = (function() {
         function resolveId(keyWord, fallbackId) {
             const normKey = normAudioStr(keyWord);
             if (availableAudios && availableAudios.length > 0) {
-                const match = availableAudios.find(a => normAudioStr(a.name) === normKey || normAudioStr(a.fileName).includes(normKey));
-                if (match) return match.id;
+                // 1. Coincidencia exacta por nombre o por nombre de archivo (sin extensión)
+                const exact = availableAudios.find(a => {
+                    const nName = normAudioStr(a.name);
+                    const nFile = normAudioStr(a.fileName ? a.fileName.replace(/\.[^/.]+$/, '') : '');
+                    return nName === normKey || nFile === normKey;
+                });
+                if (exact) return exact.id;
+
+                // 2. Coincidencia segura evitando falsos positivos entre AveMaría, Gloria y AveMaría-GLORIA
+                const safeMatch = availableAudios.find(a => {
+                    const nName = normAudioStr(a.name);
+                    const nFile = normAudioStr(a.fileName ? a.fileName.replace(/\.[^/.]+$/, '') : '');
+                    if (normKey === 'gloria') {
+                        return (nName.includes('gloria') || nFile.includes('gloria')) && !nName.includes('avemaria') && !nFile.includes('avemaria');
+                    }
+                    if (normKey === 'avemaria') {
+                        return (nName.includes('avemaria') || nFile.includes('avemaria')) && !nName.includes('gloria') && !nFile.includes('gloria');
+                    }
+                    if (normKey === 'avemariagloria') {
+                        return nName.includes('avemariagloria') || nFile.includes('avemariagloria') || (nName.includes('avemaria') && nName.includes('gloria'));
+                    }
+                    return nName.includes(normKey) || nFile.includes(normKey);
+                });
+                if (safeMatch) return safeMatch.id;
             }
             return fallbackId;
         }

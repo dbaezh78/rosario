@@ -197,6 +197,7 @@
                                 <option value="1.95">1.95x</option>
                                 <option value="2.00">2.00x</option>
                             </select>
+                            <button type="button" id="mini-btn-bg-music" class="btn-mini-ctrl" title="Música de fondo" aria-label="Música de fondo">🎵</button>
                         </div>
                     </div>
                     <div class="mini-slider-wrap">
@@ -370,81 +371,90 @@
 
             <!-- Barra Superior Fija: Selectores de Idioma/Misterio + Reproductor de Control -->
             <div class="sync-toolbar">
-                <div class="sync-selectors-row">
-                    <div class="sync-field-group">
-                        <label for="sync-lang-select">Idioma:</label>
-                        <select id="sync-lang-select" class="sync-select" aria-label="Idioma para sincronizar">
-                            <option value="es" selected>Español</option>
-                            <option value="en">English</option>
-                            <option value="la">Latīna</option>
-                            <option value="it">Italiano</option>
-                            <option value="pt">Português</option>
-                            <option value="fr">Français</option>
-                        </select>
-                    </div>
-
-                    <div class="sync-field-group">
-                        <label for="sync-mystery-select">Misterio:</label>
-                        <select id="sync-mystery-select" class="sync-select" aria-label="Misterio para sincronizar">
-                            <option value="Gozosos" selected>Gozosos</option>
-                            <option value="Dolorosos">Dolorosos</option>
-                            <option value="Luminosos">Luminosos</option>
-                            <option value="Gloriosos">Gloriosos</option>
-                        </select>
-                    </div>
-
-                    <div class="sync-field-group sync-version-group">
-                        <label for="sync-version-select">Versión:</label>
-                        <select id="sync-version-select" class="sync-select" aria-label="Versión de audio para sincronizar">
-                            <option value="original" selected>🔴 Versión 2 (Cruz Roja · Original)</option>
-                            <option value="v1">🟡 Versión 1 (Cruz Amarilla · V1)</option>
-                        </select>
-                    </div>
+                <div class="sync-toolbar-header-row">
+                    <button type="button" id="btn-toggle-sync-toolbar" class="btn-toggle-sync-toolbar" title="Contraer o expandir opciones de sincronización y reproductor">
+                        <span id="sync-toolbar-toggle-icon">▴</span>
+                        <span id="sync-toolbar-toggle-text">Opciones y Controles</span>
+                    </button>
                 </div>
 
-                <!-- Selector de Modo (Segmentado vs Tiempo Continuo) y Herramientas del Almacén -->
-                <div class="sync-mode-and-tools-row">
-                    <div class="sync-mode-switch" role="tablist" aria-label="Modo de Sincronización">
-                        <button type="button" id="sync-mode-segmented-btn" class="sync-mode-btn active" role="tab" aria-selected="true" title="Asignar audios segmentados por oración individual">
-                            🎵 Audios Segmentados
-                        </button>
-                        <button type="button" id="sync-mode-time-btn" class="sync-mode-btn" role="tab" aria-selected="false" title="Sincronizar por tiempos en un solo archivo de audio continuo">
-                            ⏱️ Tiempos Continuos
-                        </button>
-                    </div>
-
-                    <div class="sync-tools-actions">
-                        <button type="button" id="btn-open-audio-store" class="btn-sync-tool-store" title="Abrir Almacén de Audios para subir y organizar oraciones MP3/WAV">
-                            🗄️ Almacén de Audios <span id="sync-store-count-badge" class="sync-store-count-badge">0</span>
-                        </button>
-                        <button type="button" id="btn-sync-auto-assign" class="btn-sync-tool-auto" title="Asignar automáticamente audios a cada oración según sus nombres de archivo">
-                            ⚡ Auto-asignar
-                        </button>
-                        <button type="button" id="btn-sync-download-full" class="btn-sync-tool-download" title="Concatenar y descargar todo el Rosario en un solo archivo de audio (.wav) en orden litúrgico correcto">
-                            📥 Descargar Rosario (.wav)
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Mini-reproductor y monitor de audio para capturar timestamps al vuelo -->
-                <div class="sync-audio-bar">
-                    <div class="sync-audio-controls">
-                        <button id="sync-btn-play-pause" class="btn-sync-play" title="Reproducir / Pausar">▶</button>
-                        <button id="sync-btn-back-5" class="btn-sync-step" title="Retroceder 5s">-5s</button>
-                        <button id="sync-btn-back-1" class="btn-sync-step" title="Retroceder 1s">-1s</button>
-                        <div class="sync-time-badge">
-                            <span id="sync-time-cur">00:00</span> / <span id="sync-time-dur">00:00</span>
+                <div id="sync-toolbar-collapsible" class="sync-toolbar-collapsible">
+                    <div class="sync-selectors-row">
+                        <div class="sync-field-group">
+                            <label for="sync-lang-select">Idioma:</label>
+                            <select id="sync-lang-select" class="sync-select" aria-label="Idioma para sincronizar">
+                                <option value="es" selected>Español</option>
+                                <option value="en">English</option>
+                                <option value="la">Latīna</option>
+                                <option value="it">Italiano</option>
+                                <option value="pt">Português</option>
+                                <option value="fr">Français</option>
+                            </select>
                         </div>
-                        <button id="sync-btn-fwd-1" class="btn-sync-step" title="Adelantar 1s">+1s</button>
-                        <button id="sync-btn-fwd-5" class="btn-sync-step" title="Adelantar 5s">+5s</button>
+
+                        <div class="sync-field-group">
+                            <label for="sync-mystery-select">Misterio:</label>
+                            <select id="sync-mystery-select" class="sync-select" aria-label="Misterio para sincronizar">
+                                <option value="Gozosos" selected>Gozosos</option>
+                                <option value="Dolorosos">Dolorosos</option>
+                                <option value="Luminosos">Luminosos</option>
+                                <option value="Gloriosos">Gloriosos</option>
+                            </select>
+                        </div>
+
+                        <div class="sync-field-group sync-version-group">
+                            <label for="sync-version-select">Versión:</label>
+                            <select id="sync-version-select" class="sync-select" aria-label="Versión de audio para sincronizar">
+                                <option value="original" selected>🔴 Versión 2 (Cruz Roja · Original)</option>
+                                <option value="v1">🟡 Versión 1 (Cruz Amarilla · V1)</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <div class="sync-slider-row">
-                        <input id="sync-audio-slider" class="sync-audio-slider" type="range" min="0" max="100" value="0" step="0.1" aria-label="Barra de posición de audio">
+                    <!-- Selector de Modo (Segmentado vs Tiempo Continuo) y Herramientas del Almacén -->
+                    <div class="sync-mode-and-tools-row">
+                        <div class="sync-mode-switch" role="tablist" aria-label="Modo de Sincronización">
+                            <button type="button" id="sync-mode-segmented-btn" class="sync-mode-btn active" role="tab" aria-selected="true" title="Asignar audios segmentados por oración individual">
+                                🎵 Audios Segmentados
+                            </button>
+                            <button type="button" id="sync-mode-time-btn" class="sync-mode-btn" role="tab" aria-selected="false" title="Sincronizar por tiempos en un solo archivo de audio continuo">
+                                ⏱️ Tiempos Continuos
+                            </button>
+                        </div>
+
+                        <div class="sync-tools-actions">
+                            <button type="button" id="btn-open-audio-store" class="btn-sync-tool-store" title="Abrir Almacén de Audios para subir y organizar oraciones MP3/WAV">
+                                🗄️ Almacén de Audios <span id="sync-store-count-badge" class="sync-store-count-badge">0</span>
+                            </button>
+                            <button type="button" id="btn-sync-auto-assign" class="btn-sync-tool-auto" title="Asignar automáticamente audios a cada oración según sus nombres de archivo">
+                                ⚡ Auto-asignar
+                            </button>
+                            <button type="button" id="btn-sync-download-full" class="btn-sync-tool-download" title="Concatenar y descargar todo el Rosario en un solo archivo de audio (.wav) en orden litúrgico correcto">
+                                📥 Descargar Rosario (.wav)
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="sync-tip-box">
-                        💡 <strong>Cómo sincronizar:</strong> Da clic en <strong>«▶»</strong> para escuchar el audio. Cuando empiece la oración o cuenta deseada, pulsa <strong>«⏱️ Ahora»</strong> en su fila para fijar el tiempo exacto.
+                    <!-- Mini-reproductor y monitor de audio para capturar timestamps al vuelo -->
+                    <div class="sync-audio-bar">
+                        <div class="sync-audio-controls">
+                            <button id="sync-btn-play-pause" class="btn-sync-play" title="Reproducir / Pausar">▶</button>
+                            <button id="sync-btn-back-5" class="btn-sync-step" title="Retroceder 5s">-5s</button>
+                            <button id="sync-btn-back-1" class="btn-sync-step" title="Retroceder 1s">-1s</button>
+                            <div class="sync-time-badge">
+                                <span id="sync-time-cur">00:00</span> / <span id="sync-time-dur">00:00</span>
+                            </div>
+                            <button id="sync-btn-fwd-1" class="btn-sync-step" title="Adelantar 1s">+1s</button>
+                            <button id="sync-btn-fwd-5" class="btn-sync-step" title="Adelantar 5s">+5s</button>
+                        </div>
+
+                        <div class="sync-slider-row">
+                            <input id="sync-audio-slider" class="sync-audio-slider" type="range" min="0" max="100" value="0" step="0.1" aria-label="Barra de posición de audio">
+                        </div>
+
+                        <div class="sync-tip-box">
+                            💡 <strong>Cómo sincronizar:</strong> Da clic en <strong>«▶»</strong> para escuchar el audio. Cuando empiece la oración o cuenta deseada, pulsa <strong>«⏱️ Ahora»</strong> en su fila para fijar el tiempo exacto.
+                        </div>
                     </div>
                 </div>
 
@@ -456,7 +466,7 @@
                     <button type="button" class="sync-nav-pill" data-target="sync-sec-d3">3º Misterio</button>
                     <button type="button" class="sync-nav-pill" data-target="sync-sec-d4">4º Misterio</button>
                     <button type="button" class="sync-nav-pill" data-target="sync-sec-d5">5º Misterio</button>
-                    <button type="button" class="sync-nav-pill" data-target="sync-sec-letanias">Letanías</button>
+                    <button type="button" class="sync-nav-pill" data-target="sync-sec-letanias">Letanías & Final</button>
                 </nav>
             </div>
 
