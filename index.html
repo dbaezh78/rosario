@@ -366,7 +366,13 @@
                         <p class="sync-modal-subtitle">Ajusta los segundos exactos en que empieza cada oración y cuenta por misterio e idioma</p>
                     </div>
                 </div>
-                <button id="sync-modal-close" class="sync-close-btn" title="Cerrar Sincronizador" aria-label="Cerrar">✕</button>
+                <div class="sync-modal-header-actions">
+                    <button type="button" id="btn-open-virgin-bow-modal" class="btn-sync-virgin-bow" title="Ajustar tiempo e inclinación de la cabeza de la Virgen en el Gloria">
+                        <img src="src/img/rosario_virgen_gold.png" alt="Virgen" class="sync-virgin-btn-thumb">
+                        <span class="sync-virgin-btn-text">Gloria Virgen</span>
+                    </button>
+                    <button id="sync-modal-close" class="sync-close-btn" title="Cerrar Sincronizador" aria-label="Cerrar">✕</button>
+                </div>
             </div>
 
             <!-- Barra Superior Fija: Selectores de Idioma/Misterio + Reproductor de Control -->
@@ -425,6 +431,10 @@
                         <div class="sync-tools-actions">
                             <button type="button" id="btn-open-audio-store" class="btn-sync-tool-store" title="Abrir Almacén de Audios para subir y organizar oraciones MP3/WAV">
                                 🗄️ Almacén de Audios <span id="sync-store-count-badge" class="sync-store-count-badge">0</span>
+                            </button>
+                            <button type="button" id="btn-open-virgin-bow-modal-tool" class="btn-sync-tool-virgin" title="Ajustar tiempo en que baja y sube la cabeza la Virgen en el Gloria">
+                                <img src="src/img/rosario_virgen_gold.png" alt="Virgen" class="sync-virgin-tool-thumb">
+                                <span>Gloria Virgen</span>
                             </button>
                             <button type="button" id="btn-sync-auto-assign" class="btn-sync-tool-auto" title="Asignar automáticamente audios a cada oración según sus nombres de archivo">
                                 ⚡ Auto-asignar
@@ -634,6 +644,109 @@
     </div>
 
     
+    <!-- Modal de Configuración de Inclinación de la Virgen en el Gloria -->
+    <div id="virgin-bow-modal" class="sync-modal-overlay virgin-bow-modal-overlay">
+        <div class="sync-modal-window virgin-bow-modal-window" role="dialog" aria-modal="true" aria-labelledby="virgin-bow-modal-title">
+            <div class="sync-modal-header">
+                <div class="sync-modal-title-wrap">
+                    <img src="src/img/rosario_virgen_gold.png" alt="Reverencia Virgen" class="virgin-bow-modal-title-icon">
+                    <div>
+                        <h2 id="virgin-bow-modal-title" class="sync-modal-title">Inclinación de la Virgen en el Gloria</h2>
+                        <p class="sync-modal-subtitle">Ajusta los segundos exactos en que baja y sube la cabeza ante la Santísima Trinidad</p>
+                    </div>
+                </div>
+                <button type="button" id="virgin-bow-modal-close" class="sync-close-btn" title="Cerrar ventana" aria-label="Cerrar">✕</button>
+            </div>
+
+            <div class="virgin-bow-modal-body">
+                <!-- Tarjeta 1: Señal de la Cruz -->
+                <div class="virgin-bow-card">
+                    <div class="virgin-bow-card-header">
+                        <span class="virgin-bow-card-badge">† Invocación Inicial</span>
+                        <h3 class="virgin-bow-card-title">Audio: Señal de la Cruz (SeñAldelaCruz)</h3>
+                    </div>
+                    <p class="virgin-bow-card-desc">
+                        En la invocación inicial, el <em>"Gloria al Padre, y al Hijo, y al Espíritu Santo"</em> se pronuncia cerca del <strong>segundo 9</strong>. La reverencia debe iniciar 1 segundo antes y subir medio segundo antes de lo habitual para no durar de más.
+                    </p>
+                    <div class="virgin-bow-grid">
+                        <div class="virgin-bow-field">
+                            <label for="virgin-bow-intro-start">Segundo en que baja la cabeza (1s antes):</label>
+                            <div class="virgin-bow-input-group">
+                                <button type="button" class="btn-bow-step" data-target="virgin-bow-intro-start" data-delta="-0.5" title="Restar 0.5s">-0.5s</button>
+                                <input type="number" id="virgin-bow-intro-start" min="0" max="60" step="0.1" value="8.0" class="virgin-bow-input">
+                                <span class="unit-label">seg</span>
+                                <button type="button" class="btn-bow-step" data-target="virgin-bow-intro-start" data-delta="0.5" title="Sumar 0.5s">+0.5s</button>
+                            </div>
+                            <span class="virgin-bow-hint">Valor litúrgico recomendado: <strong>8.0s</strong></span>
+                        </div>
+                        <div class="virgin-bow-field">
+                            <label for="virgin-bow-intro-dur">Tiempo que dura con la cabeza inclinada:</label>
+                            <div class="virgin-bow-input-group">
+                                <button type="button" class="btn-bow-step" data-target="virgin-bow-intro-dur" data-delta="-0.5" title="Restar 0.5s">-0.5s</button>
+                                <input type="number" id="virgin-bow-intro-dur" min="1" max="20" step="0.1" value="4.5" class="virgin-bow-input">
+                                <span class="unit-label">seg</span>
+                                <button type="button" class="btn-bow-step" data-target="virgin-bow-intro-dur" data-delta="0.5" title="Sumar 0.5s">+0.5s</button>
+                            </div>
+                            <span class="virgin-bow-hint">Sube la cabeza al segundo <strong id="virgin-bow-intro-end-preview">12.5s</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tarjeta 2: Glorias de los Misterios -->
+                <div class="virgin-bow-card">
+                    <div class="virgin-bow-card-header">
+                        <span class="virgin-bow-card-badge">📿 Todos los Misterios</span>
+                        <h3 class="virgin-bow-card-title">Glorias de cada Decena e Intro (gloria.mp3)</h3>
+                    </div>
+                    <p class="virgin-bow-card-desc">
+                        Paso independiente del Gloria al Padre. La Virgen hace la reverencia desde el comienzo del audio al proclamar la alabanza trinitaria.
+                    </p>
+                    <div class="virgin-bow-grid">
+                        <div class="virgin-bow-field">
+                            <label for="virgin-bow-mystery-anticipation">Anticipación al terminar 10ª Ave María:</label>
+                            <div class="virgin-bow-input-group">
+                                <button type="button" class="btn-bow-step" data-target="virgin-bow-mystery-anticipation" data-delta="-0.5" title="Restar 0.5s">-0.5s</button>
+                                <input type="number" id="virgin-bow-mystery-anticipation" min="0" max="5" step="0.1" value="1.0" class="virgin-bow-input">
+                                <span class="unit-label">seg</span>
+                                <button type="button" class="btn-bow-step" data-target="virgin-bow-mystery-anticipation" data-delta="0.5" title="Sumar 0.5s">+0.5s</button>
+                            </div>
+                            <span class="virgin-bow-hint">Recomendado: <strong>1.0s</strong> antes de que inicie el Gloria</span>
+                        </div>
+                        <div class="virgin-bow-field">
+                            <label for="virgin-bow-mystery-dur">Tiempo que dura inclinada en el Gloria:</label>
+                            <div class="virgin-bow-input-group">
+                                <button type="button" class="btn-bow-step" data-target="virgin-bow-mystery-dur" data-delta="-0.5" title="Restar 0.5s">-0.5s</button>
+                                <input type="number" id="virgin-bow-mystery-dur" min="1" max="15" step="0.1" value="4.5" class="virgin-bow-input">
+                                <span class="unit-label">seg</span>
+                                <button type="button" class="btn-bow-step" data-target="virgin-bow-mystery-dur" data-delta="0.5" title="Sumar 0.5s">+0.5s</button>
+                            </div>
+                            <span class="virgin-bow-hint">Ajustado a <strong>4.5s</strong> (sube medio segundo antes que antes)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visor de Prueba en Vivo -->
+                <div class="virgin-bow-preview-card">
+                    <div class="virgin-bow-preview-visual">
+                        <img id="virgin-bow-demo-img" src="src/img/rosario_virgen_gold.png" alt="Virgen" class="virgin-bow-demo-img">
+                        <div id="virgin-bow-status-pill" class="virgin-bow-status-pill">Cabeza Erguida</div>
+                    </div>
+                    <div class="virgin-bow-preview-controls">
+                        <button type="button" id="btn-test-virgin-bow" class="btn-test-bow">👁️ Probar Inclinación en Vivo</button>
+                        <span class="preview-note">Pulsa para ver en pantalla cómo la Virgen inclina su cabeza y se levanta con los tiempos configurados</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sync-modal-footer">
+                <button type="button" id="btn-reset-virgin-bow" class="btn-sync-sec" title="Restablecer valores litúrgicos recomendados">↺ Valores Predeterminados</button>
+                <div class="sync-footer-actions">
+                    <button type="button" id="btn-save-virgin-bow" class="btn-sync-prim" title="Guardar tiempos">💾 Guardar Tiempos</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Almacén de Audios Segmentados -->
     <div id="audio-store-modal" class="sync-modal-overlay">
         <div class="sync-modal-window audio-store-modal-window" role="dialog" aria-modal="true" aria-labelledby="audio-store-modal-title">

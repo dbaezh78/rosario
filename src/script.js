@@ -592,18 +592,56 @@ function updateUIForStep(stepIndex) {
     }
 }
 
+// =============================================================================
+// CONFIGURACIÓN DINÁMICA DE REVERENCIA DE LA VIRGEN (GLORIA AL PADRE)
+// =============================================================================
+const DEFAULT_VIRGIN_BOW_CONFIG = {
+    introStartSec: 8.0,          // Segundo en que baja la cabeza en Señal de la Cruz (1s antes del seg 9)
+    introDurationSec: 4.5,       // Tiempo que dura inclinada (sube en 12.5s, medio segundo antes)
+    mysteryAnticipationSec: 1.0, // Anticipación en 10ª Ave María (1s antes de empezar el Gloria)
+    mysteryDurationSec: 4.5      // Tiempo que dura inclinada en el Gloria (4.5s, medio segundo antes)
+};
+
+function getVirginBowConfig() {
+    try {
+        if (typeof localStorage !== 'undefined') {
+            const stored = localStorage.getItem('rosary_virgin_bow_config');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                return {
+                    introStartSec: (typeof parsed.introStartSec === 'number' && parsed.introStartSec >= 0) ? parsed.introStartSec : DEFAULT_VIRGIN_BOW_CONFIG.introStartSec,
+                    introDurationSec: (typeof parsed.introDurationSec === 'number' && parsed.introDurationSec > 0) ? parsed.introDurationSec : DEFAULT_VIRGIN_BOW_CONFIG.introDurationSec,
+                    mysteryAnticipationSec: (typeof parsed.mysteryAnticipationSec === 'number' && parsed.mysteryAnticipationSec >= 0) ? parsed.mysteryAnticipationSec : DEFAULT_VIRGIN_BOW_CONFIG.mysteryAnticipationSec,
+                    mysteryDurationSec: (typeof parsed.mysteryDurationSec === 'number' && parsed.mysteryDurationSec > 0) ? parsed.mysteryDurationSec : DEFAULT_VIRGIN_BOW_CONFIG.mysteryDurationSec
+                };
+            }
+        }
+    } catch (e) {}
+    return { ...DEFAULT_VIRGIN_BOW_CONFIG };
+}
+
+function saveVirginBowConfig(cfg) {
+    try {
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('rosary_virgin_bow_config', JSON.stringify(cfg));
+        }
+    } catch (e) {}
+}
+
 // Determina si el segundo actual corresponde a la reverencia del Gloria al Padre:
-// Comienza exactamente 1 segundo antes de que empiece el Gloria y se mantiene hasta 1 segundo después de haberlo dicho
-// ("Gloria al Padre, y al Hijo, y al Espíritu Santo" dura aprox 4s + 1s después = 5s).
+// Comienza 1 segundo antes de que empiece el Gloria y se mantiene durante la alabanza trinitaria (4.5s)
 function isGloriaTime(curTime) {
     if (!currentSteps || currentSteps.length === 0 || isNaN(curTime)) return false;
+    const bowCfg = getVirginBowConfig();
 
-    // Inclinación reverente en la Señal de la Cruz inicial (Gloria al Padre va de ~12.5s a ~16.5s)
-    // 1 segundo antes (11.5s) y 1 segundo después (17.5s):
+    // Inclinación reverente en la Señal de la Cruz inicial (Gloria al Padre de la invocación inicial)
+    // El Gloria al Padre se pronuncia cerca del segundo 9; la cabeza baja a los 8.0s y sube medio segundo antes (12.5s)
     const introStep = currentSteps.find(s => s.key === 'crucifix_intro');
     if (introStep) {
         const introStart = (typeof introStep.s === 'number' && !isNaN(introStep.s)) ? introStep.s : 0;
-        if (curTime >= (introStart + 11.5) && curTime < (introStart + 17.5)) {
+        const bowStart = introStart + bowCfg.introStartSec;
+        const bowEnd = bowStart + bowCfg.introDurationSec;
+        if (curTime >= bowStart && curTime < bowEnd) {
             return true;
         }
     }
@@ -612,8 +650,8 @@ function isGloriaTime(curTime) {
         const step = currentSteps[i];
         if (step.type === 'gloria' || step.key === 'intro_gloria' || (step.key && step.key.includes('gl'))) {
             const gloriaStart = (typeof step.s === 'number' && !isNaN(step.s)) ? step.s : 0;
-            const start = Math.max(0, gloriaStart - 1.0); // 1 segundo antes del Gloria al Padre
-            const end = gloriaStart + 5.0; // 1 segundo después de decir "y al Espíritu Santo" (~4s + 1s = 5s)
+            const start = Math.max(0, gloriaStart - bowCfg.mysteryAnticipationSec); // 1 segundo antes del Gloria
+            const end = gloriaStart + bowCfg.mysteryDurationSec; // 4.5s (sube medio segundo antes)
             if (curTime >= start && curTime < end) {
                 return true;
             }
@@ -750,22 +788,22 @@ audioPlayer.addEventListener('timeupdate', () => {
 
         // Inclinación reverente de la cabeza de la Virgen:
         // EXCLUSIVAMENTE 1 segundo antes de decir Gloria al Padre, durante la alabanza ("Gloria al Padre, y al Hijo, y al Espíritu Santo"),
-        // y hasta 1 segundo después de haberlo dicho.
-        // NUNCA se inclina durante el Ave María (en la 10ª Ave María el audio de aviso "Gloria" NO inclina la cabeza).
+        // y subiendo medio segundo antes según la configuración litúrgica.
+        const bowCfg = getVirginBowConfig();
         if (curStep && (curStep.type === 'gloria' || curStep.key === 'intro_gloria' || (curStep.key && curStep.key.includes('_gl')))) {
             // Durante la oración del Gloria al Padre:
-            // "Gloria al Padre, y al Hijo, y al Espíritu Santo" dura aprox 4 segundos.
-            // Con 1 segundo después de haberlo dicho, se mantiene inclinada los primeros 5.0 segundos:
-            const isBowing = (cur < 5.0);
+            // Sube medio segundo antes según configuración (por defecto 4.5s):
+            const isBowing = (cur < bowCfg.mysteryDurationSec);
             setVirginBow(isBowing, curStep.key);
         } else if (curStep && (curStep.key === 'intro_am_3' || (curStep.key && curStep.key.endsWith('_am_10')))) {
-            // Exactamente 1 segundo antes de que comience el Gloria al Padre (en el último segundo del paso previo):
-            const is1SecBeforeGloria = (dur > 2 && cur >= (dur - 1.0));
+            // Anticipación configurable antes de que comience el Gloria al Padre (por defecto 1.0s):
+            const is1SecBeforeGloria = (dur > 2 && cur >= (dur - bowCfg.mysteryAnticipationSec));
             setVirginBow(is1SecBeforeGloria, curStep.key);
         } else if (curStep && (curStep.key === 'crucifix_intro' || curStep.type === 'intro_start')) {
-            // Señal de la Cruz: Gloria al Padre de la invocación va de ~12.5s a ~16.5s.
-            // 1 segundo antes (11.5s) y 1 segundo después (17.5s):
-            const isGloriaCross = (cur >= 11.5 && cur < 17.5);
+            // Señal de la Cruz: Inicia en introStartSec (ej. 8.0s) y dura introDurationSec (ej. 4.5s, subiendo a los 12.5s):
+            const bowStart = bowCfg.introStartSec;
+            const bowEnd = bowStart + bowCfg.introDurationSec;
+            const isGloriaCross = (cur >= bowStart && cur < bowEnd);
             setVirginBow(isGloriaCross, curStep.key);
         } else {
             // En cualquier otro paso (Ave Marías 1-9, Padre Nuestro, meditaciones, etc.), la cabeza permanece erguida
@@ -892,14 +930,15 @@ async function playSegmentedRosary(stepIndex) {
     const step = currentSteps[currentStepIndex];
     const isGloria = (step.type === 'gloria' || (step.key && step.key.includes('_gl')) || step.key === 'intro_gloria');
 
-    // Inclinación reverente de la Virgen (Gloria al Padre: 5.0 segundos exactos, hasta 1s después de decir "y al Espíritu Santo")
+    // Inclinación reverente de la Virgen (Gloria al Padre: duración configurable, por defecto 4.5s)
     if (isGloria) {
         setVirginBow(true, step.key);
+        const bowDurationMs = (getVirginBowConfig().mysteryDurationSec || 4.5) * 1000;
         setTimeout(() => {
             if (currentStepIndex === stepIndex) {
                 setVirginBow(false, step.key);
             }
-        }, 5000);
+        }, bowDurationMs);
     } else {
         // En cualquier otro paso (incluidas todas las Ave Marías), la Virgen mantiene su cabeza erguida
         setVirginBow(false, step.key);
@@ -1627,6 +1666,8 @@ async function renderSyncItems(lang, mystery) {
         : {};
 
     const isSegmented = (activeSyncAudioMode === 'segmented');
+    const virginBowCfg = (typeof getVirginBowConfig === 'function') ? getVirginBowConfig() : DEFAULT_VIRGIN_BOW_CONFIG;
+    const virginBowStartSecStr = (Math.round((virginBowCfg?.introStartSec ?? 8.0) * 10) / 10) + 's';
     let html = '';
 
     sections.forEach(sec => {
@@ -1686,6 +1727,12 @@ async function renderSyncItems(lang, mystery) {
 
                 html += `
                     <div class="sync-item-right sync-audio-select-wrap">
+                        ${item.key === 'crucifix_intro' ? `
+                            <button type="button" class="btn-sync-open-virgin-bow" title="Ajustar segundo e inclinación de la cabeza de la Virgen en el Gloria">
+                                <img src="src/img/rosario_virgen_gold.png" alt="Virgen" class="sync-virgin-row-icon">
+                                <span class="virgin-bow-badge-text">Gloria: ${virginBowStartSecStr}</span>
+                            </button>
+                        ` : ''}
                         ${item.key === 'letanias' ? `
                             <div class="sync-scroll-speed-wrap" title="Velocidad con la que baja automáticamente el texto de las Letanías">
                                 <span class="sync-scroll-speed-label">Vel. Scroll:</span>
@@ -1704,6 +1751,12 @@ async function renderSyncItems(lang, mystery) {
                 // Modo Tiempo Continuo: Controles de segundos y centésimas
                 html += `
                     <div class="sync-item-right">
+                        ${item.key === 'crucifix_intro' ? `
+                            <button type="button" class="btn-sync-open-virgin-bow" title="Ajustar segundo e inclinación de la cabeza de la Virgen en el Gloria">
+                                <img src="src/img/rosario_virgen_gold.png" alt="Virgen" class="sync-virgin-row-icon">
+                                <span class="virgin-bow-badge-text">Gloria: ${virginBowStartSecStr}</span>
+                            </button>
+                        ` : ''}
                         ${item.key === 'letanias' ? `
                             <div class="sync-scroll-speed-wrap" title="Velocidad con la que baja automáticamente el texto de las Letanías">
                                 <span class="sync-scroll-speed-label">Vel. Scroll:</span>
@@ -3618,6 +3671,152 @@ function setupSyncToolbarCollapse() {
     }
 }
 
+// G. MODAL Y CONTROLADOR DE INCLINACIÓN DE LA VIRGEN EN EL GLORIA
+function setupVirginBowModal() {
+    const modal = document.getElementById('virgin-bow-modal');
+    const btnOpenHeader = document.getElementById('btn-open-virgin-bow-modal');
+    const btnOpenTool = document.getElementById('btn-open-virgin-bow-modal-tool');
+    const btnClose = document.getElementById('virgin-bow-modal-close');
+    const btnSave = document.getElementById('btn-save-virgin-bow');
+    const btnReset = document.getElementById('btn-reset-virgin-bow');
+    const btnTest = document.getElementById('btn-test-virgin-bow');
+
+    const inputIntroStart = document.getElementById('virgin-bow-intro-start');
+    const inputIntroDur = document.getElementById('virgin-bow-intro-dur');
+    const inputMysteryAnticipation = document.getElementById('virgin-bow-mystery-anticipation');
+    const inputMysteryDur = document.getElementById('virgin-bow-mystery-dur');
+    const endPreview = document.getElementById('virgin-bow-intro-end-preview');
+    const demoImg = document.getElementById('virgin-bow-demo-img');
+    const statusPill = document.getElementById('virgin-bow-status-pill');
+
+    function updateEndPreview() {
+        if (!inputIntroStart || !inputIntroDur || !endPreview) return;
+        const start = parseFloat(inputIntroStart.value) || 8.0;
+        const dur = parseFloat(inputIntroDur.value) || 4.5;
+        const end = Math.round((start + dur) * 10) / 10;
+        endPreview.innerText = `${end}s`;
+    }
+
+    function populateFields() {
+        const cfg = getVirginBowConfig();
+        if (inputIntroStart) inputIntroStart.value = cfg.introStartSec;
+        if (inputIntroDur) inputIntroDur.value = cfg.introDurationSec;
+        if (inputMysteryAnticipation) inputMysteryAnticipation.value = cfg.mysteryAnticipationSec;
+        if (inputMysteryDur) inputMysteryDur.value = cfg.mysteryDurationSec;
+        updateEndPreview();
+    }
+
+    function openModal() {
+        populateFields();
+        if (modal) modal.classList.add('open');
+    }
+
+    function closeModal() {
+        if (modal) modal.classList.remove('open');
+    }
+
+    if (btnOpenHeader) btnOpenHeader.addEventListener('click', openModal);
+    if (btnOpenTool) btnOpenTool.addEventListener('click', openModal);
+    if (btnClose) btnClose.addEventListener('click', closeModal);
+
+    // Cerrar al hacer clic en el backdrop
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+    }
+
+    // Delegación para botones en filas del sincronizador
+    document.addEventListener('click', (e) => {
+        const btnRow = e.target.closest('.btn-sync-open-virgin-bow');
+        if (btnRow) {
+            openModal();
+        }
+    });
+
+    // Step buttons (-0.5s, +0.5s)
+    modal?.querySelectorAll('.btn-bow-step').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.getAttribute('data-target');
+            const delta = parseFloat(btn.getAttribute('data-delta')) || 0;
+            const input = document.getElementById(targetId);
+            if (input) {
+                let curVal = parseFloat(input.value) || 0;
+                curVal = Math.max(0, Math.round((curVal + delta) * 10) / 10);
+                input.value = curVal;
+                updateEndPreview();
+            }
+        });
+    });
+
+    if (inputIntroStart) inputIntroStart.addEventListener('input', updateEndPreview);
+    if (inputIntroDur) inputIntroDur.addEventListener('input', updateEndPreview);
+
+    // Botón Probar en Vivo
+    let testTimeout = null;
+    if (btnTest) {
+        btnTest.addEventListener('click', () => {
+            const dur = (inputMysteryDur ? parseFloat(inputMysteryDur.value) : 4.5) || 4.5;
+            btnTest.disabled = true;
+            btnTest.innerText = `⏳ Inclinada (${dur}s)...`;
+            if (statusPill) {
+                statusPill.innerText = "Inclinada ante la Santísima Trinidad";
+                statusPill.classList.add('is-bowing');
+            }
+            if (demoImg) {
+                demoImg.src = "src/img/rosario_virgen_gold_gloria.png";
+            }
+            // Inclinar también la Virgen en el Rosario de fondo
+            setVirginBow(true);
+
+            if (testTimeout) clearTimeout(testTimeout);
+            testTimeout = setTimeout(() => {
+                setVirginBow(false);
+                if (demoImg) demoImg.src = "src/img/rosario_virgen_gold.png";
+                if (statusPill) {
+                    statusPill.innerText = "Cabeza Erguida";
+                    statusPill.classList.remove('is-bowing');
+                }
+                if (btnTest) {
+                    btnTest.disabled = false;
+                    btnTest.innerText = "👁️ Probar Inclinación en Vivo";
+                }
+            }, dur * 1000);
+        });
+    }
+
+    // Botón Restablecer
+    if (btnReset) {
+        btnReset.addEventListener('click', () => {
+            saveVirginBowConfig(DEFAULT_VIRGIN_BOW_CONFIG);
+            populateFields();
+            showRosaryToast('Valores litúrgicos recomendados restablecidos');
+        });
+    }
+
+    // Botón Guardar
+    if (btnSave) {
+        btnSave.addEventListener('click', () => {
+            const newCfg = {
+                introStartSec: parseFloat(inputIntroStart?.value) || DEFAULT_VIRGIN_BOW_CONFIG.introStartSec,
+                introDurationSec: parseFloat(inputIntroDur?.value) || DEFAULT_VIRGIN_BOW_CONFIG.introDurationSec,
+                mysteryAnticipationSec: parseFloat(inputMysteryAnticipation?.value) || DEFAULT_VIRGIN_BOW_CONFIG.mysteryAnticipationSec,
+                mysteryDurationSec: parseFloat(inputMysteryDur?.value) || DEFAULT_VIRGIN_BOW_CONFIG.mysteryDurationSec
+            };
+            saveVirginBowConfig(newCfg);
+            showRosaryToast('🌹 Tiempos de reverencia de la Virgen guardados con éxito');
+            closeModal();
+            // Actualizar interfaz del sincronizador
+            document.querySelectorAll('.btn-sync-open-virgin-bow .virgin-bow-badge-text').forEach(el => {
+                el.innerText = `Gloria: ${newCfg.introStartSec}s`;
+            });
+            if (typeof renderSyncItems === 'function' && typeof activeSyncLang !== 'undefined' && typeof activeSyncMystery !== 'undefined') {
+                renderSyncItems(activeSyncLang, activeSyncMystery);
+            }
+        });
+    }
+}
+
 // Inicializar todas las nuevas funcionalidades
 function initNewFeatures() {
     setupPlayerCollapseAndFloatingControls();
@@ -3626,6 +3825,7 @@ function initNewFeatures() {
     setupAuthAndPermissions();
     setupSyncVersionSelector();
     setupSyncToolbarCollapse();
+    setupVirginBowModal();
 }
 
 if (document.readyState === 'loading') {
