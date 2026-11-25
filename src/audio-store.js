@@ -16,7 +16,7 @@ const SYSTEM_AUDIO_CATALOG = [
     { id: 'sys_padrenuestro', name: 'Padrenuestro', fileName: 'Padrenuestro.mp3', path: 'src/mp3/Segm/Padrenuestro.mp3', duration: 21 },
     { id: 'sys_gloria', name: 'Gloria', fileName: 'gloria.mp3', path: 'src/mp3/Segm/gloria.mp3', duration: 36 },
     { id: 'sys_credo', name: 'Credo', fileName: 'credo.mp3', path: 'src/mp3/Segm/credo.mp3', duration: 39 },
-    { id: 'sys_senaldelacruz', name: 'Señaldelacruz', fileName: 'señaldelaCruz.mp3', path: 'src/mp3/Segm/señaldelaCruz.mp3', duration: 43 },
+    { id: 'sys_senaldelacruz', name: 'SeñAldelaCruz', fileName: 'señaldelaCruz.mp3', path: 'src/mp3/Segm/señaldelaCruz.mp3', duration: 52 },
     { id: 'sys_sumopontifice', name: 'Sumopontifice', fileName: 'sumopontifice.mp3', path: 'src/mp3/Segm/sumopontifice.mp3', duration: 20 },
     { id: 'sys_letanias', name: 'Letanias', fileName: 'letanias.mp3', path: 'src/mp3/Segm/letanias.mp3', duration: 321 },
     { id: 'sys_diostesalve', name: 'Diostesalve', fileName: 'Diostesalve.mp3', path: 'src/mp3/Segm/Diostesalve.mp3', duration: 35 },
@@ -472,16 +472,45 @@ const RosaryVoiceManager = (function() {
     ];
 
     function getVoices() {
+        const DEFAULT_TEMPLATES = {
+            ave_maria: 'sys_avemaria_m',
+            ave_maria_gloria: 'sys_avemaria_gloria_m',
+            padre_nuestro: 'sys_padrenuestro',
+            intro_pn: 'sys_sumopontifice',
+            gloria: 'sys_gloria',
+            credo: 'sys_credo',
+            crucifix_intro: 'sys_senaldelacruz',
+            pedir_gracia: 'sys_pedirgracia',
+            salve: 'sys_diostesalve',
+            letanias: 'sys_letanias',
+            oracion_final: 'sys_oracion'
+        };
+
         try {
             const raw = localStorage.getItem(VOICES_KEY);
             if (raw) {
                 const list = JSON.parse(raw);
                 if (Array.isArray(list) && list.length > 0) {
                     let changed = false;
+
+                    // Asegurar que cada voz tenga todas las 11 oraciones litúrgicas asignadas
+                    list.forEach(v => {
+                        if (!v.templates) {
+                            v.templates = Object.assign({}, DEFAULT_TEMPLATES);
+                            changed = true;
+                        } else {
+                            for (const k in DEFAULT_TEMPLATES) {
+                                if (!v.templates[k]) {
+                                    v.templates[k] = DEFAULT_TEMPLATES[k];
+                                    changed = true;
+                                }
+                            }
+                        }
+                    });
+
                     // Asegurar que Voz de Mujer sea la predeterminada por defecto litúrgico
                     const vMujer = list.find(v => v.id === 'voice_mujer');
                     if (vMujer) {
-                        if (!vMujer.templates) vMujer.templates = {};
                         if (vMujer.templates.ave_maria === 'sys_avemaria' || !vMujer.templates.ave_maria) {
                             vMujer.templates.ave_maria = 'sys_avemaria_m';
                             changed = true;
@@ -491,6 +520,7 @@ const RosaryVoiceManager = (function() {
                             changed = true;
                         }
                     }
+
                     // Si no hay voz default o si quedó voice_default de versiones viejas, establecer mujer
                     const currentDef = localStorage.getItem(DEFAULT_VOICE_KEY);
                     if (!currentDef || currentDef === 'voice_default') {
@@ -498,7 +528,12 @@ const RosaryVoiceManager = (function() {
                         list.forEach(v => { v.isDefault = (v.id === 'voice_mujer'); });
                         changed = true;
                     }
-                    if (changed) saveVoices(list);
+
+                    if (changed) {
+                        try {
+                            localStorage.setItem(VOICES_KEY, JSON.stringify(list));
+                        } catch (e) {}
+                    }
                     return list;
                 }
             }
@@ -658,6 +693,27 @@ const RosaryVoiceManager = (function() {
         let updated = false;
         if (Array.isArray(cloudData.voices) && cloudData.voices.length > 0) {
             try {
+                const DEFAULT_TEMPLATES = {
+                    ave_maria: 'sys_avemaria_m',
+                    ave_maria_gloria: 'sys_avemaria_gloria_m',
+                    padre_nuestro: 'sys_padrenuestro',
+                    intro_pn: 'sys_sumopontifice',
+                    gloria: 'sys_gloria',
+                    credo: 'sys_credo',
+                    crucifix_intro: 'sys_senaldelacruz',
+                    pedir_gracia: 'sys_pedirgracia',
+                    salve: 'sys_diostesalve',
+                    letanias: 'sys_letanias',
+                    oracion_final: 'sys_oracion'
+                };
+                cloudData.voices.forEach(v => {
+                    if (!v.templates) v.templates = Object.assign({}, DEFAULT_TEMPLATES);
+                    else {
+                        for (const k in DEFAULT_TEMPLATES) {
+                            if (!v.templates[k]) v.templates[k] = DEFAULT_TEMPLATES[k];
+                        }
+                    }
+                });
                 localStorage.setItem(VOICES_KEY, JSON.stringify(cloudData.voices));
                 updated = true;
             } catch (e) {}
@@ -717,19 +773,25 @@ const RosaryAudioAssignments = (function() {
 
     // Calcula asignaciones predeterminadas para que todo esté completo sin requerir configuración manual
     function calculateDefaultAssignments(mystery = 'Gozosos', availableAudios = [], voice = null) {
+        const audios = (availableAudios && availableAudios.length > 0) ? availableAudios : SYSTEM_AUDIO_CATALOG;
+
         function resolveId(keyWord, fallbackId) {
             const normKey = normAudioStr(keyWord);
-            if (availableAudios && availableAudios.length > 0) {
-                // 1. Coincidencia exacta por nombre o por nombre de archivo (sin extensión)
-                const exact = availableAudios.find(a => {
+            if (audios && audios.length > 0) {
+                // 1. Coincidencia por fallbackId o ID directo
+                const byId = audios.find(a => a.id === fallbackId || a.id === keyWord);
+                if (byId) return byId.id;
+
+                // 2. Coincidencia exacta por nombre o por nombre de archivo (sin extensión)
+                const exact = audios.find(a => {
                     const nName = normAudioStr(a.name);
                     const nFile = normAudioStr(a.fileName ? a.fileName.replace(/\.[^/.]+$/, '') : '');
                     return nName === normKey || nFile === normKey;
                 });
                 if (exact) return exact.id;
 
-                // 2. Coincidencia segura evitando falsos positivos entre AveMaría, Gloria y AveMaría-GLORIA
-                const safeMatch = availableAudios.find(a => {
+                // 3. Coincidencia segura evitando falsos positivos entre AveMaría, Gloria y AveMaría-GLORIA
+                const safeMatch = audios.find(a => {
                     const nName = normAudioStr(a.name);
                     const nFile = normAudioStr(a.fileName ? a.fileName.replace(/\.[^/.]+$/, '') : '');
                     if (normKey === 'gloria') {
@@ -748,20 +810,38 @@ const RosaryAudioAssignments = (function() {
             return fallbackId;
         }
 
+        function resolveValidTemplateAudio(templateId, keyWord, fallbackId) {
+            if (templateId) {
+                const matchById = audios.find(a => a.id === templateId);
+                if (matchById) return matchById.id;
+
+                const normT = normAudioStr(templateId);
+                const matchByName = audios.find(a =>
+                    normAudioStr(a.id) === normT ||
+                    normAudioStr(a.name) === normT ||
+                    normAudioStr(a.fileName) === normT
+                );
+                if (matchByName) return matchByName.id;
+            }
+            // Si el templateId apuntaba a un audio que no existe en este cliente, resolver el fallback litúrgico oficial
+            return resolveId(keyWord, fallbackId);
+        }
+
         const effectiveVoice = voice || (window.RosaryVoices ? window.RosaryVoices.getVoice(window.RosaryVoices.getActiveVoiceId()) : null);
         const vTemplates = (effectiveVoice && effectiveVoice.templates) ? effectiveVoice.templates : {};
+        const isMujer = effectiveVoice ? (effectiveVoice.id === 'voice_mujer' || normAudioStr(effectiveVoice.name).includes('mujer')) : true;
 
-        const aveMariaId = vTemplates.ave_maria || resolveId('avemaria', 'sys_avemaria');
-        const aveMariaGloriaId = vTemplates.ave_maria_gloria || resolveId('avemariagloria', 'sys_avemaria_gloria');
-        const padreNuestroId = vTemplates.padre_nuestro || resolveId('padrenuestro', 'sys_padrenuestro');
-        const gloriaId = vTemplates.gloria || resolveId('gloria', 'sys_gloria');
-        const credoId = vTemplates.credo || resolveId('credo', 'sys_credo');
-        const senalCruzId = vTemplates.crucifix_intro || resolveId('senaldelacruz', 'sys_senaldelacruz');
-        const sumoPontificeId = vTemplates.intro_pn || resolveId('sumopontifice', padreNuestroId);
-        const letaniasId = vTemplates.letanias || resolveId('letanias', 'sys_letanias');
-        const salveId = vTemplates.salve || resolveId('diostesalve', 'sys_diostesalve');
-        const oracionId = vTemplates.oracion_final || resolveId('oracion', 'sys_oracion');
-        const pedirGraciaId = vTemplates.pedir_gracia || resolveId('pedirgracia', 'sys_pedirgracia');
+        const aveMariaId = resolveValidTemplateAudio(vTemplates.ave_maria, isMujer ? 'avemariam' : 'avemaria', isMujer ? 'sys_avemaria_m' : 'sys_avemaria');
+        const aveMariaGloriaId = resolveValidTemplateAudio(vTemplates.ave_maria_gloria, isMujer ? 'avemariagloriam' : 'avemariagloria', isMujer ? 'sys_avemaria_gloria_m' : 'sys_avemaria_gloria');
+        const padreNuestroId = resolveValidTemplateAudio(vTemplates.padre_nuestro, 'padrenuestro', 'sys_padrenuestro');
+        const gloriaId = resolveValidTemplateAudio(vTemplates.gloria, 'gloria', 'sys_gloria');
+        const credoId = resolveValidTemplateAudio(vTemplates.credo, 'credo', 'sys_credo');
+        const senalCruzId = resolveValidTemplateAudio(vTemplates.crucifix_intro, 'senaldelacruz', 'sys_senaldelacruz');
+        const sumoPontificeId = resolveValidTemplateAudio(vTemplates.intro_pn, 'sumopontifice', 'sys_sumopontifice');
+        const letaniasId = resolveValidTemplateAudio(vTemplates.letanias, 'letanias', 'sys_letanias');
+        const salveId = resolveValidTemplateAudio(vTemplates.salve, 'diostesalve', 'sys_diostesalve');
+        const oracionId = resolveValidTemplateAudio(vTemplates.oracion_final, 'oracion', 'sys_oracion');
+        const pedirGraciaId = resolveValidTemplateAudio(vTemplates.pedir_gracia, 'pedirgracia', 'sys_pedirgracia');
 
         const def = {};
 
@@ -823,30 +903,46 @@ const RosaryAudioAssignments = (function() {
     return {
         // Obtener asignaciones para un misterio e idioma (incluye predeterminados automáticos)
         getAssignments(lang = 'es', mystery = 'Gozosos', availableAudios = [], voiceId = null) {
-            const activeVoiceId = voiceId || (window.RosaryVoices ? window.RosaryVoices.getActiveVoiceId() : 'voice_default');
+            const activeVoiceId = voiceId || (window.RosaryVoices ? window.RosaryVoices.getActiveVoiceId() : 'voice_mujer');
             const voice = window.RosaryVoices ? window.RosaryVoices.getVoice(activeVoiceId) : null;
-            const defaults = calculateDefaultAssignments(mystery, availableAudios, voice);
+            const audios = (availableAudios && availableAudios.length > 0) ? availableAudios : SYSTEM_AUDIO_CATALOG;
+            const defaults = calculateDefaultAssignments(mystery, audios, voice);
             const store = getStore();
 
-            // Solo personalizaciones que pertenecen estrictamente a esta voz activa
-            const userCustom = (store[activeVoiceId] && store[activeVoiceId][lang] && store[activeVoiceId][lang][mystery])
+            // Personalizaciones: buscar primero específicas de la voz, luego globales de Firestore
+            const voiceCustom = (store[activeVoiceId] && store[activeVoiceId][lang] && store[activeVoiceId][lang][mystery])
                 ? store[activeVoiceId][lang][mystery]
-                : ((activeVoiceId === 'voice_default' && store[lang] && store[lang][mystery]) ? store[lang][mystery] : {});
+                : null;
+            const globalCustom = (store[lang] && store[lang][mystery])
+                ? store[lang][mystery]
+                : {};
+            const userCustom = voiceCustom || globalCustom;
 
-            // La plantilla de la voz seleccionada es la base litúrgica para todas las cuentas
             const merged = Object.assign({}, defaults);
 
             // Sanear y superponer solo personalizaciones explícitas guardadas para esta voz
             for (const k in userCustom) {
-                if (userCustom[k] && userCustom[k] !== '__upload__') {
+                const assignedVal = userCustom[k];
+                if (assignedVal && assignedVal !== '__upload__') {
                     // Evitar que asignaciones erróneas de gloria o credo sobrescriban cuentas que no corresponden
-                    if (k.includes('_am_') && (userCustom[k] === 'sys_gloria' || userCustom[k] === 'gloria')) {
+                    if (k.includes('_am_') && (assignedVal === 'sys_gloria' || assignedVal === 'gloria')) {
                         continue;
                     }
-                    if ((k.includes('_gl') || k === 'intro_gloria') && (userCustom[k] === 'sys_credo' || userCustom[k] === 'credo')) {
+                    if ((k.includes('_gl') || k === 'intro_gloria') && (assignedVal === 'sys_credo' || assignedVal === 'credo')) {
                         continue;
                     }
-                    merged[k] = userCustom[k];
+
+                    // Verificar que el ID asignado realmente exista en la lista de audios de este cliente
+                    const exists = audios.some(a =>
+                        a.id === assignedVal ||
+                        normAudioStr(a.name) === normAudioStr(assignedVal) ||
+                        normAudioStr(a.fileName) === normAudioStr(assignedVal)
+                    );
+                    if (exists) {
+                        merged[k] = assignedVal;
+                    }
+                    // Si el audio asignado no existe en este cliente (ej. idb local de otro navegador),
+                    // defaults[k] se conserva de forma segura y completa.
                 }
             }
 
@@ -859,15 +955,8 @@ const RosaryAudioAssignments = (function() {
             const store = getStore();
             if (store[voiceId]) {
                 delete store[voiceId];
+                saveStore(store);
             }
-            if (voiceId === 'voice_default' || voiceId === window.RosaryVoices?.getDefaultVoiceId()) {
-                for (const l in store) {
-                    if (l !== 'voice_default' && !l.startsWith('voice_')) {
-                        delete store[l];
-                    }
-                }
-            }
-            saveStore(store);
         },
 
         // Asignar un audio a una oración específica
@@ -884,38 +973,34 @@ const RosaryAudioAssignments = (function() {
                 delete store[activeVoiceId][lang][mystery][itemKey];
             }
 
-            // Retrocompatibilidad con store plano para la voz por defecto
-            if (activeVoiceId === 'voice_default' || activeVoiceId === window.RosaryVoices?.getDefaultVoiceId()) {
-                if (!store[lang]) store[lang] = {};
-                if (!store[lang][mystery]) store[lang][mystery] = {};
-                if (audioId) store[lang][mystery][itemKey] = audioId;
-                else delete store[lang][mystery][itemKey];
-            }
+            // Mantener sincronizado siempre el almacén global por idioma y misterio
+            if (!store[lang]) store[lang] = {};
+            if (!store[lang][mystery]) store[lang][mystery] = {};
+            if (audioId) store[lang][mystery][itemKey] = audioId;
+            else delete store[lang][mystery][itemKey];
 
             saveStore(store);
 
             if (window.RosaryCloud && typeof window.RosaryCloud.saveAssignmentsToCloud === 'function') {
-                window.RosaryCloud.saveAssignmentsToCloud(lang, mystery, store[activeVoiceId][lang][mystery]).catch(() => {});
+                window.RosaryCloud.saveAssignmentsToCloud(lang, mystery, store[lang][mystery]).catch(() => {});
             }
         },
 
         // Guardar lote completo de asignaciones
         setAllAssignments(lang, mystery, assignmentsMap, voiceId = null) {
-            const activeVoiceId = voiceId || (window.RosaryVoices ? window.RosaryVoices.getActiveVoiceId() : 'voice_default');
+            const activeVoiceId = voiceId || (window.RosaryVoices ? window.RosaryVoices.getActiveVoiceId() : 'voice_mujer');
             const store = getStore();
             if (!store[activeVoiceId]) store[activeVoiceId] = {};
             if (!store[activeVoiceId][lang]) store[activeVoiceId][lang] = {};
             store[activeVoiceId][lang][mystery] = Object.assign({}, assignmentsMap);
 
-            if (activeVoiceId === 'voice_default' || activeVoiceId === window.RosaryVoices?.getDefaultVoiceId()) {
-                if (!store[lang]) store[lang] = {};
-                store[lang][mystery] = Object.assign({}, assignmentsMap);
-            }
+            if (!store[lang]) store[lang] = {};
+            store[lang][mystery] = Object.assign({}, assignmentsMap);
 
             saveStore(store);
 
             if (window.RosaryCloud && typeof window.RosaryCloud.saveAssignmentsToCloud === 'function') {
-                window.RosaryCloud.saveAssignmentsToCloud(lang, mystery, store[activeVoiceId][lang][mystery]).catch(() => {});
+                window.RosaryCloud.saveAssignmentsToCloud(lang, mystery, store[lang][mystery]).catch(() => {});
             }
         },
 

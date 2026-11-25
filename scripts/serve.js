@@ -37,6 +37,17 @@ const server = http.createServer((req, res) => {
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
+    if (req.method === 'HEAD') {
+        res.writeHead(200, {
+            'Content-Length': stat.size,
+            'Content-Type': contentType,
+            'Accept-Ranges': 'bytes',
+            'Access-Control-Allow-Origin': '*'
+        });
+        res.end();
+        return;
+    }
+
     // Manejar Range requests para audio
     const range = req.headers.range;
     if (range) {

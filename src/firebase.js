@@ -542,6 +542,14 @@ window.RosaryAuth = {
             if (typeof callback === 'function') {
                 callback(user, isAdmin);
             }
+            // Sincronizar automáticamente la configuración de voces del administrador a Firestore
+            if (isAdmin && window.RosaryVoices && typeof window.RosaryVoices.getVoices === 'function') {
+                saveVoicesToCloud(
+                    window.RosaryVoices.getVoices(),
+                    window.RosaryVoices.getActiveVoiceId(),
+                    window.RosaryVoices.getDefaultVoiceId()
+                );
+            }
         });
     }
 };
@@ -560,6 +568,38 @@ async function initCloudSync() {
             if (editBadge) editBadge.innerHTML = '☁️ <span style="color: #4ade80;">Conectado a Firestore (Nube)</span>';
         };
         updateBadges();
+
+        // Precarga inmediata de voces y asignaciones oficiales desde Firestore al arrancar
+        Promise.all([
+            loadVoicesFromCloud(),
+            loadAllAssignmentsFromCloud()
+        ]).then(([cloudVoices, cloudAssignments]) => {
+            if (cloudVoices && window.RosaryVoices && typeof window.RosaryVoices.loadFromCloudData === 'function') {
+                window.RosaryVoices.loadFromCloudData(cloudVoices);
+                if (typeof window.refreshVoiceSelects === 'function') {
+                    window.refreshVoiceSelects();
+                }
+            }
+            if (cloudAssignments && typeof localStorage !== 'undefined') {
+                const STORAGE_KEY = 'rosary_segmented_audio_assignments_v1';
+                const raw = localStorage.getItem(STORAGE_KEY);
+                const local = raw ? JSON.parse(raw) : {};
+                for (const l in cloudAssignments) {
+                    if (!local[l]) local[l] = {};
+                    for (const m in cloudAssignments[l]) {
+                        local[l][m] = Object.assign({}, local[l][m] || {}, cloudAssignments[l][m]);
+                    }
+                }
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(local));
+            }
+            if (typeof window.renderSyncItems === 'function' && typeof syncLangSelect !== 'undefined' && typeof syncMysterySelect !== 'undefined') {
+                const l = syncLangSelect ? syncLangSelect.value : 'es';
+                const m = syncMysterySelect ? syncMysterySelect.value : 'Gozosos';
+                window.renderSyncItems(l, m);
+            }
+        }).catch(err => {
+            console.warn("Aviso en precarga inicial Firestore:", err);
+        });
 
         // 1. Escuchar tiempos en tiempo real
         subscribeToCloudTimes((cloudData) => {
@@ -671,8 +711,8 @@ async function initCloudSync() {
             if (cloudVoices && window.RosaryVoices && typeof window.RosaryVoices.loadFromCloudData === 'function') {
                 const changed = window.RosaryVoices.loadFromCloudData(cloudVoices);
                 if (changed) {
-                    if (typeof window.renderVoiceSelectors === 'function') {
-                        window.renderVoiceSelectors();
+                    if (typeof window.refreshVoiceSelects === 'function') {
+                        window.refreshVoiceSelects();
                     }
                     if (typeof window.renderSyncItems === 'function' && typeof syncLangSelect !== 'undefined' && typeof syncMysterySelect !== 'undefined') {
                         const l = syncLangSelect ? syncLangSelect.value : 'es';

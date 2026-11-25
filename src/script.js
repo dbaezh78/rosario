@@ -1770,7 +1770,7 @@ async function renderSyncItems(lang, mystery) {
                 let selectOptions = `<option value="">-- Sin audio (o usar continuo) --</option>`;
                 let matchedOptionId = null;
 
-                // 1. Coincidencia exacta por ID o por nombre normalizado exacto (sin falsos positivos por substring)
+                // 1. Coincidencia exacta por ID o por nombre normalizado exacto
                 if (assignedAudioId) {
                     const exact = allAudios.find(a => a.id === assignedAudioId);
                     if (exact) {
@@ -1784,6 +1784,62 @@ async function renderSyncItems(lang, mystery) {
                         if (normMatch) {
                             matchedOptionId = normMatch.id;
                         }
+                    }
+                }
+
+                // 2. Fallback litúrgico de alta confiabilidad: NUNCA dejar sin asignar si hay audios disponibles
+                if (!matchedOptionId && allAudios.length > 0) {
+                    const k = (item.key || '').toLowerCase();
+                    const activeVoiceId = window.RosaryVoices ? window.RosaryVoices.getActiveVoiceId() : 'voice_mujer';
+                    const isMujer = (activeVoiceId === 'voice_mujer');
+                    let targetSysId = null;
+
+                    if (k === 'crucifix_intro') targetSysId = 'sys_senaldelacruz';
+                    else if (k === 'credo') targetSysId = 'sys_credo';
+                    else if (k === 'intro_pn') targetSysId = 'sys_sumopontifice';
+                    else if (k.includes('_pn') || k === 'padrenuestro') targetSysId = 'sys_padrenuestro';
+                    else if (k.includes('_gl') || k === 'intro_gloria') targetSysId = 'sys_gloria';
+                    else if (k.endsWith('_am_10') || k === 'intro_am_3') {
+                        targetSysId = isMujer ? 'sys_avemaria_gloria_m' : 'sys_avemaria_gloria';
+                    }
+                    else if (k.includes('_am_') || k.startsWith('intro_am_')) {
+                        targetSysId = isMujer ? 'sys_avemaria_m' : 'sys_avemaria';
+                    }
+                    else if (k === 'salve') targetSysId = 'sys_diostesalve';
+                    else if (k === 'letanias') targetSysId = 'sys_letanias';
+                    else if (k === 'oracion_final') targetSysId = 'sys_oracion';
+                    else if (k === 'pedir_gracia') targetSysId = 'sys_pedirgracia';
+                    else if (k.includes('meditacion')) {
+                        const mNorm = (activeSyncMystery || '').toLowerCase();
+                        if (mNorm.includes('glorios')) {
+                            if (k.startsWith('d1')) targetSysId = 'sys_gloriosos1';
+                            else if (k.startsWith('d2')) targetSysId = 'sys_gloriosos2';
+                            else if (k.startsWith('d3')) targetSysId = 'sys_gloriosos3';
+                            else if (k.startsWith('d4')) targetSysId = 'sys_gloriosos4';
+                            else if (k.startsWith('d5')) targetSysId = 'sys_gloriosos5';
+                        } else if (mNorm.includes('gozos')) {
+                            if (k.startsWith('d1')) targetSysId = 'sys_1gozoso';
+                            else if (k.startsWith('d2')) targetSysId = 'sys_2gozoso';
+                            else if (k.startsWith('d3')) targetSysId = 'sys_3gozoso';
+                            else if (k.startsWith('d4')) targetSysId = 'sys_4gozoso';
+                            else if (k.startsWith('d5')) targetSysId = 'sys_5gozoso';
+                        } else if (mNorm.includes('dolor')) {
+                            if (k.startsWith('d1')) targetSysId = 'sys_dolorosos1';
+                            else if (k.startsWith('d2')) targetSysId = 'sys_dolorosos2';
+                            else if (k.startsWith('d3')) targetSysId = 'sys_dolorosos3';
+                            else if (k.startsWith('d4')) targetSysId = 'sys_dolorosos4';
+                            else if (k.startsWith('d5')) targetSysId = 'sys_dolorosos5';
+                        } else if (mNorm.includes('luminos')) {
+                            if (k.startsWith('d1')) targetSysId = 'sys_luminosos1';
+                            else if (k.startsWith('d2')) targetSysId = 'sys_luminosos2';
+                            else if (k.startsWith('d3')) targetSysId = 'sys_luminosos3';
+                            else if (k.startsWith('d4')) targetSysId = 'sys_luminosos4';
+                            else if (k.startsWith('d5')) targetSysId = 'sys_luminosos5';
+                        }
+                    }
+
+                    if (targetSysId && allAudios.some(a => a.id === targetSysId)) {
+                        matchedOptionId = targetSysId;
                     }
                 }
 
@@ -2284,13 +2340,15 @@ if (btnSyncSave) {
         // Guardar asignaciones de audios segmentados si hay selectores en pantalla
         const audioSelects = syncListContainer.querySelectorAll('.sync-audio-select');
         if (audioSelects && audioSelects.length > 0 && window.RosaryAudioAssignments) {
+            const currentAssignmentsMap = {};
             audioSelects.forEach(sel => {
                 const k = sel.getAttribute('data-key');
                 const v = sel.value;
-                if (k) {
-                    window.RosaryAudioAssignments.setAssignment(lang, mystery, k, (v && v !== '__upload__') ? v : null);
+                if (k && v && v !== '__upload__') {
+                    currentAssignmentsMap[k] = v;
                 }
             });
+            window.RosaryAudioAssignments.setAllAssignments(lang, mystery, currentAssignmentsMap);
         }
 
         // Guardar en la nube (Cloud Firestore) si está disponible
@@ -2300,6 +2358,13 @@ if (btnSyncSave) {
                     syncStatusMsg.innerHTML = '✅ <strong style="color: #4ade80;">¡Guardado en la nube (Firestore) y sincronizado en todos tus dispositivos!</strong>';
                 }
             });
+            if (typeof window.RosaryCloud.saveVoicesToCloud === 'function' && window.RosaryVoices) {
+                window.RosaryCloud.saveVoicesToCloud(
+                    window.RosaryVoices.getVoices(),
+                    window.RosaryVoices.getActiveVoiceId(),
+                    window.RosaryVoices.getDefaultVoiceId()
+                );
+            }
         }
 
         // Actualizar en el objeto de datos en memoria
@@ -4009,7 +4074,33 @@ function setupVoiceManagement() {
                 sel.appendChild(opt);
             });
 
-            const currentVal = templates[key] || '';
+            let currentVal = templates[key] || '';
+            // Si el valor guardado no coincide con ningún audio disponible en este equipo, resolver fallback
+            if (currentVal && !allAudios.some(a => a.id === currentVal)) {
+                const normVal = (typeof normAudioStr === 'function') ? normAudioStr(currentVal) : currentVal.toLowerCase();
+                const matchByName = allAudios.find(a =>
+                    normAudioStr(a.id) === normVal ||
+                    normAudioStr(a.name) === normVal ||
+                    normAudioStr(a.fileName) === normVal
+                );
+                currentVal = matchByName ? matchByName.id : '';
+            }
+
+            if (!currentVal) {
+                const isMujerVoice = (currentEditingVoiceId === 'voice_mujer');
+                if (key === 'crucifix_intro') currentVal = 'sys_senaldelacruz';
+                else if (key === 'credo') currentVal = 'sys_credo';
+                else if (key === 'intro_pn') currentVal = 'sys_sumopontifice';
+                else if (key === 'padre_nuestro') currentVal = 'sys_padrenuestro';
+                else if (key === 'gloria') currentVal = 'sys_gloria';
+                else if (key === 'ave_maria') currentVal = isMujerVoice ? 'sys_avemaria_m' : 'sys_avemaria';
+                else if (key === 'ave_maria_gloria') currentVal = isMujerVoice ? 'sys_avemaria_gloria_m' : 'sys_avemaria_gloria';
+                else if (key === 'pedir_gracia') currentVal = 'sys_pedirgracia';
+                else if (key === 'salve') currentVal = 'sys_diostesalve';
+                else if (key === 'letanias') currentVal = 'sys_letanias';
+                else if (key === 'oracion_final') currentVal = 'sys_oracion';
+            }
+
             sel.value = currentVal;
         });
 
@@ -4131,6 +4222,15 @@ function setupVoiceManagement() {
                 window.RosaryAudioAssignments.clearVoiceRowOverrides(currentEditingVoiceId);
             }
 
+            // Sincronizar de inmediato a Cloud Firestore para todos los navegadores y fieles
+            if (window.RosaryCloud && typeof window.RosaryCloud.saveVoicesToCloud === 'function') {
+                window.RosaryCloud.saveVoicesToCloud(
+                    window.RosaryVoices.getVoices(),
+                    window.RosaryVoices.getActiveVoiceId(),
+                    window.RosaryVoices.getDefaultVoiceId()
+                );
+            }
+
             closeVoiceConfigModal();
             refreshVoiceSelects();
 
@@ -4208,6 +4308,7 @@ function setupVoiceManagement() {
     }
 
     // Inicializar selectores de voz
+    window.refreshVoiceSelects = refreshVoiceSelects;
     refreshVoiceSelects();
 }
 
