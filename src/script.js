@@ -3661,6 +3661,183 @@ function setupAuthAndPermissions() {
     const dBtn = getDoneBtn();
     if (dBtn) dBtn.addEventListener('click', closeProfileModal);
 
+    // -------------------------------------------------------------------------
+    // Limpieza de Caché y Carga Completa desde la Nube (Firestore)
+    // -------------------------------------------------------------------------
+    const btnClearCache = document.getElementById('btn-profile-clear-cache');
+    const btnLoadAll = document.getElementById('btn-profile-load-all');
+    const profileDataStatusMsg = document.getElementById('profile-data-status-msg');
+
+    if (btnClearCache) {
+        btnClearCache.addEventListener('click', async () => {
+            const confirmClear = confirm('🧹 ¿Deseas limpiar la caché local y restablecer los datos temporales del navegador?\n\nLa página se recargará automáticamente para obtener la versión oficial más reciente desde la nube.');
+            if (!confirmClear) return;
+
+            btnClearCache.disabled = true;
+            btnClearCache.style.opacity = '0.7';
+            if (profileDataStatusMsg) {
+                profileDataStatusMsg.innerHTML = '<span style="color: #f87171; font-weight: bold;">🧹 Limpiando caché y almacenamiento local...</span>';
+            }
+            showRosaryToast('🧹 Limpiando caché local del navegador...');
+
+            // 1. Limpiar localStorage de claves temporales del rosario
+            const keysToRemove = [
+                'rosary_custom_times_v1',
+                'rosary_custom_prayers_v1',
+                'rosary_custom_item_content_v1',
+                'rosary_segmented_audio_assignments_v1',
+                'rosary_voices_v1',
+                'rosary_active_voice_id',
+                'rosary_default_voice_id',
+                'rosary_deleted_audio_ids_v1',
+                'rosary_sync_mode',
+                'rosary_audio_version'
+            ];
+            keysToRemove.forEach(k => {
+                try { localStorage.removeItem(k); } catch (e) {}
+            });
+
+            // 2. Limpiar CacheStorage API si está soportada
+            if (typeof window !== 'undefined' && 'caches' in window) {
+                try {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                } catch (e) {}
+            }
+
+            // 3. Limpiar sessionStorage
+            try { sessionStorage.clear(); } catch (e) {}
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        });
+    }
+
+    if (btnLoadAll) {
+        btnLoadAll.addEventListener('click', async () => {
+            if (btnLoadAll.disabled) return;
+            btnLoadAll.disabled = true;
+            const titleEl = btnLoadAll.querySelector('.btn-data-title');
+            const originalTitle = titleEl ? titleEl.innerText : 'Cargar Todo';
+            if (titleEl) titleEl.innerText = '⏳ Cargando todo...';
+            if (profileDataStatusMsg) {
+                profileDataStatusMsg.innerHTML = '<span style="color: #93c5fd; font-weight: bold;">☁️ Descargando voces, audios, oraciones y tiempos desde Cloud Firestore...</span>';
+            }
+            showRosaryToast('☁️ Descargando toda la configuración oficial desde la nube...');
+
+            try {
+                if (window.RosaryCloud) {
+                    const [cloudVoices, cloudAssignments, cloudTimes, cloudPrayers, cloudContent] = await Promise.all([
+                        window.RosaryCloud.loadVoicesFromCloud ? window.RosaryCloud.loadVoicesFromCloud() : null,
+                        window.RosaryCloud.loadAllAssignmentsFromCloud ? window.RosaryCloud.loadAllAssignmentsFromCloud() : null,
+                        window.RosaryCloud.loadAllTimesFromCloud ? window.RosaryCloud.loadAllTimesFromCloud() : null,
+                        window.RosaryCloud.loadAllPrayersFromCloud ? window.RosaryCloud.loadAllPrayersFromCloud() : null,
+                        window.RosaryCloud.loadAllContentFromCloud ? window.RosaryCloud.loadAllContentFromCloud() : null
+                    ]);
+
+                    // 1. Aplicar voces
+                    if (cloudVoices && window.RosaryVoices && typeof window.RosaryVoices.loadFromCloudData === 'function') {
+                        window.RosaryVoices.loadFromCloudData(cloudVoices);
+                        if (typeof window.refreshVoiceSelects === 'function') {
+                            window.refreshVoiceSelects();
+                        }
+                    }
+
+                    // 2. Aplicar asignaciones segmentadas
+                    if (cloudAssignments && typeof localStorage !== 'undefined') {
+                        const STORAGE_KEY = 'rosary_segmented_audio_assignments_v1';
+                        const raw = localStorage.getItem(STORAGE_KEY);
+                        const local = raw ? JSON.parse(raw) : {};
+                        for (const l in cloudAssignments) {
+                            if (!local[l]) local[l] = {};
+                            for (const m in cloudAssignments[l]) {
+                                local[l][m] = Object.assign({}, local[l][m] || {}, cloudAssignments[l][m]);
+                            }
+                        }
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(local));
+                    }
+
+                    // 3. Aplicar tiempos
+                    if (cloudTimes && typeof localStorage !== 'undefined') {
+                        const raw = localStorage.getItem('rosary_custom_times_v1');
+                        const local = raw ? JSON.parse(raw) : {};
+                        for (const l in cloudTimes) {
+                            if (!local[l]) local[l] = {};
+                            for (const m in cloudTimes[l]) {
+                                local[l][m] = Object.assign({}, local[l][m] || {}, cloudTimes[l][m]);
+                                if (typeof audioData !== 'undefined' && audioData[l] && audioData[l][m]) {
+                                    audioData[l][m].customTimes = Object.assign({}, audioData[l][m].customTimes || {}, cloudTimes[l][m]);
+                                }
+                            }
+                        }
+                        localStorage.setItem('rosary_custom_times_v1', JSON.stringify(local));
+                    }
+
+                    // 4. Aplicar oraciones
+                    if (cloudPrayers && typeof localStorage !== 'undefined') {
+                        const raw = localStorage.getItem('rosary_custom_prayers_v1');
+                        const local = raw ? JSON.parse(raw) : {};
+                        for (const l in cloudPrayers) {
+                            local[l] = Object.assign({}, local[l] || {}, cloudPrayers[l]);
+                        }
+                        localStorage.setItem('rosary_custom_prayers_v1', JSON.stringify(local));
+                    }
+
+                    // 5. Aplicar contenidos personalizados de cuentas
+                    if (cloudContent && typeof localStorage !== 'undefined') {
+                        const raw = localStorage.getItem('rosary_custom_item_content_v1');
+                        const local = raw ? JSON.parse(raw) : {};
+                        for (const l in cloudContent) {
+                            if (!local[l]) local[l] = {};
+                            for (const m in cloudContent[l]) {
+                                if (!local[l][m]) local[l] = {};
+                                for (const k in cloudContent[l][m]) {
+                                    if (cloudContent[l][m][k]) {
+                                        local[l][m][k] = Object.assign({}, local[l][m][k] || {}, cloudContent[l][m][k]);
+                                    }
+                                }
+                            }
+                        }
+                        localStorage.setItem('rosary_custom_item_content_v1', JSON.stringify(local));
+                    }
+
+                    // 6. Refrescar toda la interfaz activa
+                    if (typeof window.refreshActiveTimeline === 'function') window.refreshActiveTimeline();
+                    if (typeof window.refreshActivePrayersUI === 'function') window.refreshActivePrayersUI();
+                    if (typeof window.refreshSyncModalTimesUI === 'function') window.refreshSyncModalTimesUI();
+                    if (typeof window.refreshSyncModalContentUI === 'function') window.refreshSyncModalContentUI();
+
+                    const currentL = (typeof syncLangSelect !== 'undefined' && syncLangSelect) ? syncLangSelect.value : (langSelect ? langSelect.value : 'es');
+                    const currentM = (typeof syncMysterySelect !== 'undefined' && syncMysterySelect) ? syncMysterySelect.value : (currentMystery || 'Gozosos');
+                    if (typeof window.renderSyncItems === 'function') {
+                        await window.renderSyncItems(currentL, currentM);
+                    }
+
+                    if (titleEl) titleEl.innerText = '✅ ¡Todo cargado!';
+                    if (profileDataStatusMsg) {
+                        profileDataStatusMsg.innerHTML = '<span style="color: #4ade80; font-weight: bold;">✅ ¡Toda la configuración oficial (voces, audios, tiempos y oraciones) ha sido sincronizada desde la nube!</span>';
+                    }
+                    showRosaryToast('☁️ ¡Todo cargado y sincronizado desde la nube con éxito!');
+                } else {
+                    throw new Error('Servicio en la nube no conectado');
+                }
+            } catch (err) {
+                console.error('Error al cargar todo desde Firestore:', err);
+                if (titleEl) titleEl.innerText = '❌ Error al cargar';
+                if (profileDataStatusMsg) {
+                    profileDataStatusMsg.innerHTML = `<span style="color: #f87171; font-weight: bold;">❌ Error al sincronizar: ${err.message || 'Sin conexión'}</span>`;
+                }
+                showRosaryToast('❌ Error al cargar desde la nube');
+            } finally {
+                setTimeout(() => {
+                    btnLoadAll.disabled = false;
+                    if (titleEl) titleEl.innerText = originalTitle;
+                }, 3000);
+            }
+        });
+    }
+
     if (btnGoogleSignin) {
         btnGoogleSignin.addEventListener('click', async () => {
             try {
@@ -4047,6 +4224,75 @@ function setupVoiceManagement() {
         syncVoiceSelect.addEventListener('change', (e) => handleVoiceChange(e.target.value));
     }
 
+    function findOptionValueForPrayer(sel, prayerKey, preferredVal, isMujerVoice) {
+        if (!sel || !sel.options || sel.options.length <= 1) return '';
+
+        // 1. Si preferredVal coincide con una opción existente, seleccionarlo directamente
+        if (preferredVal) {
+            for (let i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].value === preferredVal) {
+                    return preferredVal;
+                }
+            }
+            // Probar coincidencia por nombre o valor normalizado
+            const normPref = (typeof normAudioStr === 'function') ? normAudioStr(preferredVal) : preferredVal.toLowerCase();
+            for (let i = 0; i < sel.options.length; i++) {
+                const opt = sel.options[i];
+                if (opt.value) {
+                    const normVal = (typeof normAudioStr === 'function') ? normAudioStr(opt.value) : opt.value.toLowerCase();
+                    const normTxt = (typeof normAudioStr === 'function') ? normAudioStr(opt.textContent) : opt.textContent.toLowerCase();
+                    if (normVal === normPref || normTxt === normPref) {
+                        return opt.value;
+                    }
+                }
+            }
+        }
+
+        // 2. Búsqueda por términos litúrgicos oficiales en las opciones reales del DOM
+        const searchTerms = {
+            crucifix_intro: ['sys_senaldelacruz', 'senaldelacruz', 'cruz'],
+            credo: ['sys_credo', 'credo'],
+            intro_pn: ['sys_sumopontifice', 'sumopontifice'],
+            padre_nuestro: ['sys_padrenuestro', 'padrenuestro'],
+            gloria: ['sys_gloria', 'gloria'],
+            ave_maria: isMujerVoice ? ['sys_avemaria_m', 'avemariamujer', 'avemaria_m', 'avemaria'] : ['sys_avemaria', 'avemaria'],
+            ave_maria_gloria: isMujerVoice ? ['sys_avemaria_gloria_m', 'avemariagloriamujer', 'avemariagloria_m', 'avemariagloria'] : ['sys_avemaria_gloria', 'avemariagloria'],
+            pedir_gracia: ['sys_pedirgracia', 'pedirgracia', 'gracia'],
+            salve: ['sys_diostesalve', 'diostesalve', 'salve'],
+            letanias: ['sys_letanias', 'letanias'],
+            oracion_final: ['sys_oracion', 'oracion']
+        };
+
+        const terms = searchTerms[prayerKey] || [];
+
+        // Coincidencia exacta por ID de opción
+        for (const term of terms) {
+            for (let i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].value === term) {
+                    return term;
+                }
+            }
+        }
+
+        // Coincidencia por texto legible de la opción en pantalla
+        for (const term of terms) {
+            const normT = (typeof normAudioStr === 'function') ? normAudioStr(term) : term.toLowerCase();
+            for (let i = 0; i < sel.options.length; i++) {
+                const opt = sel.options[i];
+                if (!opt.value) continue;
+                const normText = (typeof normAudioStr === 'function') ? normAudioStr(opt.textContent) : opt.textContent.toLowerCase();
+                if (prayerKey === 'gloria' && normText.includes('ave')) continue;
+                if (prayerKey === 'ave_maria' && normText.includes('gloria')) continue;
+
+                if (normText === normT || normText.includes(normT) || normT.includes(normText)) {
+                    return opt.value;
+                }
+            }
+        }
+
+        return '';
+    }
+
     async function populateTemplateSelects(templates = {}) {
         const allAudios = window.RosaryAudioStore ? await window.RosaryAudioStore.getAllAudios() : [];
         const templateKeys = [
@@ -4054,6 +4300,8 @@ function setupVoiceManagement() {
             'gloria', 'credo', 'crucifix_intro', 'pedir_gracia',
             'salve', 'letanias', 'oracion_final'
         ];
+
+        const isMujerVoice = (currentEditingVoiceId === 'voice_mujer');
 
         templateKeys.forEach(key => {
             const sel = document.getElementById(`voice-template-${key}`);
@@ -4074,34 +4322,9 @@ function setupVoiceManagement() {
                 sel.appendChild(opt);
             });
 
-            let currentVal = templates[key] || '';
-            // Si el valor guardado no coincide con ningún audio disponible en este equipo, resolver fallback
-            if (currentVal && !allAudios.some(a => a.id === currentVal)) {
-                const normVal = (typeof normAudioStr === 'function') ? normAudioStr(currentVal) : currentVal.toLowerCase();
-                const matchByName = allAudios.find(a =>
-                    normAudioStr(a.id) === normVal ||
-                    normAudioStr(a.name) === normVal ||
-                    normAudioStr(a.fileName) === normVal
-                );
-                currentVal = matchByName ? matchByName.id : '';
-            }
-
-            if (!currentVal) {
-                const isMujerVoice = (currentEditingVoiceId === 'voice_mujer');
-                if (key === 'crucifix_intro') currentVal = 'sys_senaldelacruz';
-                else if (key === 'credo') currentVal = 'sys_credo';
-                else if (key === 'intro_pn') currentVal = 'sys_sumopontifice';
-                else if (key === 'padre_nuestro') currentVal = 'sys_padrenuestro';
-                else if (key === 'gloria') currentVal = 'sys_gloria';
-                else if (key === 'ave_maria') currentVal = isMujerVoice ? 'sys_avemaria_m' : 'sys_avemaria';
-                else if (key === 'ave_maria_gloria') currentVal = isMujerVoice ? 'sys_avemaria_gloria_m' : 'sys_avemaria_gloria';
-                else if (key === 'pedir_gracia') currentVal = 'sys_pedirgracia';
-                else if (key === 'salve') currentVal = 'sys_diostesalve';
-                else if (key === 'letanias') currentVal = 'sys_letanias';
-                else if (key === 'oracion_final') currentVal = 'sys_oracion';
-            }
-
-            sel.value = currentVal;
+            // Encontrar y seleccionar el valor de opción correspondiente
+            const chosenValue = findOptionValueForPrayer(sel, key, templates[key], isMujerVoice);
+            sel.value = chosenValue;
         });
 
         // Configurar botones de reproducción de prueba
@@ -4194,6 +4417,7 @@ function setupVoiceManagement() {
     if (btnVoiceConfigSave) {
         btnVoiceConfigSave.addEventListener('click', async () => {
             if (!currentEditingVoiceId || !window.RosaryVoices) return;
+            const allAudios = window.RosaryAudioStore ? await window.RosaryAudioStore.getAllAudios() : [];
             const templateKeys = [
                 'ave_maria', 'ave_maria_gloria', 'padre_nuestro', 'intro_pn',
                 'gloria', 'credo', 'crucifix_intro', 'pedir_gracia',
@@ -4202,7 +4426,23 @@ function setupVoiceManagement() {
             const updatedTemplates = {};
             templateKeys.forEach(k => {
                 const sel = document.getElementById(`voice-template-${k}`);
-                if (sel && sel.value) updatedTemplates[k] = sel.value;
+                if (sel && sel.value) {
+                    let val = sel.value;
+                    const audObj = allAudios.find(a => a.id === val);
+                    if (audObj && window.SYSTEM_AUDIO_CATALOG) {
+                        const nName = (typeof normAudioStr === 'function') ? normAudioStr(audObj.name) : audObj.name.toLowerCase();
+                        const nFile = (typeof normAudioStr === 'function') ? normAudioStr(audObj.fileName ? audObj.fileName.replace(/\.[^/.]+$/, '') : '') : '';
+                        const sysMatch = window.SYSTEM_AUDIO_CATALOG.find(s =>
+                            s.id === val ||
+                            normAudioStr(s.name) === nName ||
+                            normAudioStr(s.fileName ? s.fileName.replace(/\.[^/.]+$/, '') : '') === nFile
+                        );
+                        if (sysMatch) {
+                            val = sysMatch.id;
+                        }
+                    }
+                    updatedTemplates[k] = val;
+                }
             });
 
             const newName = voiceNameInput ? voiceNameInput.value.trim() : '';

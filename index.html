@@ -1187,6 +1187,29 @@
                         </label>
                     </div>
                 </div>
+
+                <!-- Sección de Sincronización y Mantenimiento de Caché -->
+                <div class="profile-section-card data-management-card">
+                    <h3 class="profile-section-title">🔄 Sincronización y Caché</h3>
+                    <p class="profile-setting-desc">Si notas diferencias de audio o deseas actualizar toda la configuración oficial desde la nube:</p>
+                    <div class="profile-data-buttons-row">
+                        <button type="button" id="btn-profile-clear-cache" class="btn-data-action btn-clear-cache" title="Elimina la caché local y datos temporales para resolver problemas de carga">
+                            <span class="btn-data-icon">🧹</span>
+                            <div class="btn-data-texts">
+                                <span class="btn-data-title">Limpieza de la Caché</span>
+                                <span class="btn-data-desc">Restablece caché local y recarga</span>
+                            </div>
+                        </button>
+                        <button type="button" id="btn-profile-load-all" class="btn-data-action btn-load-all" title="Descarga y sincroniza de inmediato todos los datos, voces y audios desde la nube (Firestore)">
+                            <span class="btn-data-icon">☁️</span>
+                            <div class="btn-data-texts">
+                                <span class="btn-data-title">Cargar Todo</span>
+                                <span class="btn-data-desc">Trae toda la configuración de la nube</span>
+                            </div>
+                        </button>
+                    </div>
+                    <div id="profile-data-status-msg" class="profile-data-status-msg"></div>
+                </div>
             </div>
 
             <div class="profile-modal-footer">

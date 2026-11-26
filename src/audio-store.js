@@ -642,43 +642,46 @@ const RosaryVoiceManager = (function() {
         const t = Object.assign({}, v.templates);
         let count = 0;
 
-        availableAudios.forEach(aud => {
+        const audios = (availableAudios && availableAudios.length > 0) ? availableAudios : SYSTEM_AUDIO_CATALOG;
+
+        audios.forEach(aud => {
             const aNorm = normAudioStr(aud.name);
             const fNorm = normAudioStr(aud.fileName);
             const combined = `${aNorm} ${fNorm}`;
-            const matchesVoice = vNorm ? combined.includes(vNorm) : true;
+            const isAve = combined.includes('avemaria');
+            const matchesVoice = (isAve && vNorm) ? combined.includes(vNorm) : true;
 
             if ((combined.includes('avemariagloria') || (combined.includes('avemaria') && combined.includes('gloria'))) && matchesVoice) {
                 t.ave_maria_gloria = aud.id;
                 count++;
-            } else if ((combined.includes('avemaria') || combined.includes('hailmary')) && !combined.includes('gloria') && matchesVoice) {
+            } else if (isAve && !combined.includes('gloria') && matchesVoice) {
                 t.ave_maria = aud.id;
                 count++;
-            } else if ((combined.includes('padrenuestro') || combined.includes('ourfather')) && matchesVoice) {
+            } else if (combined.includes('padrenuestro') || combined.includes('ourfather')) {
                 t.padre_nuestro = aud.id;
                 count++;
-            } else if ((combined.includes('sumopontifice') || combined.includes('papa')) && matchesVoice) {
+            } else if (combined.includes('sumopontifice') || combined.includes('papa')) {
                 t.intro_pn = aud.id;
                 count++;
-            } else if ((combined.includes('gloria') || combined.includes('glory')) && !combined.includes('avemaria') && matchesVoice) {
+            } else if ((combined.includes('gloria') || combined.includes('glory')) && !isAve) {
                 t.gloria = aud.id;
                 count++;
-            } else if ((combined.includes('credo') || combined.includes('creed')) && matchesVoice) {
+            } else if (combined.includes('credo') || combined.includes('creed')) {
                 t.credo = aud.id;
                 count++;
-            } else if ((combined.includes('senaldelacruz') || combined.includes('cruz')) && matchesVoice) {
+            } else if (combined.includes('senaldelacruz') || combined.includes('cruz')) {
                 t.crucifix_intro = aud.id;
                 count++;
-            } else if ((combined.includes('pedirgracia') || combined.includes('gracia')) && matchesVoice) {
+            } else if (combined.includes('pedirgracia') || combined.includes('gracia')) {
                 t.pedir_gracia = aud.id;
                 count++;
-            } else if ((combined.includes('diostesalve') || combined.includes('salve')) && matchesVoice) {
+            } else if (combined.includes('diostesalve') || combined.includes('salve')) {
                 t.salve = aud.id;
                 count++;
-            } else if ((combined.includes('letania') || combined.includes('litany')) && matchesVoice) {
+            } else if (combined.includes('letania') || combined.includes('litany')) {
                 t.letanias = aud.id;
                 count++;
-            } else if ((combined.includes('oracion') || combined.includes('conclusion')) && matchesVoice) {
+            } else if (combined.includes('oracion') || combined.includes('conclusion')) {
                 t.oracion_final = aud.id;
                 count++;
             }

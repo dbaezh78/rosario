@@ -4110,6 +4110,85 @@ body[data-theme="dark"] {
     border-color: var(--border-gold);
 }
 
+/* Sección de Sincronización y Caché en Ajustes */
+.profile-data-buttons-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.btn-data-action {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-gold-subtle);
+    border-radius: 10px;
+    color: var(--text-color);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+
+.btn-data-action:hover {
+    background: rgba(212, 175, 55, 0.12);
+    border-color: var(--gold-bright);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.btn-data-action:active {
+    transform: translateY(0);
+}
+
+.btn-clear-cache:hover {
+    border-color: #f87171;
+    background: rgba(239, 68, 68, 0.12);
+}
+
+.btn-load-all:hover {
+    border-color: #60a5fa;
+    background: rgba(59, 130, 246, 0.14);
+}
+
+.btn-data-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.btn-data-texts {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.btn-data-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--gold-bright);
+}
+
+.btn-clear-cache .btn-data-title {
+    color: #fca5a5;
+}
+
+.btn-load-all .btn-data-title {
+    color: #93c5fd;
+}
+
+.btn-data-desc {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.profile-data-status-msg {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    min-height: 20px;
+}
+
 .profile-modal-footer {
     display: flex;
     justify-content: flex-end;
