@@ -974,18 +974,33 @@ async function playSegmentedRosary(stepIndex) {
         });
     }
 
-    // Buscar audio asignado para este paso
+    // Buscar audio asignado para este paso respetando estrictamente el perfil de voz activo
     const allAudios = window.RosaryAudioStore ? await window.RosaryAudioStore.getAllAudios() : [];
+    const activeVoice = window.RosaryVoices ? window.RosaryVoices.getVoice(window.RosaryVoices.getActiveVoiceId()) : null;
+    const isMujer = activeVoice ? (activeVoice.id === 'voice_mujer' || normAudioStr(activeVoice.name).includes('mujer')) : true;
+    const isDavid = activeVoice ? (activeVoice.id === 'voice_david' || normAudioStr(activeVoice.name).includes('david')) : false;
+    const vT = activeVoice ? (activeVoice.templates || {}) : {};
+
     const assignments = window.RosaryAudioAssignments ? window.RosaryAudioAssignments.getAssignments(lang, mystery, allAudios) : {};
     let audioId = assignments[step.key];
 
-    // Fallback directo completo por plantilla de voz o catálogo si no tuviera asignación
-    const activeVoice = window.RosaryVoices ? window.RosaryVoices.getVoice(window.RosaryVoices.getActiveVoiceId()) : null;
-    const vT = activeVoice ? (activeVoice.templates || {}) : {};
+    // Protección y resolución estricta basada en el perfil de voz activo:
+    const isAveMaria = (step.type === 'ave_maria' || step.key.includes('_am_'));
+    const isWithGloria = (step.key === 'intro_am_3' || step.key.endsWith('_am_10'));
+
+    if (isMujer && isAveMaria) {
+        if (!audioId || audioId === 'sys_avemaria' || audioId === 'sys_avemaria_gloria' || normAudioStr(audioId) === 'avemaria' || normAudioStr(audioId) === 'avemariagloria') {
+            audioId = isWithGloria ? (vT.ave_maria_gloria || 'sys_avemaria_gloria_m') : (vT.ave_maria || 'sys_avemaria_m');
+        }
+    } else if (isDavid && isAveMaria) {
+        if (!audioId || audioId === 'sys_avemaria_m' || audioId === 'sys_avemaria_gloria_m' || normAudioStr(audioId).includes('mujer')) {
+            audioId = isWithGloria ? (vT.ave_maria_gloria || 'sys_avemaria_gloria') : (vT.ave_maria || 'sys_avemaria');
+        }
+    }
 
     if (!audioId && typeof normAudioStr === 'function') {
-        if (step.key === 'intro_am_3' || step.key.endsWith('_am_10')) audioId = vT.ave_maria_gloria || 'sys_avemaria_gloria';
-        else if (step.type === 'ave_maria' || step.key.includes('_am_')) audioId = vT.ave_maria || 'sys_avemaria';
+        if (isWithGloria) audioId = isMujer ? (vT.ave_maria_gloria || 'sys_avemaria_gloria_m') : (vT.ave_maria_gloria || 'sys_avemaria_gloria');
+        else if (isAveMaria) audioId = isMujer ? (vT.ave_maria || 'sys_avemaria_m') : (vT.ave_maria || 'sys_avemaria');
         else if (step.type === 'padre_nuestro' || step.key.includes('_pn')) {
             if (step.key === 'intro_pn') audioId = vT.intro_pn || vT.padre_nuestro || 'sys_sumopontifice';
             else audioId = vT.padre_nuestro || 'sys_padrenuestro';
@@ -1750,7 +1765,27 @@ async function renderSyncItems(lang, mystery) {
         `;
 
         sec.items.forEach(item => {
-            const assignedAudioId = assignments[item.key] || '';
+            let assignedAudioId = assignments[item.key] || '';
+            const activeVoice = window.RosaryVoices ? window.RosaryVoices.getVoice(window.RosaryVoices.getActiveVoiceId()) : null;
+            const isMujer = activeVoice ? (activeVoice.id === 'voice_mujer' || normAudioStr(activeVoice.name).includes('mujer')) : true;
+            const isDavid = activeVoice ? (activeVoice.id === 'voice_david' || normAudioStr(activeVoice.name).includes('david')) : false;
+
+            // Descartar audio si no coincide con el género de la voz activa
+            if (isMujer && item.key.includes('_am_')) {
+                if (assignedAudioId === 'sys_avemaria' || assignedAudioId === 'sys_avemaria_gloria' || normAudioStr(assignedAudioId) === 'avemaria' || normAudioStr(assignedAudioId) === 'avemariagloria') {
+                    assignedAudioId = '';
+                }
+            } else if (isDavid && item.key.includes('_am_')) {
+                if (assignedAudioId === 'sys_avemaria_m' || assignedAudioId === 'sys_avemaria_gloria_m' || normAudioStr(assignedAudioId).includes('mujer')) {
+                    assignedAudioId = '';
+                }
+            }
+
+            // Si no hay asignación válida, consultar directamente la plantilla de la voz activa
+            if (!assignedAudioId && window.RosaryVoices && typeof window.RosaryVoices.getAudioIdForVoiceItem === 'function') {
+                assignedAudioId = window.RosaryVoices.getAudioIdForVoiceItem(activeVoice, item.key, mystery, allAudios);
+            }
+
             const normAssigned = (typeof normAudioStr === 'function') ? normAudioStr(assignedAudioId) : (assignedAudioId || '').toLowerCase();
 
             html += `
@@ -1787,59 +1822,13 @@ async function renderSyncItems(lang, mystery) {
                     }
                 }
 
-                // 2. Fallback litúrgico de alta confiabilidad: NUNCA dejar sin asignar si hay audios disponibles
+                // 2. Fallback litúrgico de alta confiabilidad por plantilla de la voz activa
                 if (!matchedOptionId && allAudios.length > 0) {
-                    const k = (item.key || '').toLowerCase();
-                    const activeVoiceId = window.RosaryVoices ? window.RosaryVoices.getActiveVoiceId() : 'voice_mujer';
-                    const isMujer = (activeVoiceId === 'voice_mujer');
-                    let targetSysId = null;
-
-                    if (k === 'crucifix_intro') targetSysId = 'sys_senaldelacruz';
-                    else if (k === 'credo') targetSysId = 'sys_credo';
-                    else if (k === 'intro_pn') targetSysId = 'sys_sumopontifice';
-                    else if (k.includes('_pn') || k === 'padrenuestro') targetSysId = 'sys_padrenuestro';
-                    else if (k.includes('_gl') || k === 'intro_gloria') targetSysId = 'sys_gloria';
-                    else if (k.endsWith('_am_10') || k === 'intro_am_3') {
-                        targetSysId = isMujer ? 'sys_avemaria_gloria_m' : 'sys_avemaria_gloria';
-                    }
-                    else if (k.includes('_am_') || k.startsWith('intro_am_')) {
-                        targetSysId = isMujer ? 'sys_avemaria_m' : 'sys_avemaria';
-                    }
-                    else if (k === 'salve') targetSysId = 'sys_diostesalve';
-                    else if (k === 'letanias') targetSysId = 'sys_letanias';
-                    else if (k === 'oracion_final') targetSysId = 'sys_oracion';
-                    else if (k === 'pedir_gracia') targetSysId = 'sys_pedirgracia';
-                    else if (k.includes('meditacion')) {
-                        const mNorm = (activeSyncMystery || '').toLowerCase();
-                        if (mNorm.includes('glorios')) {
-                            if (k.startsWith('d1')) targetSysId = 'sys_gloriosos1';
-                            else if (k.startsWith('d2')) targetSysId = 'sys_gloriosos2';
-                            else if (k.startsWith('d3')) targetSysId = 'sys_gloriosos3';
-                            else if (k.startsWith('d4')) targetSysId = 'sys_gloriosos4';
-                            else if (k.startsWith('d5')) targetSysId = 'sys_gloriosos5';
-                        } else if (mNorm.includes('gozos')) {
-                            if (k.startsWith('d1')) targetSysId = 'sys_1gozoso';
-                            else if (k.startsWith('d2')) targetSysId = 'sys_2gozoso';
-                            else if (k.startsWith('d3')) targetSysId = 'sys_3gozoso';
-                            else if (k.startsWith('d4')) targetSysId = 'sys_4gozoso';
-                            else if (k.startsWith('d5')) targetSysId = 'sys_5gozoso';
-                        } else if (mNorm.includes('dolor')) {
-                            if (k.startsWith('d1')) targetSysId = 'sys_dolorosos1';
-                            else if (k.startsWith('d2')) targetSysId = 'sys_dolorosos2';
-                            else if (k.startsWith('d3')) targetSysId = 'sys_dolorosos3';
-                            else if (k.startsWith('d4')) targetSysId = 'sys_dolorosos4';
-                            else if (k.startsWith('d5')) targetSysId = 'sys_dolorosos5';
-                        } else if (mNorm.includes('luminos')) {
-                            if (k.startsWith('d1')) targetSysId = 'sys_luminosos1';
-                            else if (k.startsWith('d2')) targetSysId = 'sys_luminosos2';
-                            else if (k.startsWith('d3')) targetSysId = 'sys_luminosos3';
-                            else if (k.startsWith('d4')) targetSysId = 'sys_luminosos4';
-                            else if (k.startsWith('d5')) targetSysId = 'sys_luminosos5';
-                        }
-                    }
-
-                    if (targetSysId && allAudios.some(a => a.id === targetSysId)) {
-                        matchedOptionId = targetSysId;
+                    const fallbackSysId = (window.RosaryVoices && typeof window.RosaryVoices.getAudioIdForVoiceItem === 'function')
+                        ? window.RosaryVoices.getAudioIdForVoiceItem(activeVoice, item.key, mystery, allAudios)
+                        : null;
+                    if (fallbackSysId && allAudios.some(a => a.id === fallbackSysId)) {
+                        matchedOptionId = fallbackSysId;
                     }
                 }
 
@@ -1940,6 +1929,54 @@ async function renderSyncItems(lang, mystery) {
         const btnPlaySegment = row.querySelector('.btn-sync-play-segment');
         const btnClearSegment = row.querySelector('.btn-sync-clear-segment');
 
+        function applySegmentAudioAssignment(val) {
+            if (window.RosaryAudioAssignments) {
+                window.RosaryAudioAssignments.setAssignment(lang, mystery, rowKey, val);
+            }
+            if (audioSelect) {
+                audioSelect.value = val || '';
+                audioSelect.classList.toggle('has-audio', !!val);
+            }
+            row.classList.add('modified');
+            if (syncStatusMsg) {
+                syncStatusMsg.innerHTML = `🎵 Audio ${val ? 'asignado' : 'desasignado'} para: <strong>${itemTitle}</strong>`;
+            }
+
+            // Propagar a la plantilla del perfil de voz activo para mantener sincronía en todas las cuentas de este tipo
+            if (window.RosaryVoices && typeof window.RosaryVoices.getTemplateKeyForItemKey === 'function') {
+                const tKey = window.RosaryVoices.getTemplateKeyForItemKey(rowKey);
+                const activeVoiceId = window.RosaryVoices.getActiveVoiceId();
+                const curVoice = window.RosaryVoices.getVoice(activeVoiceId);
+                if (tKey && tKey !== 'meditacion' && curVoice && curVoice.templates) {
+                    curVoice.templates[tKey] = val || '';
+                    window.RosaryVoices.updateVoice(activeVoiceId, curVoice);
+
+                    // Actualizar de inmediato todos los demás selects del mismo tipo en la tabla en pantalla
+                    if (syncListContainer) {
+                        syncListContainer.querySelectorAll('.sync-item-row').forEach(otherRow => {
+                            const otherKey = otherRow.getAttribute('data-key');
+                            if (otherKey && window.RosaryVoices.getTemplateKeyForItemKey(otherKey) === tKey) {
+                                const otherSel = otherRow.querySelector('.sync-audio-select');
+                                if (otherSel && otherSel !== audioSelect) {
+                                    otherSel.value = val || '';
+                                    otherSel.classList.toggle('has-audio', !!val);
+                                    otherRow.classList.add('modified');
+                                }
+                            }
+                        });
+                    }
+
+                    if (window.RosaryCloud && typeof window.RosaryCloud.saveVoicesToCloud === 'function') {
+                        window.RosaryCloud.saveVoicesToCloud(
+                            window.RosaryVoices.getVoices(),
+                            activeVoiceId,
+                            window.RosaryVoices.getDefaultVoiceId()
+                        ).catch(() => {});
+                    }
+                }
+            }
+        }
+
         if (audioSelect) {
             audioSelect.addEventListener('change', async () => {
                 const val = audioSelect.value;
@@ -1952,7 +1989,7 @@ async function renderSyncItems(lang, mystery) {
                             const f = fileInput.files[0];
                             if (window.RosaryAudioStore) {
                                 const record = await window.RosaryAudioStore.saveAudio(f);
-                                window.RosaryAudioAssignments.setAssignment(lang, mystery, rowKey, record.id);
+                                applySegmentAudioAssignment(record.id);
                                 await renderSyncItems(lang, mystery);
                                 showRosaryToast(`🎵 Audio "${record.name}" subido y asignado.`);
                             }
@@ -1964,14 +2001,7 @@ async function renderSyncItems(lang, mystery) {
                     return;
                 }
 
-                if (window.RosaryAudioAssignments) {
-                    window.RosaryAudioAssignments.setAssignment(lang, mystery, rowKey, val);
-                }
-                audioSelect.classList.toggle('has-audio', !!val);
-                row.classList.add('modified');
-                if (syncStatusMsg) {
-                    syncStatusMsg.innerHTML = `🎵 Audio ${val ? 'asignado' : 'desasignado'} para: <strong>${itemTitle}</strong>`;
-                }
+                applySegmentAudioAssignment(val);
             });
         }
 
@@ -2004,17 +2034,7 @@ async function renderSyncItems(lang, mystery) {
 
         if (btnClearSegment) {
             btnClearSegment.addEventListener('click', () => {
-                if (window.RosaryAudioAssignments) {
-                    window.RosaryAudioAssignments.setAssignment(lang, mystery, rowKey, null);
-                }
-                if (audioSelect) {
-                    audioSelect.value = '';
-                    audioSelect.classList.remove('has-audio');
-                }
-                row.classList.add('modified');
-                if (syncStatusMsg) {
-                    syncStatusMsg.innerHTML = `🗑️ Audio quitado de: <strong>${itemTitle}</strong>`;
-                }
+                applySegmentAudioAssignment(null);
             });
         }
 
